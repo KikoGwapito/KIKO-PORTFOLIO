@@ -1,0 +1,225 @@
+{
+  "hero": {
+    "title": "I build digital experiences that convert.",
+    "subtitle": "Senior Frontend Developer & CRO Specialist. I transform complex problems into elegant, high-performance web applications that drive business growth.",
+    "buttonText": "View My Work",
+    "buttonLink": "#work",
+    "secondaryButtonText": "Read My Process",
+    "secondaryButtonLink": "/process",
+    "media": {
+      "type": "image",
+      "url": "https://picsum.photos/seed/workspace/800/1000",
+      "className": ""
+    }
+  },
+  "trust": {
+    "title": "Trusted by innovative teams",
+    "logos": [
+      "ACME Corp",
+      "GlobalTech",
+      "Nexus",
+      "Stark"
+    ],
+    "quote": "\"The attention to detail and focus on performance completely transformed our conversion rates. An absolute game-changer for our product.\"",
+    "authorName": "Sarah Jenkins",
+    "authorRole": "VP of Product, TechFlow",
+    "authorImage": "https://picsum.photos/seed/portrait/100/100"
+  },
+  "featuredWork": {
+    "title": "Featured `Work`"
+  },
+  "pageTitle": {
+    "title": "GWA`PITO`",
+    "logo": ""
+  },
+  "about": {
+    "title": "About Me",
+    "content": [
+      "I am a passionate developer with a keen eye for design and a focus on performance."
+    ],
+    "image": "https://res.cloudinary.com/dyvjvwc9x/image/upload/v1774081255/ygda4cndyfqtwrxkjvhg.jpg",
+    "experience": []
+  },
+  "process": {
+    "title": "My Process",
+    "subtitle": "I follow a user-centered design process, starting with research and ending with a polished, accessible product.",
+    "steps": [],
+    "media": []
+  },
+  "contact": {
+    "title": "Get in Touch",
+    "subtitle": "I am always open to discussing new projects, creative ideas or opportunities to be part of your visions.",
+    "email": "francisestologa@gmail.com",
+    "socials": [],
+    "media": []
+  },
+  "theme": {
+    "primaryColor": "#10b981",
+    "cursorColor": "#10b981",
+    "backgroundColor": "#09090b",
+    "headerColor": "#09090b",
+    "footerColor": "#09090b",
+    "animationSpeed": 3
+  },
+  "reviews": {
+    "enabled": true,
+    "list": []
+  },
+  "projects": {
+    "fintech": {
+      "title": "Fintech Dashboard",
+      "description": "Redesigned the core user flow, resulting in a 42% increase in successful onboarding completions.",
+      "longDescription": "For this fintech startup, the primary challenge was a high drop-off rate during the complex KYC (Know Your Customer) onboarding process. By breaking down the forms into manageable, bite-sized steps and introducing real-time validation with clear error states, we significantly reduced cognitive load. The result was a 42% increase in completed onboardings and a 30% reduction in support tickets related to account creation.",
+      "images": [
+        {
+          "type": "video",
+          "url": "https://storage.googleapis.com/gtv-videos-bucket/sample/VolkswagenGTIReview.mp4",
+          "className": "col-span-1 md:col-span-2 aspect-[16/9]"
+        },
+        {
+          "type": "video",
+          "url": "https://storage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4",
+          "className": "col-span-1 aspect-[16/9]"
+        },
+        {
+          "type": "video",
+          "url": "https://storage.googleapis.com/gtv-videos-bucket/sample/WhatCarCanYouGetForAGrand.mp4",
+          "className": "col-span-1 aspect-[16/9]"
+        },
+        {
+          "type": "video",
+          "url": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+          "className": "col-span-1 md:col-span-2 aspect-[21/9]"
+        },
+        {
+          "type": "comparison",
+          "url": "https://res.cloudinary.com/dyvjvwc9x/image/upload/v1774030955/z1vdau2a0jabsetdimf4.png",
+          "className": "w-full h-auto",
+          "secondUrl": "https://res.cloudinary.com/dyvjvwc9x/image/upload/v1774030970/tbg9unjsaay0d4bo3cyf.png"
+        },
+        {
+          "type": "video",
+          "url": "https://res.cloudinary.com/dyvjvwc9x/video/upload/v1774033473/rebq4ahebqwq6f18rnbc.mov",
+          "className": "w-full h-auto"
+        }
+      ],
+      "galleryGrid": "md:grid-cols-2",
+      "role": "Lead UX/UI Designer",
+      "timeline": "3 Months",
+      "tech": [
+        "React",
+        "TypeScript",
+        "Tailwind CSS",
+        "Recharts"
+      ]
+    },
+    "ecommerce": {
+      "title": "E-Commerce Platform",
+      "description": "Optimized checkout architecture and mobile responsiveness, dropping cart abandonment by 18%.",
+      "longDescription": "A major retail brand was experiencing high cart abandonment on mobile devices. I led the frontend rebuild of their checkout flow, implementing a single-page checkout experience with Apple Pay and Google Pay integration. We also optimized image loading and reduced the JavaScript bundle size by 40%, leading to a sub-second time-to-interactive on 3G networks.",
+      "images": [
+        {
+          "type": "video",
+          "url": "https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+          "className": "col-span-1 aspect-[9/16]"
+        },
+        {
+          "type": "video",
+          "url": "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+          "className": "col-span-1 aspect-[9/16]"
+        },
+        {
+          "type": "video",
+          "url": "https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+          "className": "col-span-1 aspect-[9/16]"
+        }
+      ],
+      "galleryGrid": "md:grid-cols-3",
+      "role": "Frontend Engineer",
+      "timeline": "4 Months",
+      "tech": [
+        "Next.js",
+        "Stripe",
+        "Zustand",
+        "Framer Motion"
+      ]
+    },
+    "saas": {
+      "title": "SaaS Marketing Site",
+      "description": "Built a blazing fast static site with Next.js, achieving 100/100 Lighthouse scores across the board.",
+      "longDescription": "This B2B SaaS company needed a marketing site that reflected the speed and reliability of their core product. I architected a static site using Next.js and MDX for their blog. By heavily utilizing Next.js Image optimization, strict component lazy loading, and edge caching, we achieved perfect Lighthouse scores, which directly contributed to a 25% increase in organic search traffic.",
+      "images": [
+        {
+          "type": "video",
+          "url": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+          "className": "col-span-1 md:col-span-2 aspect-[16/9]"
+        },
+        {
+          "type": "video",
+          "url": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+          "className": "col-span-1 aspect-[16/9]"
+        },
+        {
+          "type": "video",
+          "url": "https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+          "className": "col-span-1 aspect-[16/9]"
+        }
+      ],
+      "galleryGrid": "md:grid-cols-2",
+      "role": "Full Stack Developer",
+      "timeline": "2 Months",
+      "tech": [
+        "Next.js",
+        "Tailwind CSS",
+        "MDX",
+        "Vercel"
+      ]
+    },
+    "healthtech": {
+      "title": "HealthTech App",
+      "description": "Implemented an accessible component library compliant with WCAG 2.1 AA standards.",
+      "longDescription": "In the healthcare sector, accessibility is not just a feature—it is a requirement. I was brought in to audit and rebuild the core UI components of a patient portal. I established a comprehensive design system with strict contrast ratios, full keyboard navigability, and robust screen reader support. The new system was adopted across 4 different product teams.",
+      "images": [
+        {
+          "type": "image",
+          "url": "https://picsum.photos/seed/health_landscape/1200/800",
+          "className": "col-span-1 md:col-span-2 aspect-[16/9]"
+        },
+        {
+          "type": "image",
+          "url": "https://picsum.photos/seed/health_portrait/800/1200",
+          "className": "col-span-1 aspect-[3/4]"
+        },
+        {
+          "type": "image",
+          "url": "https://picsum.photos/seed/health_square/800/800",
+          "className": "col-span-1 aspect-square"
+        },
+        {
+          "type": "image",
+          "url": "https://picsum.photos/seed/health_wide/1200/500",
+          "className": "col-span-1 md:col-span-2 aspect-[21/9]"
+        }
+      ],
+      "galleryGrid": "md:grid-cols-3",
+      "role": "Accessibility Consultant",
+      "timeline": "6 Months",
+      "tech": [
+        "React",
+        "TypeScript",
+        "Jest",
+        "Storybook"
+      ]
+    }
+  },
+  "projectOrder": [
+    "fintech",
+    "ecommerce",
+    "saas",
+    "healthtech"
+  ],
+  "cloudinary": {
+    "cloudName": "",
+    "uploadPreset": ""
+  }
+}
