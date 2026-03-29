@@ -7,16 +7,25 @@
 html {
   scroll-behavior: smooth;
   transition: filter 0.5s ease;
+  height: auto;
+  min-height: 100%;
+}
+
+body {
+  height: auto;
+  min-height: 100%;
+  overflow-x: clip;
 }
 
 html.light-mode {
   filter: invert(1) hue-rotate(180deg);
+  --base-filter: invert(1) hue-rotate(180deg);
 }
 
 html.light-mode img, 
 html.light-mode video,
 html.light-mode .no-invert {
-  filter: invert(1) hue-rotate(180deg);
+  filter: var(--base-filter);
 }
 
 body {
@@ -54,9 +63,19 @@ body {
   transition: all 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.group:hover .grayscale-hover {
+html.light-mode .grayscale-hover {
+  filter: var(--base-filter) grayscale(100%) contrast(1.1);
+}
+
+.group:hover .grayscale-hover,
+.grayscale-hover:hover {
   filter: grayscale(0%) contrast(1);
   transform: scale(1.02);
+}
+
+html.light-mode .group:hover .grayscale-hover,
+html.light-mode .grayscale-hover:hover {
+  filter: var(--base-filter) grayscale(0%) contrast(1);
 }
 
 @keyframes marquee {

@@ -101,6 +101,7 @@ export type ContactData = {
   title: string;
   subtitle: string;
   email: string;
+  address?: string;
   socials: { platform: string; url: string; username: string; }[];
   media: MediaItem[];
 };
@@ -259,6 +260,7 @@ const defaultData: AppData = {
     title: 'Get in Touch',
     subtitle: 'I am always open to discussing new projects, creative ideas or opportunities to be part of your visions.',
     email: 'francisestologa@gmail.com',
+    address: 'Manila, Philippines',
     socials: [],
     media: []
   },

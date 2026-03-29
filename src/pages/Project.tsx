@@ -159,6 +159,12 @@ export default function Project() {
   const heroOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
 
   useEffect(() => {
+    // Ensure scroll to top on initial load
+    window.scrollTo(0, 0);
+    if ((window as any).lenis) {
+      (window as any).lenis.scrollTo(0, { immediate: true });
+    }
+
     if (location.state?.openMediaIndex !== undefined && project) {
       const index = location.state.openMediaIndex;
       const media = project.images[index];
@@ -170,7 +176,7 @@ export default function Project() {
         }
       }, 500);
     }
-  }, [location.state, project]);
+  }, [location.state, project, location.pathname]);
 
   if (!project) {
     return (

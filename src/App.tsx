@@ -18,37 +18,20 @@ import { isConfigValid } from './firebase';
 import { formatTextWithAccent } from './utils/formatText';
 
 function ThemeToggle() {
-  const { data } = useAppData();
   const [isLightMode, setIsLightMode] = useState(false);
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('portfolio_theme');
-    const defaultMode = data.theme.defaultMode || 'dark';
-    
-    let isLight = false;
-    if (savedTheme) {
-      isLight = savedTheme === 'light';
-    } else {
-      isLight = defaultMode === 'light';
-    }
-    
+    const isLight = document.documentElement.classList.contains('light-mode');
     setIsLightMode(isLight);
-    if (isLight) {
-      document.documentElement.classList.add('light-mode');
-    } else {
-      document.documentElement.classList.remove('light-mode');
-    }
-  }, [data.theme.defaultMode]);
+  }, []);
 
   const toggleTheme = () => {
     const newMode = !isLightMode;
     setIsLightMode(newMode);
     if (newMode) {
       document.documentElement.classList.add('light-mode');
-      localStorage.setItem('portfolio_theme', 'light');
     } else {
       document.documentElement.classList.remove('light-mode');
-      localStorage.setItem('portfolio_theme', 'dark');
     }
   };
 
@@ -253,23 +236,9 @@ export default function App() {
     document.documentElement.style.setProperty('--color-primary', data.theme.primaryColor);
   }, [data.theme.primaryColor]);
 
-  useEffect(() => {
-    // Force home page on refresh
-    const navigationEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
-    if (navigationEntries.length > 0 && navigationEntries[0].type === 'reload') {
-      if (location.pathname !== '/' || !location.hash) {
-        navigate('/#work');
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [location.pathname]);
-
   return (
     <LenisProvider>
-      <div className="min-h-screen text-zinc-50 font-sans cursor-none overflow-x-hidden relative" style={{ backgroundColor: data.theme.backgroundColor, '--color-primary': data.theme.primaryColor } as React.CSSProperties}>
+      <div className="min-h-screen text-zinc-50 font-sans cursor-none relative" style={{ backgroundColor: data.theme.backgroundColor, '--color-primary': data.theme.primaryColor } as React.CSSProperties}>
         {/* Global Futuristic Background */}
         <div className="fixed inset-0 z-[-1] pointer-events-none">
           <div className="absolute inset-0 bg-grid opacity-20" />
@@ -390,10 +359,20 @@ export default function App() {
                   <span>Reviews</span>
                   <ArrowRight className="w-6 h-6 opacity-0 group-hover:opacity-100 -translate-x-4 group-hover:translate-x-0 transition-all" />
                 </Link>
-                <div className="flex justify-end mt-4">
-                  <Link to="/contact" onClick={closeMenu} className="px-8 py-4 rounded-full text-zinc-950 font-bold transition-all active:scale-95 text-lg" style={{ backgroundColor: data.theme.primaryColor }}>
-                    Contact Me
-                  </Link>
+                <div className="flex justify-center mt-8">
+                  <Magnetic strength={0.3}>
+                    <Link to="/contact" onClick={closeMenu}>
+                      <motion.div 
+                        className="px-10 py-4 rounded-full font-bold text-zinc-950 text-xl glow-primary"
+                        style={{ backgroundColor: data.theme.primaryColor }}
+                        whileHover={{ scale: 1.05, opacity: 0.9 }}
+                        whileTap={{ scale: 0.95 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        Contact Me
+                      </motion.div>
+                    </Link>
+                  </Magnetic>
                 </div>
               </nav>
             </motion.div>
@@ -430,8 +409,29 @@ export default function App() {
         >
           <div className="absolute inset-0 bg-grid opacity-10 pointer-events-none" />
           <div className="max-w-7xl mx-auto px-6 relative z-10">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-12 mb-24">
-              <div>
+            <div className="flex flex-col md:flex-row justify-between items-start gap-12 mb-24">
+              {/* Navigation First */}
+              <div className="flex flex-col gap-4 min-w-[200px]">
+                <Link to="/#work" className="text-xl font-medium hover:text-zinc-300 transition-colors flex items-center gap-2 group">
+                  <ArrowRight className="w-4 h-4 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all" style={{ color: data.theme.primaryColor }} />
+                  Work
+                </Link>
+                <Link to="/about" className="text-xl font-medium hover:text-zinc-300 transition-colors flex items-center gap-2 group">
+                  <ArrowRight className="w-4 h-4 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all" style={{ color: data.theme.primaryColor }} />
+                  About
+                </Link>
+                <Link to="/process" className="text-xl font-medium hover:text-zinc-300 transition-colors flex items-center gap-2 group">
+                  <ArrowRight className="w-4 h-4 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all" style={{ color: data.theme.primaryColor }} />
+                  Process
+                </Link>
+                <Link to="/reviews" className="text-xl font-medium hover:text-zinc-300 transition-colors flex items-center gap-2 group">
+                  <ArrowRight className="w-4 h-4 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all" style={{ color: data.theme.primaryColor }} />
+                  Reviews
+                </Link>
+              </div>
+
+              {/* Let's work together Middle */}
+              <div className="flex-1">
                 <h2 className="text-5xl md:text-8xl font-bold tracking-tighter mb-6 leading-none">
                   Let's work <br />
                   <span style={{ color: data.theme.primaryColor }}>together.</span>
@@ -447,7 +447,8 @@ export default function App() {
                 </Link>
               </div>
               
-              <div className="flex flex-col gap-4">
+              {/* Socials Last */}
+              <div className="flex flex-col gap-4 min-w-[200px]">
                 <h3 className="text-zinc-500 font-medium uppercase tracking-widest text-sm mb-2">Socials</h3>
                 {data.contact.socials?.map((link, i) => (
                   <a 
@@ -472,8 +473,7 @@ export default function App() {
                 <span className="truncate max-w-[200px] sm:max-w-none">{formatTextWithAccent(data.pageTitle.title, data.theme.primaryColor)}</span>
               </div>
               <div className="flex items-center gap-8 text-zinc-500 text-sm font-medium">
-                <Link to="/#" className="hover:text-zinc-300 transition-colors">Privacy Policy</Link>
-                <Link to="/#" className="hover:text-zinc-300 transition-colors">Terms of Service</Link>
+                {/* Privacy and Terms removed per request */}
               </div>
               <div className="text-zinc-500 text-sm">
                 © {new Date().getFullYear()} All rights reserved.
@@ -489,7 +489,62 @@ export default function App() {
 
 function PageTransition({ children }: { children: React.ReactNode }) {
   const { data } = useAppData();
+  const location = useLocation();
   const speed = data.theme.animationSpeed || 1;
+  const isInitialMount = React.useRef(true);
+
+  React.useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      
+      // On mount, always start at the top
+      window.scrollTo(0, 0);
+      if ((window as any).lenis) {
+        (window as any).lenis.scrollTo(0, { immediate: true });
+      }
+
+      // If there's a hash, wait for the page transition to finish before smooth scrolling
+      if (location.hash) {
+        timeoutId = setTimeout(() => {
+          const element = document.querySelector(location.hash);
+          if (element) {
+            if ((window as any).lenis) {
+              (window as any).lenis.scrollTo(element, { offset: 0 });
+            } else {
+              element.scrollIntoView({ behavior: 'smooth' });
+            }
+          }
+        }, 1200 / speed);
+      }
+    } else {
+      // Not initial mount (e.g., clicked a hash link on the same page or navigated back)
+      if (location.hash) {
+        // Use a small timeout to ensure the DOM is ready after a potential page transition
+        timeoutId = setTimeout(() => {
+          const element = document.querySelector(location.hash);
+          if (element) {
+            if ((window as any).lenis) {
+              (window as any).lenis.scrollTo(element, { offset: 0 });
+            } else {
+              element.scrollIntoView({ behavior: 'smooth' });
+            }
+          }
+        }, 100);
+      } else {
+        // Ensure scroll to top on navigation without hash
+        window.scrollTo(0, 0);
+        if ((window as any).lenis) {
+          (window as any).lenis.scrollTo(0, { immediate: true });
+        }
+      }
+    }
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [location.pathname, location.hash, speed]);
 
   return (
     <motion.div

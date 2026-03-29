@@ -24,79 +24,71 @@ function TypewriterText({ text }: { text: string }) {
   return <span>{displayedText}</span>;
 }
 
-function ProcessStep({ step, index, themeColor, isLast }: { step: any, index: number, themeColor: string, isLast: boolean, key?: React.Key }) {
+function ProcessStep({ step, index, themeColor }: { step: any, index: number, themeColor: string, key?: any }) {
   const [isOpen, setIsOpen] = useState(false);
   const { data } = useAppData();
   const speed = data.theme.animationSpeed || 1;
 
   return (
-    <div className="relative">
-      {!isLast && (
-        <div 
-          className="absolute left-[1.15rem] top-10 bottom-0 w-[1px] bg-zinc-800 hidden md:block"
-          style={{ background: isOpen ? `linear-gradient(to bottom, ${themeColor}, transparent)` : undefined }}
-        />
-      )}
-      
-      <motion.div 
-        initial={{ opacity: 0, x: -20 }}
-        whileInView={{ opacity: 1, x: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 1.2 / speed, delay: (index * 0.1) / speed, ease: [0.22, 1, 0.36, 1] }}
-        className="relative flex gap-8 items-start group cursor-pointer"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <Magnetic strength={0.2} className="flex-shrink-0 z-10">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 1.2 / speed, delay: (index * 0.1) / speed, ease: [0.22, 1, 0.36, 1] }}
+      className={`p-10 rounded-[2.5rem] border transition-all duration-700 cursor-pointer group relative overflow-hidden ${isOpen ? 'glass border-zinc-700/50 shadow-2xl' : 'bg-transparent border-zinc-800/20 hover:border-zinc-700/50 hover:bg-zinc-900/10'}`}
+      onClick={() => setIsOpen(!isOpen)}
+    >
+      <div className="flex items-center justify-between gap-6">
+        <div className="flex items-center gap-6">
           <div 
-            className="w-10 h-10 rounded-full border border-zinc-800 flex items-center justify-center font-mono text-sm transition-all duration-500 bg-zinc-950"
+            className="w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg transition-all duration-500"
             style={{ 
-              borderColor: isOpen ? themeColor : undefined,
-              color: isOpen ? themeColor : undefined,
-              boxShadow: isOpen ? `0 0 20px ${themeColor}40` : undefined
+              backgroundColor: isOpen ? themeColor : 'rgba(39, 39, 42, 0.5)',
+              color: isOpen ? '#09090b' : '#71717a',
+              boxShadow: isOpen ? `0 0 30px ${themeColor}40` : 'none'
             }}
           >
             {String(index + 1).padStart(2, '0')}
           </div>
-        </Magnetic>
-
-        <div className="flex-grow pt-1 pb-12">
           <h3 
-            className="text-2xl md:text-3xl font-bold mb-4 transition-colors duration-300 flex items-center gap-4"
-            style={{ color: isOpen ? themeColor : undefined }}
+            className="text-2xl md:text-4xl font-bold tracking-tight transition-colors duration-300"
+            style={{ color: isOpen ? '#fff' : '#a1a1aa' }}
           >
             {step.title}
-            <motion.div 
-              animate={{ rotate: isOpen ? 180 : 0 }}
-              className="text-xs opacity-30"
-            >
-              ▼
-            </motion.div>
           </h3>
-          
-          <AnimatePresence>
-            {isOpen && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="overflow-hidden"
-              >
-                <div className="text-zinc-400 leading-relaxed max-w-2xl text-lg glass p-6 rounded-2xl border-zinc-800/50">
-                  <TypewriterText text={step.description} />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          
-          {!isOpen && (
-            <p className="text-zinc-500 line-clamp-1 max-w-md opacity-50 group-hover:opacity-100 transition-opacity">
-              {step.description}
-            </p>
-          )}
         </div>
-      </motion.div>
-    </div>
+        
+        <motion.div 
+          animate={{ rotate: isOpen ? 180 : 0 }}
+          className="w-10 h-10 rounded-full border border-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-zinc-100 transition-colors"
+        >
+          <motion.div 
+            animate={{ y: isOpen ? 0 : [0, 3, 0] }}
+            transition={{ repeat: Infinity, duration: 2 }}
+          >
+            ▼
+          </motion.div>
+        </motion.div>
+      </div>
+      
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="pt-8 mt-8 border-t border-zinc-800/50">
+              <div className="text-zinc-400 leading-relaxed max-w-3xl text-xl font-light">
+                <TypewriterText text={step.description} />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
 
@@ -126,14 +118,13 @@ export default function Process() {
         </p>
       </motion.div>
 
-      <div className="max-w-4xl relative z-10">
-        {data.process.steps.map((step, index) => (
+      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-${Math.min(data.process.steps.length, 3)} gap-8 relative z-10`}>
+        {[...data.process.steps].reverse().map((step, index) => (
           <ProcessStep 
             key={index} 
             step={step} 
             index={index} 
             themeColor={data.theme.primaryColor}
-            isLast={index === data.process.steps.length - 1}
           />
         ))}
       </div>

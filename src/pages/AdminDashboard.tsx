@@ -1254,6 +1254,10 @@ export default function AdminDashboard() {
           <label className="block text-sm font-medium text-zinc-400 mb-2">Email Address (Where forms will be sent)</label>
           <input type="email" value={contactData.email} onChange={e => setContactData({...contactData, email: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" />
         </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-400 mb-2">Address / Location (Displayed in Footer)</label>
+          <input type="text" value={contactData.address || ''} onChange={e => setContactData({...contactData, address: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" placeholder="e.g. Manila, Philippines" />
+        </div>
         <div className="pt-6 border-t border-zinc-800">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
             <h3 className="text-xl font-bold">Social Links</h3>
