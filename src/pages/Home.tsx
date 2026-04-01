@@ -115,24 +115,24 @@ export default function Home() {
     <div>
       {/* Hero Section */}
       <section ref={containerRef} className="relative pt-32 sm:pt-40 pb-20 px-6 max-w-7xl mx-auto min-h-[90vh] flex flex-col justify-center overflow-hidden">
-        <div className="flex flex-col items-center text-center relative z-10">
-          <motion.div style={{ y: heroTextY }} className="max-w-4xl mx-auto">
+        <div className="flex flex-col items-center text-center relative z-10 min-w-0 w-full">
+          <motion.div style={{ y: heroTextY }} className="max-w-4xl mx-auto min-w-0 w-full">
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
-              className="flex items-center justify-center gap-2 mb-6"
+              className="flex items-center justify-center gap-2 mb-6 flex-wrap sm:flex-nowrap w-full"
             >
-              <span className="w-8 h-[1px]" style={{ backgroundColor: data.theme.primaryColor }}></span>
-              <span className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-500">{formatTextWithAccent(data.hero.label || 'Digital Architect', data.theme.primaryColor)}</span>
-              <span className="w-8 h-[1px]" style={{ backgroundColor: data.theme.primaryColor }}></span>
+              <span className="w-8 h-[1px] shrink-0" style={{ backgroundColor: data.theme.primaryColor }}></span>
+              <span className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-500 break-words min-w-0">{formatTextWithAccent(data.hero.label || 'Digital Architect', data.theme.primaryColor)}</span>
+              <span className="w-8 h-[1px] shrink-0" style={{ backgroundColor: data.theme.primaryColor }}></span>
             </motion.div>
             
             <motion.h1 
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1.2 / speed, ease: [0.22, 1, 0.36, 1] }}
-              className="text-5xl sm:text-6xl md:text-8xl font-bold tracking-tighter leading-[0.9] mb-8"
+              className="text-5xl sm:text-6xl md:text-8xl font-bold tracking-tighter leading-[0.9] mb-8 break-words w-full"
             >
               {formatTextWithAccent(data.hero.title, data.theme.primaryColor)}
             </motion.h1>
@@ -141,7 +141,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1.2 / speed, delay: 0.1 / speed, ease: [0.22, 1, 0.36, 1] }}
-              className="text-lg sm:text-xl text-zinc-400 mb-12 leading-relaxed max-w-2xl mx-auto"
+              className="text-lg sm:text-xl text-zinc-400 mb-12 leading-relaxed max-w-2xl mx-auto break-words w-full"
             >
               {formatTextWithAccent(data.hero.subtitle, data.theme.primaryColor)}
             </motion.p>
@@ -244,15 +244,16 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 1.2 / speed, ease: [0.22, 1, 0.36, 1] }}
+              className="min-w-0 w-full"
             >
-              <div className="flex items-center gap-3 mb-8">
-                <span className="w-8 h-[1px]" style={{ backgroundColor: data.theme.primaryColor }}></span>
-                <span className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-500">{formatTextWithAccent(data.trust.label || 'Trusted by innovative teams', data.theme.primaryColor)}</span>
+              <div className="flex items-center gap-3 mb-8 flex-wrap sm:flex-nowrap">
+                <span className="w-8 h-[1px] shrink-0" style={{ backgroundColor: data.theme.primaryColor }}></span>
+                <span className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-500 break-words min-w-0">{formatTextWithAccent(data.trust.label || 'Trusted by innovative teams', data.theme.primaryColor)}</span>
               </div>
-              <h2 className="text-4xl md:text-6xl font-bold tracking-tighter leading-tight mb-8">
+              <h2 className="text-4xl md:text-6xl font-bold tracking-tighter leading-tight mb-8 break-words">
                 {formatTextWithAccent(data.trust.title || data.trust.heading, data.theme.primaryColor)}
               </h2>
-              <p className="text-xl text-zinc-400 leading-relaxed max-w-xl">
+              <p className="text-xl text-zinc-400 leading-relaxed max-w-xl break-words">
                 {formatTextWithAccent(data.trust.subheading, data.theme.primaryColor)}
               </p>
               
@@ -294,19 +295,19 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 1.2 / speed, delay: 0.2 / speed, ease: [0.22, 1, 0.36, 1] }}
-              className="relative"
+              className="relative mt-12 md:mt-0 min-w-0 w-full"
             >
-              <div className="absolute -top-10 -left-10 text-[12rem] font-serif italic text-zinc-800/20 pointer-events-none select-none">"</div>
-              <blockquote className="text-2xl md:text-3xl font-medium leading-tight tracking-tight text-zinc-100 mb-10 relative z-10">
+              <div className="absolute -top-8 -left-2 md:-top-10 md:-left-10 text-[6rem] md:text-[12rem] font-serif italic text-zinc-800/20 pointer-events-none select-none leading-none">"</div>
+              <blockquote className="text-xl md:text-3xl font-medium leading-snug md:leading-tight tracking-tight text-zinc-100 mb-8 md:mb-10 relative z-10 break-words">
                 {data.trust.quote}
               </blockquote>
-              <div className="flex items-center gap-5">
-                <div className="w-14 h-14 rounded-2xl bg-zinc-800 overflow-hidden border border-zinc-700/50 p-1">
+              <div className="flex items-center gap-4 md:gap-5 relative z-10 flex-wrap sm:flex-nowrap">
+                <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-zinc-800 overflow-hidden border border-zinc-700/50 p-1 shrink-0">
                   <img src={data.trust.authorImage || undefined} alt={data.trust.authorName} referrerPolicy="no-referrer" className="w-full h-full object-cover rounded-xl grayscale select-none pointer-events-none" draggable={false} onContextMenu={(e) => e.preventDefault()} />
                 </div>
-                <div>
-                  <div className="font-bold text-zinc-50 text-lg">{data.trust.authorName}</div>
-                  <div className="text-xs font-bold uppercase tracking-widest text-zinc-500">{data.trust.authorRole}</div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-bold text-zinc-50 text-base md:text-lg break-words">{data.trust.authorName}</div>
+                  <div className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-zinc-500 break-words">{data.trust.authorRole}</div>
                 </div>
               </div>
             </motion.div>
@@ -316,16 +317,16 @@ export default function Home() {
 
       {/* Process Section */}
       <section className="py-40 px-6 max-w-7xl mx-auto relative overflow-hidden">
-        <div className="flex flex-col items-center text-center mb-24">
-          <div className="flex items-center gap-3 mb-6">
-            <span className="w-12 h-[1px] bg-zinc-800"></span>
-            <span className="text-xs font-bold uppercase tracking-[0.4em] text-zinc-500">{formatTextWithAccent(data.process.label || 'How I Work', data.theme.primaryColor)}</span>
-            <span className="w-12 h-[1px] bg-zinc-800"></span>
+        <div className="flex flex-col items-center text-center mb-24 min-w-0">
+          <div className="flex items-center justify-center gap-3 mb-6 flex-wrap sm:flex-nowrap w-full">
+            <span className="w-12 h-[1px] bg-zinc-800 shrink-0"></span>
+            <span className="text-xs font-bold uppercase tracking-[0.4em] text-zinc-500 break-words min-w-0">{formatTextWithAccent(data.process.label || 'How I Work', data.theme.primaryColor)}</span>
+            <span className="w-12 h-[1px] bg-zinc-800 shrink-0"></span>
           </div>
-          <h2 className="text-6xl md:text-8xl font-bold tracking-tighter leading-none mb-8">
+          <h2 className="text-6xl md:text-8xl font-bold tracking-tighter leading-none mb-8 break-words w-full">
             {formatTextWithAccent(data.process.title, data.theme.primaryColor)}
           </h2>
-          <p className="text-xl text-zinc-400 max-w-2xl leading-relaxed">
+          <p className="text-xl text-zinc-400 max-w-2xl leading-relaxed break-words w-full">
             {formatTextWithAccent(data.process.subtitle, data.theme.primaryColor)}
           </p>
         </div>
@@ -345,18 +346,18 @@ export default function Home() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-            className="flex flex-col md:flex-row items-start md:items-end justify-between mb-24 gap-8"
+            className="flex flex-col md:flex-row items-start md:items-end justify-between mb-24 gap-8 min-w-0"
           >
-            <div>
-              <div className="flex items-center gap-3 mb-6">
-                <span className="w-12 h-[1px] bg-zinc-800"></span>
-                <span className="text-xs font-bold uppercase tracking-[0.4em] text-zinc-500">{formatTextWithAccent(data.featuredWork.label || 'Portfolio', data.theme.primaryColor)}</span>
+            <div className="min-w-0 w-full md:w-auto">
+              <div className="flex items-center gap-3 mb-6 flex-wrap sm:flex-nowrap">
+                <span className="w-12 h-[1px] bg-zinc-800 shrink-0"></span>
+                <span className="text-xs font-bold uppercase tracking-[0.4em] text-zinc-500 break-words min-w-0">{formatTextWithAccent(data.featuredWork.label || 'Portfolio', data.theme.primaryColor)}</span>
               </div>
-              <h2 className="text-6xl md:text-8xl font-bold tracking-tighter leading-none">
+              <h2 className="text-6xl md:text-8xl font-bold tracking-tighter leading-none break-words">
                 {formatTextWithAccent(data.featuredWork.title, data.theme.primaryColor)}
               </h2>
             </div>
-            <div className="flex items-center gap-4 text-zinc-500">
+            <div className="flex items-center gap-4 text-zinc-500 shrink-0">
               <span className="text-sm font-bold uppercase tracking-[0.3em]">Selected Projects</span>
               <div className="w-20 h-[1px] bg-zinc-800"></div>
             </div>

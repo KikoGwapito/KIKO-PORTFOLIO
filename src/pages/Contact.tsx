@@ -44,17 +44,18 @@ export default function Contact() {
           initial={{ opacity: 0, x: -30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 1.2 / speed, ease: [0.22, 1, 0.36, 1] }}
+          className="min-w-0 w-full"
         >
-          <div className="flex items-center gap-3 mb-8">
-            <span className="w-12 h-[1px] bg-zinc-800"></span>
-            <span className="text-xs font-bold uppercase tracking-[0.4em] text-zinc-500">{formatTextWithAccent(data.contact.label || 'Connect', data.theme.primaryColor)}</span>
+          <div className="flex items-center gap-3 mb-8 flex-wrap sm:flex-nowrap">
+            <span className="w-12 h-[1px] bg-zinc-800 shrink-0"></span>
+            <span className="text-xs font-bold uppercase tracking-[0.4em] text-zinc-500 break-words min-w-0">{formatTextWithAccent(data.contact.label || 'Connect', data.theme.primaryColor)}</span>
           </div>
 
-          <h1 className="text-5xl sm:text-6xl md:text-8xl font-bold tracking-tighter leading-[0.9] mb-8 break-words">
+          <h1 className="text-5xl sm:text-6xl md:text-8xl font-bold tracking-tighter leading-[0.9] mb-8 break-words w-full">
             {formatTextWithAccent(data.contact.title, data.theme.primaryColor)}
           </h1>
           
-          <p className="text-2xl text-zinc-400 mb-16 leading-tight tracking-tight max-w-md">
+          <p className="text-2xl text-zinc-400 mb-16 leading-tight tracking-tight max-w-md break-words w-full">
             {formatTextWithAccent(data.contact.subtitle, data.theme.primaryColor)}
           </p>
 

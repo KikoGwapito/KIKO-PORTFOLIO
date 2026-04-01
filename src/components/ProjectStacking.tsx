@@ -105,7 +105,7 @@ export function ProjectStacking({ projects, themeColor }: ProjectStackingProps) 
                     {project.role}
                   </span>
                 </div>
-                <h2 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter text-white mb-6 hover:scale-105 transition-transform duration-500">
+                <h2 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter text-white mb-6 hover:scale-105 transition-transform duration-500 break-words w-full">
                   {formatTextWithAccent(project.title, themeColor)}
                 </h2>
                 <div className="flex flex-wrap justify-center gap-3">

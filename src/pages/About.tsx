@@ -188,13 +188,14 @@ export default function About() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1.2 / speed, delay: 0.3 / speed, ease: [0.22, 1, 0.36, 1] }}
+            className="min-w-0 w-full"
           >
-            <div className="flex items-center gap-3 mb-8">
-              <span className="w-12 h-[1px] bg-zinc-800"></span>
-              <span className="text-xs font-bold uppercase tracking-[0.4em] text-zinc-500">{formatTextWithAccent(data.about.label || 'About Me', data.theme.primaryColor)}</span>
+            <div className="flex items-center gap-3 mb-8 flex-wrap sm:flex-nowrap">
+              <span className="w-12 h-[1px] bg-zinc-800 shrink-0"></span>
+              <span className="text-xs font-bold uppercase tracking-[0.4em] text-zinc-500 break-words min-w-0">{formatTextWithAccent(data.about.label || 'About Me', data.theme.primaryColor)}</span>
             </div>
             
-            <h1 className="text-5xl sm:text-7xl md:text-8xl font-bold tracking-tighter leading-[0.9] mb-12 break-words">
+            <h1 className="text-5xl sm:text-7xl md:text-8xl font-bold tracking-tighter leading-[0.9] mb-12 break-words w-full">
               {formatTextWithAccent(data.about.title, data.theme.primaryColor)}
             </h1>
             

@@ -249,12 +249,12 @@ export default function Project() {
           transition={{ duration: 1.2 / speed, ease: [0.22, 1, 0.36, 1] }}
           className="grid md:grid-cols-4 gap-12 py-24 border-b border-zinc-800/50 mb-24"
         >
-          <div className="md:col-span-2">
-            <div className="flex items-center gap-3 mb-6">
-              <span className="w-8 h-[1px] bg-zinc-800"></span>
-              <span className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-500">The Brief</span>
+          <div className="md:col-span-2 min-w-0">
+            <div className="flex items-center gap-3 mb-6 flex-wrap sm:flex-nowrap">
+              <span className="w-8 h-[1px] bg-zinc-800 shrink-0"></span>
+              <span className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-500 break-words min-w-0">The Brief</span>
             </div>
-            <p className="text-xl text-zinc-400 leading-relaxed max-w-xl">{formatTextWithAccent(project.longDescription, data.theme.primaryColor)}</p>
+            <p className="text-xl text-zinc-400 leading-relaxed max-w-xl break-words">{formatTextWithAccent(project.longDescription, data.theme.primaryColor)}</p>
           </div>
 
           <div className="space-y-12">
