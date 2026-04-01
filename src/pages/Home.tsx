@@ -89,6 +89,7 @@ export default function Home() {
           end: '+=200%', // 200vh scroll track
           scrub: 1, // 1 second catch-up smoothing
           pin: true,
+          refreshPriority: 1,
         }
       });
 

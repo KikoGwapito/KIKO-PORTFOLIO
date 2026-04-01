@@ -229,8 +229,21 @@ export default function App() {
   const { isAdmin, data } = useAppData();
   const location = useLocation();
   const navigate = useNavigate();
+  const isInitialMount = React.useRef(true);
 
   const closeMenu = () => setIsMenuOpen(false);
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      const lastPath = sessionStorage.getItem('lastPath');
+      if (lastPath && lastPath !== '/' && location.pathname === '/') {
+        navigate(lastPath, { replace: true });
+        return;
+      }
+    }
+    sessionStorage.setItem('lastPath', location.pathname + location.search + location.hash);
+  }, [location, navigate]);
 
   useEffect(() => {
     document.documentElement.style.setProperty('--color-primary', data.theme.primaryColor);
@@ -272,7 +285,7 @@ export default function App() {
               whileTap={{ scale: 0.98 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
             >
-              {data.pageTitle.logo && <img src={data.pageTitle.logo} alt="Logo" className="h-8 w-auto select-none pointer-events-none" draggable={false} onContextMenu={(e) => e.preventDefault()} />}
+              {data.pageTitle.logo && <img src={data.pageTitle.logo} alt="Logo" referrerPolicy="no-referrer" className="h-8 w-auto select-none pointer-events-none" draggable={false} onContextMenu={(e) => e.preventDefault()} />}
               <span className="inline-block truncate max-w-[150px] sm:max-w-none">{formatTextWithAccent(data.pageTitle.title, data.theme.primaryColor)}</span>
             </motion.div>
           </Link>
@@ -469,7 +482,7 @@ export default function App() {
 
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="text-xl font-bold tracking-tighter flex items-center gap-2">
-                {data.pageTitle.logo && <img src={data.pageTitle.logo} alt="Logo" className="h-6 w-auto grayscale opacity-50 select-none pointer-events-none" draggable={false} onContextMenu={(e) => e.preventDefault()} />}
+                {data.pageTitle.logo && <img src={data.pageTitle.logo} alt="Logo" referrerPolicy="no-referrer" className="h-6 w-auto grayscale opacity-50 select-none pointer-events-none" draggable={false} onContextMenu={(e) => e.preventDefault()} />}
                 <span className="truncate max-w-[200px] sm:max-w-none">{formatTextWithAccent(data.pageTitle.title, data.theme.primaryColor)}</span>
               </div>
               <div className="flex items-center gap-8 text-zinc-500 text-sm font-medium">

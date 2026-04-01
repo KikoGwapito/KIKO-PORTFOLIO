@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -14,12 +14,16 @@ interface ProjectStackingProps {
 
 export function ProjectStacking({ projects, themeColor }: ProjectStackingProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   useGSAP(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || projects.length === 0) return;
 
-    const cards = gsap.utils.toArray('.project-card') as HTMLElement[];
+    const cards = gsap.utils.toArray('.project-card', containerRef.current) as HTMLElement[];
     const cardsToAnimate = cards.slice(1); // Skip the first card
+
+    // Make all cards visible now that GSAP is initializing
+    gsap.set(cards, { opacity: 1 });
 
     // Set initial position for cards to animate
     gsap.set(cardsToAnimate, { yPercent: 100 });
@@ -30,9 +34,20 @@ export function ProjectStacking({ projects, themeColor }: ProjectStackingProps) 
       scrollTrigger: {
         trigger: containerRef.current,
         pin: true,
+        anticipatePin: 1,
         start: 'top top',
-        end: `+=${projects.length * 100}%`, // Scroll distance based on number of projects
+        end: () => '+=' + (projects.length * window.innerHeight),
         scrub: 1,
+        pinSpacing: true,
+        onUpdate: (self) => {
+          // Calculate active index based on progress
+          const progress = self.progress;
+          const newIndex = Math.min(
+            Math.floor(progress * projects.length),
+            projects.length - 1
+          );
+          setActiveIndex(newIndex);
+        }
       }
     });
 
@@ -40,19 +55,20 @@ export function ProjectStacking({ projects, themeColor }: ProjectStackingProps) 
     cardsToAnimate.forEach((card) => {
       tl.to(card, {
         yPercent: 0,
-        ease: 'none'
+        ease: 'none',
+        immediateRender: false
       });
     });
-
-  }, { scope: containerRef });
+  }, { scope: containerRef, dependencies: [projects.length] });
 
   return (
-    <div id="project-stack-container" ref={containerRef} className="relative w-full h-screen overflow-hidden bg-zinc-950">
+    <div id="stack-container" ref={containerRef} className="relative w-full h-screen overflow-hidden bg-zinc-950">
       {projects.map((project, index) => {
+        const isActive = index <= activeIndex;
         return (
           <div 
             key={project.id}
-            className="project-card absolute top-0 left-0 w-full h-full flex items-center justify-center overflow-hidden"
+            className={`project-card absolute top-0 left-0 w-full h-full flex items-center justify-center overflow-hidden ${!isActive ? 'pointer-events-none' : ''} opacity-0`}
             style={{ zIndex: index + 1 }}
           >
             <Link 

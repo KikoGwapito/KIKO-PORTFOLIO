@@ -12,8 +12,14 @@ export default function AdminLogin() {
   const [error, setError] = useState('');
   const [isForgotMode, setIsForgotMode] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const { login, data, showNotification } = useAppData();
+  const { login, data, showNotification, isAdmin, isAuthReady } = useAppData();
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (isAuthReady && isAdmin) {
+      navigate('/admin');
+    }
+  }, [isAuthReady, isAdmin, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

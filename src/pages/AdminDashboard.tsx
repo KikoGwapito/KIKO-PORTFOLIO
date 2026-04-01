@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppData, ProjectData, MediaItem } from "../context/AppDataContext";
+import { storage } from "../firebase";
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 import {
   Shield,
   Eye,
@@ -31,7 +33,7 @@ type Tab = 'hero' | 'trust' | 'featured' | 'about' | 'process' | 'contact' | 'pa
 
 
 export default function AdminDashboard() {
-  const { isAdmin, logout, data, updateData, updateProject, addProject, deleteProject, reorderProjects, showNotification } = useAppData();
+  const { isAdmin, isAuthReady, logout, data, updateData, updateProject, addProject, deleteProject, reorderProjects, showNotification } = useAppData();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>('hero');
   const [showCloudinaryConfig, setShowCloudinaryConfig] = useState(false);
@@ -87,10 +89,10 @@ export default function AdminDashboard() {
   const [reviewsSearchFilter, setReviewsSearchFilter] = useState<'all' | 'name' | 'role'>('all');
 
   useEffect(() => {
-    if (!isAdmin) {
+    if (isAuthReady && !isAdmin) {
       navigate("/admin/login");
     }
-  }, [isAdmin, navigate]);
+  }, [isAdmin, isAuthReady, navigate]);
 
   useEffect(() => {
     if (selectedProjectId) {
@@ -176,17 +178,27 @@ export default function AdminDashboard() {
   };
 
   const deleteMediaFromServer = async (url: string) => {
-    if (!url || !url.startsWith('/uploads/')) return;
-    try {
-      await fetch('/api/delete', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ url }),
-      });
-    } catch (error) {
-      console.error('Failed to delete media from server:', error);
+    if (!url) return;
+    
+    if (url.startsWith('/uploads/')) {
+      try {
+        await fetch('/api/delete', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ url }),
+        });
+      } catch (error) {
+        console.error('Failed to delete media from server:', error);
+      }
+    } else if (url.includes('firebasestorage.googleapis.com') && storage) {
+      try {
+        const fileRef = ref(storage, url);
+        await deleteObject(fileRef);
+      } catch (error) {
+        console.error('Failed to delete media from Firebase Storage:', error);
+      }
     }
   };
 
@@ -325,6 +337,33 @@ export default function AdminDashboard() {
 
           xhr.onerror = () => reject(new Error('Network error during Cloudinary upload'));
           xhr.send(formData);
+        });
+      } else if (storage) {
+        // Upload to Firebase Storage
+        url = await new Promise((resolve, reject) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+          const extension = file.name.split('.').pop();
+          const fileName = `uploads/${uniqueSuffix}.${extension}`;
+          const storageRef = ref(storage!, fileName);
+          const uploadTask = uploadBytesResumable(storageRef, file);
+
+          uploadTask.on('state_changed', 
+            (snapshot) => {
+              const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+              setUploadProgress(progress);
+            }, 
+            (error) => {
+              reject(error);
+            }, 
+            async () => {
+              try {
+                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                resolve(downloadURL);
+              } catch (err) {
+                reject(err);
+              }
+            }
+          );
         });
       } else {
         // Fallback to local server upload
@@ -897,7 +936,7 @@ export default function AdminDashboard() {
                       <div key={index} className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 flex flex-col md:flex-row gap-4 items-start">
                         <div className="w-full md:w-32 h-32 bg-zinc-900 rounded-lg overflow-hidden flex-shrink-0 border border-zinc-800 flex items-center justify-center">
                           {media.type === "image" ? (
-                            media.url ? <img src={media.url} alt="" className="w-full h-full object-cover" /> : <ImageIcon className="w-8 h-8 text-zinc-700" />
+                            media.url ? <img src={media.url} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" /> : <ImageIcon className="w-8 h-8 text-zinc-700" />
                           ) : media.url ? (
                             <video src={media.url} autoPlay muted loop playsInline className="w-full h-full object-contain" />
                           ) : (
