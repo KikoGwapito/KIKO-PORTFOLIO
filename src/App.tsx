@@ -16,6 +16,8 @@ import SecurityOverlay from './components/SecurityOverlay';
 import { useAppData } from './context/AppDataContext';
 import { isConfigValid } from './firebase';
 import { formatTextWithAccent } from './utils/formatText';
+import { SkewedLink } from './components/SkewedLink';
+import { AnimatedFooterText } from './components/AnimatedFooterText';
 
 function ThemeToggle() {
   const [isLightMode, setIsLightMode] = useState(false);
@@ -417,41 +419,34 @@ export default function App() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 1.2 / (data.theme.animationSpeed || 1), ease: [0.22, 1, 0.36, 1] }}
-          className="relative overflow-hidden pt-32 pb-12 mt-20 border-t border-zinc-800/50" 
+          className="relative overflow-hidden pt-32 pb-12 mt-20 border-t border-zinc-800/50 w-full" 
           style={{ backgroundColor: data.theme.footerColor || '#09090b' }}
         >
-          <div className="absolute inset-0 bg-grid opacity-10 pointer-events-none" />
-          <div className="max-w-7xl mx-auto px-6 relative z-10">
-            <div className="flex flex-col md:flex-row justify-between items-start gap-12 mb-24">
-              {/* Navigation First */}
-              <div className="flex flex-col gap-4 min-w-[200px]">
-                <Link to="/#work" className="text-xl font-medium hover:text-zinc-300 transition-colors flex items-center gap-2 group">
-                  <ArrowRight className="w-4 h-4 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all" style={{ color: data.theme.primaryColor }} />
+          <div className="absolute inset-0 bg-grid opacity-10 pointer-events-none object-cover" />
+          <div className="w-full mx-auto px-6 relative z-10 text-center">
+            <div className="flex flex-col items-center gap-12 mb-24">
+              {/* Navigation */}
+              <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-8 w-full">
+                <SkewedLink to="/#work" className="text-xl md:text-2xl font-medium">
                   Work
-                </Link>
-                <Link to="/about" className="text-xl font-medium hover:text-zinc-300 transition-colors flex items-center gap-2 group">
-                  <ArrowRight className="w-4 h-4 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all" style={{ color: data.theme.primaryColor }} />
+                </SkewedLink>
+                <SkewedLink to="/about" className="text-xl md:text-2xl font-medium">
                   About
-                </Link>
-                <Link to="/process" className="text-xl font-medium hover:text-zinc-300 transition-colors flex items-center gap-2 group">
-                  <ArrowRight className="w-4 h-4 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all" style={{ color: data.theme.primaryColor }} />
+                </SkewedLink>
+                <SkewedLink to="/process" className="text-xl md:text-2xl font-medium">
                   Process
-                </Link>
-                <Link to="/reviews" className="text-xl font-medium hover:text-zinc-300 transition-colors flex items-center gap-2 group">
-                  <ArrowRight className="w-4 h-4 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all" style={{ color: data.theme.primaryColor }} />
+                </SkewedLink>
+                <SkewedLink to="/reviews" className="text-xl md:text-2xl font-medium">
                   Reviews
-                </Link>
+                </SkewedLink>
               </div>
 
-              {/* Let's work together Middle */}
-              <div className="flex-1">
-                <h2 className="text-5xl md:text-8xl font-bold tracking-tighter mb-6 leading-none">
-                  Let's work <br />
-                  <span style={{ color: data.theme.primaryColor }}>together.</span>
-                </h2>
+              {/* Let's work together */}
+              <div className="w-full my-12 flex flex-col items-center">
+                <AnimatedFooterText primaryColor={data.theme.primaryColor} />
                 <Link 
                   to="/contact" 
-                  className="inline-flex items-center gap-4 text-xl md:text-2xl font-medium hover:opacity-80 transition-opacity"
+                  className="inline-flex items-center justify-center gap-4 text-xl md:text-2xl font-medium hover:opacity-80 transition-opacity"
                 >
                   <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: data.theme.primaryColor }}>
                     <ArrowRight className="w-6 h-6 text-zinc-950 -rotate-45" />
@@ -460,33 +455,29 @@ export default function App() {
                 </Link>
               </div>
               
-              {/* Socials Last */}
-              <div className="flex flex-col gap-4 min-w-[200px]">
+              {/* Socials */}
+              <div className="flex flex-col items-center gap-6 w-full">
                 <h3 className="text-zinc-500 font-medium uppercase tracking-widest text-sm mb-2">Socials</h3>
-                {data.contact.socials?.map((link, i) => (
-                  <a 
-                    key={i}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xl font-medium hover:text-zinc-300 transition-colors flex items-center gap-2 group"
-                  >
-                    <ArrowRight className="w-4 h-4 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all" style={{ color: data.theme.primaryColor }} />
-                    {link.platform}
-                  </a>
-                ))}
+                <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-8">
+                  {data.contact.socials?.map((link, i) => (
+                    <SkewedLink 
+                      key={i}
+                      href={link.url}
+                      className="text-xl md:text-2xl font-medium"
+                    >
+                      {link.platform}
+                    </SkewedLink>
+                  ))}
+                </div>
               </div>
             </div>
 
-            <div className="w-full h-[1px] bg-zinc-800/50 mb-8" />
+            <div className="w-full max-w-7xl mx-auto h-[1px] bg-zinc-800/50 mb-8" />
 
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="text-xl font-bold tracking-tighter flex items-center gap-2">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6 max-w-7xl mx-auto">
+              <div className="text-xl font-bold tracking-tighter flex items-center justify-center gap-2">
                 {data.pageTitle.logo && <img src={data.pageTitle.logo} alt="Logo" referrerPolicy="no-referrer" className="h-6 w-auto grayscale opacity-50 select-none pointer-events-none" draggable={false} onContextMenu={(e) => e.preventDefault()} />}
                 <span className="truncate max-w-[200px] sm:max-w-none">{formatTextWithAccent(data.pageTitle.title, data.theme.primaryColor)}</span>
-              </div>
-              <div className="flex items-center gap-8 text-zinc-500 text-sm font-medium">
-                {/* Privacy and Terms removed per request */}
               </div>
               <div className="text-zinc-500 text-sm">
                 © {new Date().getFullYear()} All rights reserved.
