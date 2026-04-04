@@ -180,7 +180,7 @@ export default function Project() {
 
   if (!project) {
     return (
-      <div className="pt-40 pb-20 px-6 max-w-7xl mx-auto min-h-[90vh] flex flex-col items-center justify-center">
+      <div className="pt-40 pb-20 px-4 md:px-8 lg:px-12 w-full mx-auto min-h-[90vh] flex flex-col items-center justify-center">
         <h1 className="text-4xl font-bold mb-4">Project not found</h1>
         <Link to="/" className="text-zinc-400 hover:text-white flex items-center gap-2">
           <ArrowLeft className="w-4 h-4" /> Back to Home
@@ -214,7 +214,7 @@ export default function Project() {
           <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent" />
         </motion.div>
 
-        <div className="max-w-7xl mx-auto w-full relative z-10">
+        <div className="w-full px-4 md:px-8 lg:px-12 mx-auto relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -240,7 +240,7 @@ export default function Project() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6">
+      <div className="w-full px-4 md:px-8 lg:px-12 mx-auto">
         {/* Info Grid */}
         <motion.div 
           initial={{ opacity: 0, y: 40 }}

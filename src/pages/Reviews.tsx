@@ -52,7 +52,7 @@ export default function Reviews() {
   };
 
   return (
-    <div className="pt-40 pb-32 px-6 max-w-7xl mx-auto min-h-screen relative">
+    <div className="pt-40 pb-32 px-4 md:px-8 lg:px-12 w-full mx-auto min-h-screen relative">
       {/* Background Accents */}
       <div className="absolute top-20 left-0 w-[500px] h-[500px] bg-[var(--color-primary)] opacity-[0.02] blur-[150px] pointer-events-none" style={{ '--color-primary': data.theme.primaryColor } as any} />
       

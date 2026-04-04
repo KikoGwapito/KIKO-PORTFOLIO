@@ -97,7 +97,7 @@ export default function Process() {
   const speed = data.theme.animationSpeed || 1;
   
   return (
-    <div className="pt-40 pb-32 px-6 max-w-7xl mx-auto min-h-screen relative">
+    <div className="pt-40 pb-32 px-4 md:px-8 lg:px-12 w-full mx-auto min-h-screen relative">
       {/* Background Accents */}
       <div className="absolute top-40 right-0 w-96 h-96 bg-[var(--color-primary)] opacity-[0.03] blur-[120px] pointer-events-none" style={{ '--color-primary': data.theme.primaryColor } as any} />
       

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Lock, CheckCircle2, AlertCircle, Info, ArrowRight, Sun, Moon } from 'lucide-react';
+import { Menu, X, Lock, CheckCircle2, AlertCircle, Info, ArrowRight, Sun, Moon, Twitter, Instagram, Linkedin, Github, Facebook, Youtube, Dribbble, Figma, Globe } from 'lucide-react';
 import { AnimatePresence, motion, useScroll, useTransform, useSpring, useMotionValue } from 'motion/react';
 import { LenisProvider } from './components/LenisProvider';
 import { Magnetic } from './components/Magnetic';
@@ -17,7 +17,22 @@ import { useAppData } from './context/AppDataContext';
 import { isConfigValid } from './firebase';
 import { formatTextWithAccent } from './utils/formatText';
 import { SkewedLink } from './components/SkewedLink';
+import { StaggeredLink } from './components/StaggeredLink';
 import { AnimatedFooterText } from './components/AnimatedFooterText';
+import { InteractiveIcon } from './components/InteractiveIcon';
+
+const getSocialIcon = (platform: string) => {
+  const p = platform.toLowerCase();
+  if (p.includes('twitter') || p.includes('x')) return <Twitter className="w-5 h-5" />;
+  if (p.includes('instagram') || p.includes('ig')) return <Instagram className="w-5 h-5" />;
+  if (p.includes('linkedin')) return <Linkedin className="w-5 h-5" />;
+  if (p.includes('github')) return <Github className="w-5 h-5" />;
+  if (p.includes('facebook')) return <Facebook className="w-5 h-5" />;
+  if (p.includes('youtube')) return <Youtube className="w-5 h-5" />;
+  if (p.includes('dribbble')) return <Dribbble className="w-5 h-5" />;
+  if (p.includes('figma')) return <Figma className="w-5 h-5" />;
+  return <Globe className="w-5 h-5" />;
+};
 
 function ThemeToggle() {
   const [isLightMode, setIsLightMode] = useState(false);
@@ -279,7 +294,7 @@ export default function App() {
         className="fixed top-0 w-full z-50 backdrop-blur-md border-b border-zinc-800/50" 
         style={{ backgroundColor: data.theme.headerColor ? `${data.theme.headerColor}cc` : 'rgba(9, 9, 11, 0.8)' }}
       >
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+        <div className="w-full px-4 md:px-8 lg:px-12 h-20 flex items-center justify-between">
           <Link to="/" onClick={closeMenu} className="shrink-0">
             <motion.div 
               className="text-xl font-bold tracking-tighter flex items-center gap-2 origin-left"
@@ -423,61 +438,79 @@ export default function App() {
           style={{ backgroundColor: data.theme.footerColor || '#09090b' }}
         >
           <div className="absolute inset-0 bg-grid opacity-10 pointer-events-none object-cover" />
-          <div className="w-full mx-auto px-6 relative z-10 text-center">
-            <div className="flex flex-col items-center gap-12 mb-24">
-              {/* Navigation */}
-              <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-8 w-full">
-                <SkewedLink to="/#work" className="text-xl md:text-2xl font-medium">
-                  Work
-                </SkewedLink>
-                <SkewedLink to="/about" className="text-xl md:text-2xl font-medium">
-                  About
-                </SkewedLink>
-                <SkewedLink to="/process" className="text-xl md:text-2xl font-medium">
-                  Process
-                </SkewedLink>
-                <SkewedLink to="/reviews" className="text-xl md:text-2xl font-medium">
-                  Reviews
-                </SkewedLink>
+          <div className="w-full px-4 md:px-8 lg:px-12 relative z-10 text-left">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 mb-24 w-full">
+              {/* Column 1: Navigation */}
+              <div className="flex flex-col items-start gap-4 lg:col-span-3 w-full">
+                <StaggeredLink 
+                  to="/#work" 
+                  text="Work"
+                  showArrow={true}
+                  hoverColor={data.theme.primaryColor}
+                  className="text-4xl md:text-5xl lg:text-5xl xl:text-6xl tracking-tighter"
+                />
+                <StaggeredLink 
+                  to="/about" 
+                  text="About"
+                  showArrow={true}
+                  hoverColor={data.theme.primaryColor}
+                  className="text-4xl md:text-5xl lg:text-5xl xl:text-6xl tracking-tighter"
+                />
+                <StaggeredLink 
+                  to="/process" 
+                  text="Process"
+                  showArrow={true}
+                  hoverColor={data.theme.primaryColor}
+                  className="text-4xl md:text-5xl lg:text-5xl xl:text-6xl tracking-tighter"
+                />
+                <StaggeredLink 
+                  to="/reviews" 
+                  text="Reviews"
+                  showArrow={true}
+                  hoverColor={data.theme.primaryColor}
+                  className="text-4xl md:text-5xl lg:text-5xl xl:text-6xl tracking-tighter"
+                />
               </div>
 
-              {/* Let's work together */}
-              <div className="w-full my-12 flex flex-col items-center">
+              {/* Column 2: Let's work together */}
+              <div className="flex flex-col items-start gap-8 lg:col-span-5">
                 <AnimatedFooterText primaryColor={data.theme.primaryColor} />
                 <Link 
                   to="/contact" 
-                  className="inline-flex items-center justify-center gap-4 text-xl md:text-2xl font-medium hover:opacity-80 transition-opacity"
+                  className="inline-flex items-center justify-start gap-4 text-xl md:text-2xl font-medium hover:opacity-80 transition-opacity"
                 >
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: data.theme.primaryColor }}>
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: data.theme.primaryColor }}>
                     <ArrowRight className="w-6 h-6 text-zinc-950 -rotate-45" />
                   </div>
-                  Get in touch
+                  Contact Me
                 </Link>
               </div>
               
-              {/* Socials */}
-              <div className="flex flex-col items-center gap-6 w-full">
-                <h3 className="text-zinc-500 font-medium uppercase tracking-widest text-sm mb-2">Socials</h3>
-                <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-8">
+              {/* Column 3: Socials */}
+              <div className="flex flex-col items-start gap-4 lg:col-span-2">
+                <h3 className="text-zinc-500 font-medium uppercase tracking-widest text-sm mb-4">Socials</h3>
+                <div className="flex flex-row flex-wrap items-start gap-4">
                   {data.contact.socials?.map((link, i) => (
-                    <SkewedLink 
+                    <InteractiveIcon 
                       key={i}
                       href={link.url}
-                      className="text-xl md:text-2xl font-medium"
-                    >
-                      {link.platform}
-                    </SkewedLink>
+                      icon={getSocialIcon(link.platform)}
+                      hoverColor={data.theme.primaryColor}
+                    />
                   ))}
                 </div>
               </div>
 
-              {/* Email */}
+              {/* Column 4: Email */}
               {data.contact.email && (
-                <div className="flex flex-col items-center gap-6 w-full mt-4">
-                  <h3 className="text-zinc-500 font-medium uppercase tracking-widest text-sm mb-2">Email</h3>
+                <div className="flex flex-col items-start gap-4 lg:col-span-2">
+                  <h3 className="text-zinc-500 font-medium uppercase tracking-widest text-sm mb-4">Email</h3>
                   <SkewedLink 
-                    href={`mailto:${data.contact.email}`}
-                    className="text-xl md:text-2xl font-medium"
+                    to="/contact"
+                    className="text-xl md:text-2xl font-normal break-all"
+                    uppercase={false}
+                    bold={false}
+                    hoverColor={data.theme.primaryColor}
                   >
                     {data.contact.email}
                   </SkewedLink>
@@ -485,9 +518,9 @@ export default function App() {
               )}
             </div>
 
-            <div className="w-full max-w-7xl mx-auto h-[1px] bg-zinc-800/50 mb-8" />
+            <div className="w-full px-4 md:px-8 lg:px-12 mx-auto h-[1px] bg-zinc-800/50 mb-8" />
 
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6 max-w-7xl mx-auto">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6 w-full px-4 md:px-8 lg:px-12">
               <div className="text-xl font-bold tracking-tighter flex items-center justify-center gap-2">
                 {data.pageTitle.logo && <img src={data.pageTitle.logo} alt="Logo" referrerPolicy="no-referrer" className="h-6 w-auto grayscale opacity-50 select-none pointer-events-none" draggable={false} onContextMenu={(e) => e.preventDefault()} />}
                 <span className="truncate max-w-[200px] sm:max-w-none">{formatTextWithAccent(data.pageTitle.title, data.theme.primaryColor)}</span>

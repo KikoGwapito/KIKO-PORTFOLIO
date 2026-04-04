@@ -28,30 +28,32 @@ export const AnimatedFooterText: React.FC<AnimatedFooterTextProps> = ({ primaryC
       }
     });
 
-    // Phase 1: Reveal
+    // Phase 1: Reveal from bottom
     tl.to(chars, {
       yPercent: 0,
-      stagger: 0.05,
-      ease: "expo.out",
-      duration: 1
+      stagger: 0.04,
+      ease: "power4.out",
+      duration: 1.2
     })
     // Phase 2: Pause
     .to({}, { duration: 3 })
-    // Phase 3: Hide
+    // Phase 3: Hide to top (smooth exit)
     .to(chars, {
-      yPercent: 100,
+      yPercent: -100,
       stagger: 0.02,
-      ease: "expo.inOut",
-      duration: 0.5
+      ease: "power4.inOut",
+      duration: 0.8
     })
-    // Phase 4: Interval
-    .to({}, { duration: 2 });
+    // Phase 4: Reset instantly to bottom
+    .set(chars, { yPercent: 100 })
+    // Phase 5: Short interval before next loop
+    .to({}, { duration: 0.2 });
 
   }, { scope: containerRef });
 
   const renderLine = (text: string, color?: string) => {
     return (
-      <div className="flex justify-center flex-wrap" style={{ color }}>
+      <div className="flex justify-start flex-wrap" style={{ color }}>
         {text.split('').map((char, i) => (
           <span key={i} className="overflow-hidden inline-block">
             <span className="char inline-block whitespace-pre">
@@ -64,7 +66,7 @@ export const AnimatedFooterText: React.FC<AnimatedFooterTextProps> = ({ primaryC
   };
 
   return (
-    <div ref={containerRef} className="text-6xl md:text-8xl lg:text-[10rem] font-bold tracking-tighter mb-8 leading-none uppercase flex flex-col items-center w-full">
+    <div ref={containerRef} className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tighter mb-8 leading-none uppercase flex flex-col items-start">
       {renderLine("LET'S WORK")}
       {renderLine("TOGETHER.", primaryColor)}
     </div>

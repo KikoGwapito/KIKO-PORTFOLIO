@@ -100,7 +100,7 @@ export default function About() {
   const imageY = useTransform(scrollYProgress, [0, 1], [-50, 50]);
   
   return (
-    <div ref={containerRef} className="pt-40 pb-40 px-6 max-w-7xl mx-auto min-h-[90vh] relative">
+    <div ref={containerRef} className="pt-40 pb-40 px-4 md:px-8 lg:px-12 w-full mx-auto min-h-[90vh] relative">
       {/* Background Accents */}
       <div className="absolute top-0 right-0 w-1/2 h-full bg-grid opacity-10 pointer-events-none" />
       

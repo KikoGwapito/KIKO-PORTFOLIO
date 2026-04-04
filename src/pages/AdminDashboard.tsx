@@ -1713,7 +1713,7 @@ export default function AdminDashboard() {
   const isCloudinaryConfigured = (data.cloudinary.cloudName && data.cloudinary.uploadPreset) || (import.meta.env.VITE_CLOUDINARY_CLOUD_NAME && import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
 
   return (
-    <div className="pt-24 pb-20 px-6 max-w-7xl mx-auto min-h-[90vh]">
+    <div className="pt-24 pb-20 px-4 md:px-8 lg:px-12 w-full mx-auto min-h-[90vh]">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 border-b border-zinc-800 pb-6 gap-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-3xl font-bold">Admin Dashboard</h1>

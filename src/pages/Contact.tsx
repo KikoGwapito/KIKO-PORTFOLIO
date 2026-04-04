@@ -34,7 +34,7 @@ export default function Contact() {
   };
   
   return (
-    <div className="pt-40 pb-40 px-6 max-w-7xl mx-auto min-h-[90vh] relative">
+    <div className="pt-40 pb-40 px-4 md:px-8 lg:px-12 w-full mx-auto min-h-[90vh] relative">
       {/* Background Accents */}
       <div className="absolute top-0 left-0 w-full h-full bg-grid-large opacity-5 pointer-events-none" />
       

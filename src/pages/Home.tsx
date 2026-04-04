@@ -114,7 +114,7 @@ export default function Home() {
   return (
     <div>
       {/* Hero Section */}
-      <section ref={containerRef} className="relative pt-32 sm:pt-40 pb-20 px-6 max-w-7xl mx-auto min-h-[90vh] flex flex-col justify-center overflow-hidden">
+      <section ref={containerRef} className="relative pt-32 sm:pt-40 pb-20 px-4 md:px-8 lg:px-12 w-full mx-auto min-h-[90vh] flex flex-col justify-center overflow-hidden">
         <div className="flex flex-col items-center text-center relative z-10 min-w-0 w-full">
           <motion.div style={{ y: heroTextY }} className="max-w-4xl mx-auto min-w-0 w-full">
             <motion.div
@@ -237,7 +237,7 @@ export default function Home() {
       <section className="py-24 border-y border-zinc-800/30 relative overflow-hidden">
         <div className="absolute inset-0 bg-grid opacity-10 pointer-events-none" />
         
-        <div className="max-w-7xl mx-auto px-6 mb-16">
+        <div className="w-full px-4 md:px-8 lg:px-12 mx-auto mb-16">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -316,7 +316,7 @@ export default function Home() {
       </section>
 
       {/* Process Section */}
-      <section className="py-40 px-6 max-w-7xl mx-auto relative overflow-hidden">
+      <section className="py-40 px-4 md:px-8 lg:px-12 w-full mx-auto relative overflow-hidden">
         <div className="flex flex-col items-center text-center mb-24 min-w-0">
           <div className="flex items-center justify-center gap-3 mb-6 flex-wrap sm:flex-nowrap w-full">
             <span className="w-12 h-[1px] bg-zinc-800 shrink-0"></span>
@@ -340,7 +340,7 @@ export default function Home() {
 
       {/* Featured Work */}
       <section id="work" className="py-40 relative">
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="w-full px-4 md:px-8 lg:px-12 mx-auto">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -376,7 +376,7 @@ export default function Home() {
         })()}
         
         {/* View All CTA */}
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="w-full px-4 md:px-8 lg:px-12 mx-auto">
           <motion.div 
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}

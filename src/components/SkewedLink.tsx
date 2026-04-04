@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import React from 'react';
@@ -8,28 +8,40 @@ interface SkewedLinkProps {
   to?: string;
   href?: string;
   className?: string;
+  uppercase?: boolean;
+  bold?: boolean;
+  hoverColor?: string;
 }
 
-export const SkewedLink: React.FC<SkewedLinkProps> = ({ children, to, href, className = '' }) => {
+export const SkewedLink: React.FC<SkewedLinkProps> = ({ children, to, href, className = '', uppercase = true, bold = true, hoverColor }) => {
   const [isHovered, setIsHovered] = useState(false);
 
+  const textClass = `block text-zinc-100 ${uppercase ? 'uppercase' : ''} ${bold ? 'font-bold' : ''}`;
+
   const content = (
-    <div className="relative overflow-hidden inline-block">
+    <div className="relative overflow-hidden inline-block py-1">
       <motion.div
-        className="relative flex flex-col items-center justify-center"
+        className="relative flex flex-col items-start justify-start"
         initial={{ y: "0%", skewY: 0 }}
         animate={{ 
           y: isHovered ? "-100%" : "0%", 
-          skewY: isHovered ? [0, 10, 0] : [0, -10, 0] 
+          skewY: isHovered ? [0, 5, 0] : [0, -5, 0] 
         }}
         transition={{ 
-          duration: 0.4, 
-          ease: [0.19, 1, 0.22, 1] // expo.out
+          duration: 0.5, 
+          ease: [0.76, 0, 0.24, 1]
         }}
       >
-        <span className="block uppercase font-bold text-zinc-100">{children}</span>
-        <span className="absolute top-full left-0 w-full text-center block uppercase font-bold text-zinc-100" aria-hidden="true">{children}</span>
+        <span className={textClass}>{children}</span>
+        <span className={`absolute top-full left-0 w-full text-left ${textClass}`} style={{ color: hoverColor }} aria-hidden="true">{children}</span>
       </motion.div>
+      <motion.div
+        className="absolute bottom-0 left-0 h-[2px] w-full"
+        style={{ backgroundColor: hoverColor || 'currentColor', transformOrigin: isHovered ? 'left' : 'right' }}
+        initial={{ scaleX: 0 }}
+        animate={{ scaleX: isHovered ? 1 : 0 }}
+        transition={{ duration: 0.5, ease: [0.76, 0, 0.24, 1] }}
+      />
     </div>
   );
 
