@@ -12,7 +12,7 @@ interface ProjectStackingProps {
   themeColor: string;
 }
 
-export function ProjectStacking({ projects, themeColor }: ProjectStackingProps) {
+export const ProjectStacking: React.FC<ProjectStackingProps> = ({ projects, themeColor }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -59,18 +59,19 @@ export function ProjectStacking({ projects, themeColor }: ProjectStackingProps) 
         immediateRender: false
       });
     });
-  }, { scope: containerRef, dependencies: [projects.length] });
+  }, { scope: containerRef, dependencies: [] });
 
   return (
-    <div id="stack-container" ref={containerRef} className="relative w-full h-screen overflow-hidden bg-zinc-950">
-      {projects.map((project, index) => {
-        const isActive = index <= activeIndex;
-        return (
-          <div 
-            key={project.id}
-            className={`project-card absolute top-0 left-0 w-full h-full flex items-center justify-center overflow-hidden ${!isActive ? 'pointer-events-none' : ''} opacity-0`}
-            style={{ zIndex: index + 1 }}
-          >
+    <div className="project-stacking-wrapper w-full">
+      <div id="stack-container" ref={containerRef} className="relative w-full h-screen overflow-hidden bg-zinc-950">
+        {projects.map((project, index) => {
+          const isActive = index <= activeIndex;
+          return (
+            <div 
+              key={project.id}
+              className={`project-card absolute top-0 left-0 w-full h-full flex items-center justify-center overflow-hidden ${!isActive ? 'pointer-events-none' : ''} opacity-0`}
+              style={{ zIndex: index + 1 }}
+            >
             <Link 
               to={`/work/${project.id}`}
               className="relative w-full h-full flex items-center justify-center overflow-hidden block"
@@ -120,6 +121,7 @@ export function ProjectStacking({ projects, themeColor }: ProjectStackingProps) 
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

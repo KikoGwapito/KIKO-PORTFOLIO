@@ -364,10 +364,16 @@ export default function Home() {
           </motion.div>
         </div>
 
-        <ProjectStacking 
-          projects={(data.projectOrder || []).map(id => ({ ...data.projects[id], id })).filter(p => p.title)} 
-          themeColor={data.theme.primaryColor} 
-        />
+        {(() => {
+          const validProjects = (data.projectOrder || []).map(id => ({ ...data.projects[id], id })).filter(p => p.title);
+          return (
+            <ProjectStacking 
+              key={`stack-${validProjects.map(p => p.id).join('-')}`}
+              projects={validProjects} 
+              themeColor={data.theme.primaryColor} 
+            />
+          );
+        })()}
         
         {/* View All CTA */}
         <div className="max-w-7xl mx-auto px-6">

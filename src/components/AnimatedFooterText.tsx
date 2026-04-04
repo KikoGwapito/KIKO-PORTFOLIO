@@ -64,7 +64,7 @@ export const AnimatedFooterText: React.FC<AnimatedFooterTextProps> = ({ primaryC
   };
 
   return (
-    <div ref={containerRef} className="text-5xl md:text-8xl font-bold tracking-tighter mb-8 leading-none uppercase flex flex-col items-center">
+    <div ref={containerRef} className="text-6xl md:text-8xl lg:text-[10rem] font-bold tracking-tighter mb-8 leading-none uppercase flex flex-col items-center w-full">
       {renderLine("LET'S WORK")}
       {renderLine("TOGETHER.", primaryColor)}
     </div>
