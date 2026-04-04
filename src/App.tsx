@@ -419,14 +419,14 @@ export default function App() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 1.2 / (data.theme.animationSpeed || 1), ease: [0.22, 1, 0.36, 1] }}
-          className="relative overflow-hidden pt-32 pb-12 mt-20 w-full" 
+          className="relative overflow-hidden pt-32 pb-12 mt-20 border-t border-zinc-800/50 w-full" 
           style={{ backgroundColor: data.theme.footerColor || '#09090b' }}
         >
           <div className="absolute inset-0 bg-grid opacity-10 pointer-events-none object-cover" />
-          <div className="w-full max-w-screen-2xl mx-auto px-6 relative z-10 flex flex-col">
-            
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-12 w-full">
-              <div className="flex flex-col gap-4">
+          <div className="w-full mx-auto px-6 relative z-10 text-center">
+            <div className="flex flex-col items-center gap-12 mb-24">
+              {/* Navigation */}
+              <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-8 w-full">
                 <SkewedLink to="/#work" className="text-xl md:text-2xl font-medium">
                   Work
                 </SkewedLink>
@@ -442,11 +442,8 @@ export default function App() {
               </div>
 
               {/* Let's work together */}
-              <div className="w-full my-12">
-                <h2 className="text-5xl md:text-8xl font-bold tracking-tighter mb-8 leading-none">
-                  Let's work <br />
-                  <span style={{ color: data.theme.primaryColor }}>together.</span>
-                </h2>
+              <div className="w-full my-12 flex flex-col items-center">
+                <AnimatedFooterText primaryColor={data.theme.primaryColor} />
                 <Link 
                   to="/contact" 
                   className="inline-flex items-center justify-center gap-4 text-xl md:text-2xl font-medium hover:opacity-80 transition-opacity"
@@ -459,12 +456,44 @@ export default function App() {
               </div>
               
               {/* Socials */}
-              <div className="flex flex-col gap-4 text-right">
-                {data.contact.socials?.map((link, i) => (
-                  <SkewedLink key={i} href={link.url} className="text-xl md:text-2xl font-medium">
-                    {link.platform}
+              <div className="flex flex-col items-center gap-6 w-full">
+                <h3 className="text-zinc-500 font-medium uppercase tracking-widest text-sm mb-2">Socials</h3>
+                <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-8">
+                  {data.contact.socials?.map((link, i) => (
+                    <SkewedLink 
+                      key={i}
+                      href={link.url}
+                      className="text-xl md:text-2xl font-medium"
+                    >
+                      {link.platform}
+                    </SkewedLink>
+                  ))}
+                </div>
+              </div>
+
+              {/* Email */}
+              {data.contact.email && (
+                <div className="flex flex-col items-center gap-6 w-full mt-4">
+                  <h3 className="text-zinc-500 font-medium uppercase tracking-widest text-sm mb-2">Email</h3>
+                  <SkewedLink 
+                    href={`mailto:${data.contact.email}`}
+                    className="text-xl md:text-2xl font-medium"
+                  >
+                    {data.contact.email}
                   </SkewedLink>
-                ))}
+                </div>
+              )}
+            </div>
+
+            <div className="w-full max-w-7xl mx-auto h-[1px] bg-zinc-800/50 mb-8" />
+
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6 max-w-7xl mx-auto">
+              <div className="text-xl font-bold tracking-tighter flex items-center justify-center gap-2">
+                {data.pageTitle.logo && <img src={data.pageTitle.logo} alt="Logo" referrerPolicy="no-referrer" className="h-6 w-auto grayscale opacity-50 select-none pointer-events-none" draggable={false} onContextMenu={(e) => e.preventDefault()} />}
+                <span className="truncate max-w-[200px] sm:max-w-none">{formatTextWithAccent(data.pageTitle.title, data.theme.primaryColor)}</span>
+              </div>
+              <div className="text-zinc-500 text-sm">
+                © {new Date().getFullYear()} All rights reserved.
               </div>
             </div>
           </div>
