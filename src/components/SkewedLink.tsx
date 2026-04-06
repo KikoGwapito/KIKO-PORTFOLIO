@@ -19,7 +19,7 @@ export const SkewedLink: React.FC<SkewedLinkProps> = ({ children, to, href, clas
   const textClass = `block text-zinc-100 ${uppercase ? 'uppercase' : ''} ${bold ? 'font-bold' : ''}`;
 
   const content = (
-    <div className="relative overflow-hidden inline-block py-1">
+    <div className="relative overflow-hidden inline-block">
       <motion.div
         className="relative flex flex-col items-start justify-start"
         initial={{ y: "0%", skewY: 0 }}
@@ -32,8 +32,8 @@ export const SkewedLink: React.FC<SkewedLinkProps> = ({ children, to, href, clas
           ease: [0.76, 0, 0.24, 1]
         }}
       >
-        <span className={textClass}>{children}</span>
-        <span className={`absolute top-full left-0 w-full text-left ${textClass}`} style={{ color: hoverColor }} aria-hidden="true">{children}</span>
+        <span className={`${textClass} pb-1`}>{children}</span>
+        <span className={`absolute top-full left-0 w-full text-left ${textClass} pb-1`} style={{ color: hoverColor }} aria-hidden="true">{children}</span>
       </motion.div>
       <motion.div
         className="absolute bottom-0 left-0 h-[2px] w-full"

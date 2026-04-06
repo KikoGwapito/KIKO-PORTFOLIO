@@ -106,13 +106,13 @@ export default function About() {
       
       <div className="flex flex-col lg:grid lg:grid-cols-12 gap-24 items-start relative z-10">
         {/* Left Column - Image & Quick Links */}
-        <div className="lg:col-span-5 lg:sticky lg:top-40 w-full">
-          <Magnetic strength={0.05}>
+        <div className="lg:col-span-5 lg:sticky lg:top-40 w-full flex flex-col items-center lg:items-start">
+          <Magnetic strength={0.05} className="w-full max-w-md lg:max-w-full">
             <motion.div 
               initial={{ opacity: 0, scale: 0.9, rotate: -2 }}
               animate={{ opacity: 1, scale: 1, rotate: 0 }}
               transition={{ duration: 1.5 / speed, ease: [0.22, 1, 0.36, 1] }}
-              className="aspect-[4/5] rounded-[2.5rem] overflow-hidden bg-zinc-900 border border-zinc-800/50 mb-12 relative group shadow-2xl"
+              className="aspect-[4/5] lg:aspect-auto lg:h-[65vh] w-full rounded-[2.5rem] overflow-hidden bg-zinc-900 border border-zinc-800/50 mb-12 relative group shadow-2xl"
             >
               <motion.div style={{ y: imageY }} className="absolute inset-0">
                 <img 
@@ -122,6 +122,7 @@ export default function About() {
                   referrerPolicy="no-referrer"
                   draggable={false}
                   onContextMenu={(e) => e.preventDefault()}
+                  onError={(e) => { e.currentTarget.src = "https://picsum.photos/seed/developer/800/800"; }}
                 />
               </motion.div>
               <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent opacity-60 z-10" />
@@ -158,7 +159,7 @@ export default function About() {
               </a>
             </Magnetic>
 
-            <div className="grid grid-cols-4 gap-4">
+            <div className="flex flex-wrap gap-4">
               {data.contact.socials?.map((social, i) => {
                 let Icon = LinkIcon;
                 const platformLower = social.platform.toLowerCase();
@@ -171,9 +172,9 @@ export default function About() {
                 else if (platformLower.includes('tiktok')) Icon = Music2;
                 
                 return (
-                  <Magnetic strength={0.2} key={i} className="block w-full h-full">
-                    <a href={social.url} target="_blank" rel="noopener noreferrer" className="flex justify-center items-center w-full h-full aspect-square rounded-2xl glass border border-zinc-800/50 text-zinc-500 hover:text-white hover:border-zinc-600 transition-all duration-500 group">
-                      <Icon className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                  <Magnetic strength={0.2} key={i} className="block">
+                    <a href={social.url} target="_blank" rel="noopener noreferrer" className="flex justify-center items-center w-12 h-12 rounded-full glass border border-zinc-800/50 text-zinc-500 hover:text-white hover:border-zinc-600 transition-all duration-500 group">
+                      <Icon className="w-5 h-5 group-hover:scale-110 transition-transform" />
                     </a>
                   </Magnetic>
                 );
@@ -217,7 +218,7 @@ export default function About() {
             {/* Experience Timeline */}
             {data.about.experience && data.about.experience.length > 0 && (
               <div className="mt-40">
-                <div className="flex items-center justify-between mb-20">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-20">
                   <h2 className="text-4xl md:text-6xl font-bold tracking-tighter">Experience</h2>
                   <div className="flex items-center gap-4 text-zinc-500">
                     <span className="text-sm font-bold uppercase tracking-[0.3em]">Timeline</span>

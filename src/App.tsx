@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Lock, CheckCircle2, AlertCircle, Info, ArrowRight, Sun, Moon, Twitter, Instagram, Linkedin, Github, Facebook, Youtube, Dribbble, Figma, Globe } from 'lucide-react';
+import { Menu, X, Lock, CheckCircle2, AlertCircle, Info, ArrowRight, Sun, Moon, Twitter, Instagram, Linkedin, Github, Facebook, Youtube, Dribbble, Figma, Globe, Music2 } from 'lucide-react';
 import { AnimatePresence, motion, useScroll, useTransform, useSpring, useMotionValue } from 'motion/react';
 import { LenisProvider } from './components/LenisProvider';
 import { Magnetic } from './components/Magnetic';
@@ -31,6 +31,7 @@ const getSocialIcon = (platform: string) => {
   if (p.includes('youtube')) return <Youtube className="w-5 h-5" />;
   if (p.includes('dribbble')) return <Dribbble className="w-5 h-5" />;
   if (p.includes('figma')) return <Figma className="w-5 h-5" />;
+  if (p.includes('tiktok')) return <Music2 className="w-5 h-5" />;
   return <Globe className="w-5 h-5" />;
 };
 
@@ -297,7 +298,7 @@ export default function App() {
         <div className="w-full px-4 md:px-8 lg:px-12 h-20 flex items-center justify-between">
           <Link to="/" onClick={closeMenu} className="shrink-0">
             <motion.div 
-              className="text-xl font-bold tracking-tighter flex items-center gap-2 origin-left"
+              className="text-xl font-bold font-heading tracking-tighter flex items-center gap-2 origin-left"
               whileHover={{ x: 5 }}
               whileTap={{ scale: 0.98 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
@@ -441,39 +442,39 @@ export default function App() {
           <div className="w-full px-4 md:px-8 lg:px-12 relative z-10 text-left">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 mb-24 w-full">
               {/* Column 1: Navigation */}
-              <div className="flex flex-col items-start gap-4 lg:col-span-3 w-full">
+              <div className="flex flex-col items-start gap-4 lg:col-span-4 w-full">
                 <StaggeredLink 
                   to="/#work" 
                   text="Work"
                   showArrow={true}
                   hoverColor={data.theme.primaryColor}
-                  className="text-4xl md:text-5xl lg:text-5xl xl:text-6xl tracking-tighter"
+                  className="text-4xl md:text-5xl lg:text-4xl xl:text-5xl font-heading tracking-tighter"
                 />
                 <StaggeredLink 
                   to="/about" 
                   text="About"
                   showArrow={true}
                   hoverColor={data.theme.primaryColor}
-                  className="text-4xl md:text-5xl lg:text-5xl xl:text-6xl tracking-tighter"
+                  className="text-4xl md:text-5xl lg:text-4xl xl:text-5xl font-heading tracking-tighter"
                 />
                 <StaggeredLink 
                   to="/process" 
                   text="Process"
                   showArrow={true}
                   hoverColor={data.theme.primaryColor}
-                  className="text-4xl md:text-5xl lg:text-5xl xl:text-6xl tracking-tighter"
+                  className="text-4xl md:text-5xl lg:text-4xl xl:text-5xl font-heading tracking-tighter"
                 />
                 <StaggeredLink 
                   to="/reviews" 
                   text="Reviews"
                   showArrow={true}
                   hoverColor={data.theme.primaryColor}
-                  className="text-4xl md:text-5xl lg:text-5xl xl:text-6xl tracking-tighter"
+                  className="text-4xl md:text-5xl lg:text-4xl xl:text-5xl font-heading tracking-tighter"
                 />
               </div>
 
               {/* Column 2: Let's work together */}
-              <div className="flex flex-col items-start gap-8 lg:col-span-5">
+              <div className="flex flex-col items-start gap-8 lg:col-span-4">
                 <AnimatedFooterText primaryColor={data.theme.primaryColor} />
                 <Link 
                   to="/contact" 
@@ -521,7 +522,7 @@ export default function App() {
             <div className="w-full px-4 md:px-8 lg:px-12 mx-auto h-[1px] bg-zinc-800/50 mb-8" />
 
             <div className="flex flex-col md:flex-row items-center justify-between gap-6 w-full px-4 md:px-8 lg:px-12">
-              <div className="text-xl font-bold tracking-tighter flex items-center justify-center gap-2">
+              <div className="text-xl font-bold font-heading tracking-tighter flex items-center justify-center gap-2">
                 {data.pageTitle.logo && <img src={data.pageTitle.logo} alt="Logo" referrerPolicy="no-referrer" className="h-6 w-auto grayscale opacity-50 select-none pointer-events-none" draggable={false} onContextMenu={(e) => e.preventDefault()} />}
                 <span className="truncate max-w-[200px] sm:max-w-none">{formatTextWithAccent(data.pageTitle.title, data.theme.primaryColor)}</span>
               </div>
