@@ -69,6 +69,9 @@ export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const mediaRef = useRef<HTMLDivElement>(null);
+  const spacerRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -80,16 +83,14 @@ export default function Home() {
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      if (!mediaRef.current || !scrollContainerRef.current) return;
+      if (!mediaRef.current || !spacerRef.current || !overlayRef.current || !contentRef.current) return;
       
       const tl = gsap.timeline({
         scrollTrigger: {
-          trigger: scrollContainerRef.current,
-          start: 'top top',
-          end: '+=200%', // 200vh scroll track
-          scrub: 1, // 1 second catch-up smoothing
-          pin: true,
-          refreshPriority: 1,
+          trigger: spacerRef.current,
+          start: 'top bottom',
+          end: 'bottom bottom',
+          scrub: 1,
         }
       });
 
@@ -98,13 +99,25 @@ export default function Home() {
         width: '100%',
         borderRadius: '0px',
         ease: 'none',
-        duration: 0.7 // Takes up first 70% of the scroll
+        duration: 0.7
       })
       // Phase 2: Expand height to full screen
       .to(mediaRef.current, {
         height: '100vh',
         ease: 'none',
-        duration: 0.3 // Takes up remaining 30%
+        duration: 0.3
+      });
+
+      // Phase 3: Blur and darken the media when content scrolls over
+      gsap.to(overlayRef.current, {
+        opacity: 1,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: contentRef.current,
+          start: 'top bottom',
+          end: 'top center',
+          scrub: 1,
+        }
       });
     }, scrollContainerRef);
     
@@ -178,63 +191,71 @@ export default function Home() {
       </section>
 
       {/* GSAP ScrollTrigger Hero Media Section */}
-      <div ref={scrollContainerRef} className="scroll-container w-full h-screen relative z-20 flex items-center justify-center">
-        <div 
-          ref={mediaRef} 
-          className="hero-media overflow-hidden bg-zinc-900 shadow-2xl relative flex items-center justify-center"
-          style={{ 
-            width: '60%', 
-            height: '80vh', 
-            borderRadius: '40px',
-            willChange: 'width, height, border-radius'
-          }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent opacity-60 z-20 pointer-events-none" />
-          <div className="absolute inset-0 bg-grid opacity-20 z-10 pointer-events-none" />
-          
-          <div className="w-full h-full">
-            {data.hero.media.type === 'video' ? (
-              <video 
-                src={data.hero.media.url || undefined} 
-                autoPlay loop muted playsInline 
-                className="w-full h-full object-cover grayscale-hover transition-transform duration-1000"
-              />
-            ) : (
-              <img 
-                src={data.hero.media.url || undefined} 
-                alt="Hero" 
-                className="w-full h-full object-cover select-none grayscale-hover transition-transform duration-1000"
-                referrerPolicy="no-referrer"
-                draggable={false}
-                onContextMenu={(e) => e.preventDefault()}
-              />
-            )}
-          </div>
-        
-          {/* Floating Badge */}
-          <motion.div 
-            animate={{ y: [0, -10, 0] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute bottom-6 right-6 sm:bottom-8 sm:right-8 z-30 glass px-4 py-3 sm:px-6 sm:py-4 rounded-2xl flex items-center gap-3 sm:gap-4"
+      <div ref={scrollContainerRef} className="w-full relative z-20">
+        <div className="sticky top-0 w-full h-screen flex items-center justify-center overflow-hidden z-0">
+          <div 
+            ref={mediaRef} 
+            className="hero-media overflow-hidden bg-zinc-900 shadow-2xl relative flex items-center justify-center"
+            style={{ 
+              width: '60%', 
+              height: '80vh', 
+              borderRadius: '40px',
+              willChange: 'width, height, border-radius'
+            }}
           >
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: data.theme.primaryColor }}>
-              <MousePointer2 className="w-4 h-4 sm:w-5 sm:h-5 text-zinc-950" />
+            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent opacity-60 z-20 pointer-events-none" />
+            <div className="absolute inset-0 bg-grid opacity-20 z-10 pointer-events-none" />
+            
+            <div className="w-full h-full">
+              {data.hero.media.type === 'video' ? (
+                <video 
+                  src={data.hero.media.url || undefined} 
+                  autoPlay loop muted playsInline 
+                  className="w-full h-full object-cover grayscale-hover transition-transform duration-1000"
+                />
+              ) : (
+                <img 
+                  src={data.hero.media.url || undefined} 
+                  alt="Hero" 
+                  className="w-full h-full object-cover select-none grayscale-hover transition-transform duration-1000"
+                  referrerPolicy="no-referrer"
+                  draggable={false}
+                  onContextMenu={(e) => e.preventDefault()}
+                />
+              )}
             </div>
-            <div>
-              <div className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-zinc-500">
-                {data.hero.floatingText?.split('\n')[0] || 'AVAILABLE FOR'}
+          
+            {/* Floating Badge */}
+            <motion.div 
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute bottom-6 right-6 sm:bottom-8 sm:right-8 z-30 glass px-4 py-3 sm:px-6 sm:py-4 rounded-2xl flex items-center gap-3 sm:gap-4"
+            >
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: data.theme.primaryColor }}>
+                <MousePointer2 className="w-4 h-4 sm:w-5 sm:h-5 text-zinc-950" />
               </div>
-              <div className="text-xs sm:text-sm font-bold">
-                {data.hero.floatingText?.split('\n').slice(1).join('\n') || 'New Projects'}
+              <div>
+                <div className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-zinc-500">
+                  {data.hero.floatingText?.split('\n')[0] || 'AVAILABLE FOR'}
+                </div>
+                <div className="text-xs sm:text-sm font-bold">
+                  {data.hero.floatingText?.split('\n').slice(1).join('\n') || 'New Projects'}
+                </div>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </div>
+          
+          {/* Overlay to darken/blur the image when content scrolls over */}
+          <div ref={overlayRef} className="absolute inset-0 bg-zinc-950/70 backdrop-blur-xl opacity-0 z-40 pointer-events-none" />
         </div>
-      </div>
 
+        {/* Spacer for the expansion animation */}
+        <div ref={spacerRef} className="h-[150vh] w-full pointer-events-none" />
 
-      {/* Trust Section */}
-      <section className="py-24 border-y border-zinc-800/30 relative overflow-hidden">
+        {/* Content that scrolls over the hero media */}
+        <div ref={contentRef} className="relative z-10 w-full">
+          {/* Trust Section */}
+          <section className="py-24 border-y border-zinc-800/30 relative overflow-hidden">
         <div className="absolute inset-0 bg-grid opacity-10 pointer-events-none" />
         
         <div className="w-full px-4 md:px-8 lg:px-12 mx-auto mb-16">
@@ -338,8 +359,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Featured Work */}
-      <section id="work" className="py-40 relative">
+      {/* Featured Work Header (Now over the hero image) */}
+      <section id="work" className="pt-40 pb-20 relative z-20">
         <div className="w-full px-4 md:px-8 lg:px-12 mx-auto">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
@@ -363,26 +384,31 @@ export default function Home() {
             </div>
           </motion.div>
         </div>
+      </section>
+    </div>
+  </div>
 
-        {(() => {
-          const validProjects = (data.projectOrder || []).map(id => ({ ...data.projects[id], id })).filter(p => p.title);
-          return (
-            <ProjectStacking 
-              key={`stack-${validProjects.map(p => p.id).join('-')}`}
-              projects={validProjects} 
-              themeColor={data.theme.primaryColor} 
-            />
-          );
-        })()}
-        
-        {/* View All CTA */}
-        <div className="w-full px-4 md:px-8 lg:px-12 mx-auto">
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mt-40 flex flex-col items-center text-center"
-          >
+  {/* Featured Work Projects & CTA */}
+  <section className="relative z-20" style={{ backgroundColor: data.theme.backgroundColor }}>
+    {(() => {
+      const validProjects = (data.projectOrder || []).map(id => ({ ...data.projects[id], id })).filter(p => p.title);
+      return (
+        <ProjectStacking 
+          key={`stack-${validProjects.map(p => p.id).join('-')}`}
+          projects={validProjects} 
+          themeColor={data.theme.primaryColor} 
+        />
+      );
+    })()}
+    
+    {/* View All CTA */}
+    <div className="w-full px-4 md:px-8 lg:px-12 mx-auto pb-40">
+      <motion.div 
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="mt-40 flex flex-col items-center text-center"
+      >
           <h3 className="text-4xl md:text-6xl font-bold tracking-tighter mb-12 max-w-2xl leading-none">
             Ready to start your next <span style={{ color: data.theme.primaryColor }}>digital revolution?</span>
           </h3>
