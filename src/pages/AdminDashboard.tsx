@@ -155,6 +155,7 @@ export default function AdminDashboard() {
     updateData({ [section]: processedData });
     
     // Also update the local state so the UI reflects the new order
+    if (section === 'about') setAboutData(processedData);
     if (section === 'process') setProcessData(processedData);
     if (section === 'reviews') setReviewsData(processedData);
     if (section === 'contact') setContactData(processedData);
@@ -426,23 +427,13 @@ export default function AdminDashboard() {
           break;
         case 'process':
           if (target.index !== undefined) {
-            if (target.isSecond) {
-              setProcessData(prev => {
-                const newSteps = [...prev.steps];
-                const oldUrl = newSteps[target.index]?.image;
-                if (oldUrl) deleteMediaFromServer(oldUrl);
-                newSteps[target.index] = { ...newSteps[target.index], image: url };
-                return { ...prev, steps: newSteps };
-              });
-            } else {
-              setProcessData(prev => {
-                const newMedia = [...prev.media];
-                const oldUrl = newMedia[target.index]?.url;
-                if (oldUrl) deleteMediaFromServer(oldUrl);
-                newMedia[target.index] = { ...newMedia[target.index], url, type: mediaType };
-                return { ...prev, media: newMedia };
-              });
-            }
+            setProcessData(prev => {
+              const newMedia = [...prev.media];
+              const oldUrl = newMedia[target.index]?.url;
+              if (oldUrl) deleteMediaFromServer(oldUrl);
+              newMedia[target.index] = { ...newMedia[target.index], url, type: mediaType };
+              return { ...prev, media: newMedia };
+            });
           }
           break;
         case 'contact':
@@ -1213,26 +1204,6 @@ export default function AdminDashboard() {
                       newSteps[index].description = e.target.value;
                       setProcessData({...processData, steps: newSteps});
                     }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)] min-h-[80px]" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-zinc-500 mb-1">Step Image (Optional)</label>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <button onClick={() => handleUploadClick({ section: 'process', index, isSecond: true })} disabled={uploadTarget?.section === 'process' && uploadTarget?.index === index && uploadTarget?.isSecond} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors flex items-center justify-center gap-2 border border-zinc-700 disabled:opacity-50 whitespace-nowrap font-medium">
-                        {uploadTarget?.section === 'process' && uploadTarget?.index === index && uploadTarget?.isSecond ? (
-                          <div className="flex items-center gap-2">
-                            <div className="w-5 h-5 border-2 border-zinc-400 border-t-emerald-400 rounded-full animate-spin" />
-                            <span className="text-xs font-mono">{uploadProgress}%</span>
-                          </div>
-                        ) : <Upload className="w-5 h-5" />}
-                        Upload Image
-                      </button>
-                      <div className="flex items-center text-zinc-500 text-xs font-medium">OR</div>
-                      <input type="text" value={step.image || ''} onChange={e => {
-                        const newSteps = [...processData.steps];
-                        newSteps[index].image = e.target.value;
-                        setProcessData({...processData, steps: newSteps});
-                      }} className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" placeholder="Paste external URL..." />
-                    </div>
                   </div>
                 </div>
               </div>

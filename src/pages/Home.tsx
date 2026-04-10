@@ -6,8 +6,6 @@ import { useAppData } from '../context/AppDataContext';
 import { formatTextWithAccent } from '../utils/formatText';
 import { ProjectStacking } from '../components/ProjectStacking';
 import { Magnetic } from '../components/Magnetic';
-import { HeroParticles } from '../components/HeroParticles';
-import { HorizontalProcessScroll } from '../components/HorizontalProcessScroll';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -102,25 +100,13 @@ export default function Home() {
         borderRadius: '0px',
         ease: 'none',
         duration: 0.7
-      }, 0)
-      // Hide header during expansion
-      .to('#main-header', {
-        yPercent: -100,
-        ease: 'power2.inOut',
-        duration: 0.3
-      }, 0)
+      })
       // Phase 2: Expand height to full screen
       .to(mediaRef.current, {
         height: '100vh',
         ease: 'none',
         duration: 0.3
-      }, 0.7)
-      // Show header when full screen
-      .to('#main-header', {
-        yPercent: 0,
-        ease: 'power2.inOut',
-        duration: 0.3
-      }, 0.7);
+      });
 
       // Phase 3: Blur and darken the media when content scrolls over
       gsap.to(overlayRef.current, {
@@ -141,8 +127,7 @@ export default function Home() {
   return (
     <div>
       {/* Hero Section */}
-      <section ref={containerRef} className="relative pt-32 sm:pt-40 pb-20 px-4 md:px-8 lg:px-12 w-full mx-auto min-h-[90vh] flex flex-col justify-center overflow-hidden pointer-events-none">
-        <HeroParticles color={data.theme.primaryColor} />
+      <section ref={containerRef} className="relative pt-32 sm:pt-40 pb-20 px-4 md:px-8 lg:px-12 w-full mx-auto min-h-[90vh] flex flex-col justify-center overflow-hidden">
         <div className="flex flex-col items-center text-center relative z-10 min-w-0 w-full">
           <motion.div style={{ y: heroTextY }} className="max-w-4xl mx-auto min-w-0 w-full">
             <motion.div
@@ -178,7 +163,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1.2 / speed, delay: 0.2 / speed, ease: [0.22, 1, 0.36, 1] }}
-              className="flex flex-col sm:flex-row items-center justify-center gap-8 pointer-events-auto"
+              className="flex flex-col sm:flex-row items-center justify-center gap-8"
             >
               <Magnetic strength={0.3} className="w-full sm:w-auto">
                 <Link to={data.hero.buttonLink} className="w-full sm:w-auto px-8 py-4 sm:px-10 sm:py-5 text-zinc-950 font-bold rounded-full transition-all flex items-center justify-center gap-3 group glow-primary relative overflow-hidden" style={{ backgroundColor: data.theme.primaryColor }}>
@@ -287,8 +272,11 @@ export default function Home() {
                 <span className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-500 break-words min-w-0">{formatTextWithAccent(data.trust.label || 'Trusted by innovative teams', data.theme.primaryColor)}</span>
               </div>
               <h2 className="text-4xl md:text-6xl font-bold tracking-tighter leading-tight mb-8 break-words">
-                {formatTextWithAccent(data.trust.title, data.theme.primaryColor)}
+                {formatTextWithAccent(data.trust.title || data.trust.heading, data.theme.primaryColor)}
               </h2>
+              <p className="text-xl text-zinc-400 leading-relaxed max-w-xl break-words">
+                {formatTextWithAccent(data.trust.subheading, data.theme.primaryColor)}
+              </p>
               
               {/* Logos */}
               <div className="mt-12 w-full overflow-hidden">
@@ -349,14 +337,27 @@ export default function Home() {
       </section>
 
       {/* Process Section */}
-      <HorizontalProcessScroll 
-        title={data.process.title}
-        subtitle={data.process.subtitle}
-        steps={data.process.steps} 
-        media={data.process.media || []} 
-        themeColor={data.theme.primaryColor} 
-        transparentBg={true}
-      />
+      <section className="py-40 px-4 md:px-8 lg:px-12 w-full mx-auto relative overflow-hidden">
+        <div className="flex flex-col items-center text-center mb-24 min-w-0">
+          <div className="flex items-center justify-center gap-3 mb-6 flex-wrap sm:flex-nowrap w-full">
+            <span className="w-12 h-[1px] bg-zinc-800 shrink-0"></span>
+            <span className="text-xs font-bold uppercase tracking-[0.4em] text-zinc-500 break-words min-w-0">{formatTextWithAccent(data.process.label || 'How I Work', data.theme.primaryColor)}</span>
+            <span className="w-12 h-[1px] bg-zinc-800 shrink-0"></span>
+          </div>
+          <h2 className="text-6xl md:text-8xl font-bold tracking-tighter leading-none mb-8 break-words w-full">
+            {formatTextWithAccent(data.process.title, data.theme.primaryColor)}
+          </h2>
+          <p className="text-xl text-zinc-400 max-w-2xl leading-relaxed break-words w-full">
+            {formatTextWithAccent(data.process.subtitle, data.theme.primaryColor)}
+          </p>
+        </div>
+
+        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-${Math.min(data.process.steps.length, 4)} gap-8`}>
+          {[...data.process.steps].reverse().map((step, i) => (
+            <ProcessStepCard key={i} step={step} index={i} themeColor={data.theme.primaryColor} />
+          ))}
+        </div>
+      </section>
 
       {/* Featured Work Header (Now over the hero image) */}
       <section id="work" className="pt-40 pb-20 relative z-20">
@@ -384,8 +385,8 @@ export default function Home() {
           </motion.div>
         </div>
       </section>
-        </div>
-      </div>
+    </div>
+  </div>
 
   {/* Featured Work Projects & CTA */}
   <section className="relative z-20" style={{ backgroundColor: data.theme.backgroundColor }}>

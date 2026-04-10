@@ -92,7 +92,7 @@ export type ProcessData = {
   label: string;
   title: string;
   subtitle: string;
-  steps: { title: string; description: string; image?: string; }[];
+  steps: { title: string; description: string; }[];
   media: MediaItem[];
 };
 
