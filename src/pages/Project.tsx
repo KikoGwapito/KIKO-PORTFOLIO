@@ -307,7 +307,7 @@ export default function Project() {
             return (
             <motion.div 
               key={i}
-              ref={(el) => mediaRefs.current[i] = el}
+              ref={(el) => { mediaRefs.current[i] = el; }}
               initial={{ opacity: 0, y: 60 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}

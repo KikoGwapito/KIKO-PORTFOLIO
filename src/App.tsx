@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, Lock, CheckCircle2, AlertCircle, Info, ArrowRight, Sun, Moon, Twitter, Instagram, Linkedin, Github, Facebook, Youtube, Dribbble, Figma, Globe, Music2 } from 'lucide-react';
-import { AnimatePresence, motion, useScroll, useTransform, useSpring, useMotionValue } from 'motion/react';
+import { AnimatePresence, motion, useScroll, useTransform, useSpring, useMotionValue, useMotionValueEvent } from 'motion/react';
 import { LenisProvider } from './components/LenisProvider';
 import { Magnetic } from './components/Magnetic';
 import Home from './pages/Home';
@@ -288,11 +288,9 @@ export default function App() {
       <NotificationToast />
       
       {/* Navigation */}
-      <motion.header 
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 1.0, ease: [0.22, 1, 0.36, 1] }}
-        className="fixed top-0 w-full z-50 backdrop-blur-md border-b border-zinc-800/50" 
+      <header 
+        id="main-header"
+        className="fixed top-0 w-full z-50 backdrop-blur-md border-b border-zinc-800/50 transition-colors duration-300" 
         style={{ backgroundColor: data.theme.headerColor ? `${data.theme.headerColor}cc` : 'rgba(9, 9, 11, 0.8)' }}
       >
         <div className="w-full px-4 md:px-8 lg:px-12 h-20 flex items-center justify-between">
@@ -409,7 +407,7 @@ export default function App() {
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.header>
+      </header>
 
       <main>
         <AnimatePresence mode="wait">
