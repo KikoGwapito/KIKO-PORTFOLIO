@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -13,11 +13,11 @@ interface ProjectStackingProps {
 }
 
 export const ProjectStacking: React.FC<ProjectStackingProps> = ({ projects, themeColor }) => {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
 
   useGSAP(() => {
-    if (!containerRef.current || projects.length === 0) return;
+    if (!wrapperRef.current || !containerRef.current || projects.length === 0) return;
 
     const cards = gsap.utils.toArray('.project-card', containerRef.current) as HTMLElement[];
     const cardsToAnimate = cards.slice(1); // Skip the first card
@@ -32,26 +32,14 @@ export const ProjectStacking: React.FC<ProjectStackingProps> = ({ projects, them
 
     const tl = gsap.timeline({
       scrollTrigger: {
-        trigger: containerRef.current,
-        pin: true,
-        anticipatePin: 1,
+        trigger: wrapperRef.current,
         start: 'top top',
-        end: () => '+=' + (projects.length * window.innerHeight),
-        scrub: 1,
-        pinSpacing: true,
-        onUpdate: (self) => {
-          // Calculate active index based on progress
-          const progress = self.progress;
-          const newIndex = Math.min(
-            Math.floor(progress * projects.length),
-            projects.length - 1
-          );
-          setActiveIndex(newIndex);
-        }
+        end: 'bottom bottom',
+        scrub: true
       }
     });
 
-    // Animate each card sliding up one after another
+    // Animate each card sliding up sequentially
     cardsToAnimate.forEach((card) => {
       tl.to(card, {
         yPercent: 0,
@@ -59,34 +47,35 @@ export const ProjectStacking: React.FC<ProjectStackingProps> = ({ projects, them
         immediateRender: false
       });
     });
-  }, { scope: containerRef, dependencies: [] });
+  }, { scope: wrapperRef, dependencies: [projects] });
+
+  // Calculate the total height required strictly based on project count
+  const heightStr = projects.length > 0 ? `${projects.length * 100}vh` : '100vh';
 
   return (
-    <div className="project-stacking-wrapper w-full">
-      <div id="stack-container" ref={containerRef} className="relative w-full h-screen overflow-hidden bg-zinc-950">
-        {projects.map((project, index) => {
-          const isActive = index <= activeIndex;
-          return (
-            <div 
-              key={project.id}
-              className={`project-card absolute top-0 left-0 w-full h-full flex items-center justify-center overflow-hidden ${!isActive ? 'pointer-events-none' : ''} opacity-0`}
-              style={{ zIndex: index + 1 }}
-            >
+    <div ref={wrapperRef} className="project-stacking-wrapper w-full relative z-20" style={{ height: heightStr }}>
+      <div id="stack-container" ref={containerRef} className="sticky top-0 w-full h-screen overflow-hidden bg-zinc-950">
+        {projects.map((project, index) => (
+          <div 
+            key={project.id}
+            className="group project-card absolute top-0 left-0 w-full h-full flex items-center justify-center overflow-hidden opacity-0 glow-top-edge-hover"
+            style={{ zIndex: index + 1 }}
+          >
             <Link 
               to={`/work/${project.id}`}
               className="relative w-full h-full flex items-center justify-center overflow-hidden block"
             >
               {/* Background Media */}
               <div className="absolute inset-0 w-full h-full">
-                {project.images[0]?.type === 'video' ? (
+                {project.images?.[0]?.type === 'video' ? (
                   <video 
-                    src={project.images[0].url ? (project.images[0].url.includes('#t=') ? project.images[0].url : `${project.images[0].url}#t=10.001`) : undefined} 
+                    src={project.images[0].url || undefined} 
                     autoPlay loop muted playsInline 
                     className="w-full h-full object-cover" 
                   />
                 ) : (
                   <img 
-                    src={project.images[0]?.url || undefined} 
+                    src={project.images?.[0]?.url || undefined} 
                     alt={project.title} 
                     className="w-full h-full object-cover"
                     referrerPolicy="no-referrer"
@@ -119,8 +108,7 @@ export const ProjectStacking: React.FC<ProjectStackingProps> = ({ projects, them
               </div>
             </Link>
           </div>
-        );
-      })}
+        ))}
       </div>
     </div>
   );

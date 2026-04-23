@@ -81,8 +81,8 @@ export default function Reviews() {
       <AnimatePresence>
         {isSubmitted && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            initial={{ opacity: 0, filter: "blur(10px)" }}
+            animate={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" } }}
             exit={{ opacity: 0 }}
             className="absolute inset-0 z-[100] backdrop-blur-xl bg-zinc-950/90 flex flex-col items-center justify-center p-10 text-center"
           >
@@ -182,8 +182,8 @@ export default function Reviews() {
                 {isSubmitting ? (
                   <motion.div
                     key="submitting"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
+                    initial={{ opacity: 0, filter: "blur(10px)" }}
+                    animate={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" } }}
                     exit={{ opacity: 0 }}
                     className="flex items-center gap-2"
                   >
@@ -193,8 +193,8 @@ export default function Reviews() {
                 ) : isSubmitted ? (
                   <motion.div
                     key="submitted"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    initial={{ opacity: 0, filter: "blur(10px)", y: 10 }}
+                    animate={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" }, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     className="flex items-center gap-2"
                   >
@@ -204,8 +204,8 @@ export default function Reviews() {
                 ) : (
                   <motion.div
                     key="idle"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
+                    initial={{ opacity: 0, filter: "blur(10px)" }}
+                    animate={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" } }}
                     exit={{ opacity: 0 }}
                     className="flex items-center gap-2"
                   >
@@ -227,8 +227,8 @@ export default function Reviews() {
       <div className="absolute top-20 left-0 w-[150vw] sm:w-[500px] h-[500px] bg-[var(--color-primary)] opacity-[0.02] blur-[150px] pointer-events-none" style={{ '--color-primary': data.theme.primaryColor } as any} />
       
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0, filter: "blur(10px)", y: 20 }}
+        animate={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" }, y: 0 }}
         transition={{ duration: 1.2 / speed, ease: [0.22, 1, 0.36, 1] }}
         className="mb-24 relative z-10"
       >
@@ -298,9 +298,9 @@ export default function Reviews() {
               filteredReviews.map((review, i) => (
                 <motion.div
                   key={review.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
+                  initial={{ opacity: 0, filter: "blur(10px)", x: -20 }}
+                  whileInView={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" }, x: 0 }}
+                  viewport={{ once: false }}
                   transition={{ duration: 0.8, delay: i * 0.1 }}
                   className="p-8 rounded-3xl glass border border-zinc-800/50 relative overflow-hidden group"
                 >
@@ -347,7 +347,7 @@ export default function Reviews() {
       </div>
 
       {/* Mobile Floating Button */}
-      <div className="lg:hidden fixed top-32 bottom-6 left-6 right-6 pointer-events-none z-50" ref={constraintsRef}>
+      <div className="lg:hidden fixed top-32 bottom-6 left-6 right-6 pointer-events-none z-[110]" ref={constraintsRef}>
         <motion.div
           drag
           dragConstraints={constraintsRef}
@@ -366,22 +366,19 @@ export default function Reviews() {
           className="absolute top-0 right-0 pointer-events-auto"
         >
           <motion.button
-            animate={!isDragging ? { 
+            animate={{ 
               scale: [1, 1.08, 1],
-              opacity: [0.4, 0.7, 0.4]
-            } : {
-              scale: 1.08,
-              opacity: 0.4
+              opacity: [0.3, 0.5, 0.3]
             }}
             transition={{ 
               duration: 2, 
               repeat: Infinity, 
               ease: "easeInOut" 
             }}
-            whileHover={!isDragging ? { scale: 1.1, opacity: 1, transition: { duration: 0.2 } } : undefined}
-            whileTap={!isDragging ? { scale: 0.9, opacity: 1, transition: { duration: 0.2 } } : undefined}
+            whileHover={{ scale: 1.1, opacity: 1, transition: { duration: 0.2 } }}
+            whileTap={{ scale: 0.9, opacity: 1, transition: { duration: 0.2 } }}
             onClick={() => {
-              if (!isDragging) setIsModalOpen(true);
+              if (!isDragging) setIsModalOpen(!isModalOpen);
             }}
             className="w-16 h-16 rounded-full shadow-2xl flex items-center justify-center text-zinc-950"
             style={{ backgroundColor: data.theme.primaryColor }}
@@ -395,8 +392,8 @@ export default function Reviews() {
       <AnimatePresence>
         {isModalOpen && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            initial={{ opacity: 0, filter: "blur(10px)" }}
+            animate={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" } }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-sm lg:hidden"
           >

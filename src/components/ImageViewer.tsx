@@ -31,8 +31,8 @@ export function ImageViewer({ src, alt, isOpen, onClose }: ImageViewerProps) {
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          initial={{ opacity: 0, filter: "blur(10px)" }}
+          animate={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" } }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 / speed }}
           className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/95 backdrop-blur-sm"

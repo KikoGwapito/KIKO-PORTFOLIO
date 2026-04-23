@@ -30,9 +30,9 @@ function ExperienceItem({ exp, index, themeColor }: { key?: React.Key, exp: any,
 
   return (
     <motion.div 
-      initial={{ opacity: 0, x: -20 }}
-      whileInView={{ opacity: 1, x: 0 }}
-      viewport={{ once: true, margin: "-100px" }}
+      initial={{ opacity: 0, filter: "blur(10px)", x: -20 }}
+      whileInView={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" }, x: 0 }}
+      viewport={{ once: false, margin: "-100px" }}
       transition={{ duration: 0.8, delay: index * 0.1 }}
       className="relative pl-8 md:pl-16 cursor-pointer group"
       onClick={() => setIsOpen(!isOpen)}
@@ -109,8 +109,8 @@ export default function About() {
         <div className="lg:col-span-5 lg:sticky lg:top-40 w-full flex flex-col items-center lg:items-start">
           <Magnetic strength={0.05} className="w-full max-w-md lg:max-w-full">
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9, rotate: -2 }}
-              animate={{ opacity: 1, scale: 1, rotate: 0 }}
+              initial={{ opacity: 0, filter: "blur(10px)", scale: 0.9, rotate: -2 }}
+              animate={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" }, scale: 1, rotate: 0 }}
               transition={{ duration: 1.5 / speed, ease: [0.22, 1, 0.36, 1] }}
               className="aspect-[4/5] lg:aspect-auto lg:h-[65vh] w-full rounded-[2.5rem] overflow-hidden bg-zinc-900 border border-zinc-800/50 mb-12 relative group shadow-2xl"
             >
@@ -139,8 +139,8 @@ export default function About() {
           </Magnetic>
 
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, filter: "blur(10px)", y: 20 }}
+            animate={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" }, y: 0 }}
             transition={{ duration: 1.2 / speed, delay: 0.2 / speed, ease: [0.22, 1, 0.36, 1] }}
             className="space-y-6"
           >
@@ -186,8 +186,8 @@ export default function About() {
         {/* Right Column - Content */}
         <div className="lg:col-span-7 w-full min-w-0">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, filter: "blur(10px)", y: 20 }}
+            animate={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" }, y: 0 }}
             transition={{ duration: 1.2 / speed, delay: 0.3 / speed, ease: [0.22, 1, 0.36, 1] }}
             className="min-w-0 w-full"
           >
@@ -204,9 +204,9 @@ export default function About() {
               {data.about.content.map((paragraph, i) => (
                 <motion.p 
                   key={i} 
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
+                  initial={{ opacity: 0, filter: "blur(10px)", y: 20 }}
+                  whileInView={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" }, y: 0 }}
+                  viewport={{ once: false }}
                   transition={{ duration: 0.8, delay: i * 0.1 }}
                   className={i === 0 ? "text-3xl md:text-4xl text-zinc-100 font-medium leading-tight tracking-tight mb-12" : "text-xl leading-relaxed max-w-2xl"}
                 >

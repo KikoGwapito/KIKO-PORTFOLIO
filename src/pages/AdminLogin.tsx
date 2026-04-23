@@ -43,8 +43,8 @@ export default function AdminLogin() {
       </div>
 
       <motion.div 
-        initial={{ opacity: 0, y: 30, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
+        initial={{ opacity: 0, filter: "blur(10px)", y: 30, scale: 0.95 }}
+        animate={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" }, y: 0, scale: 1 }}
         transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
         className="w-full max-w-md bg-zinc-900/80 backdrop-blur-xl border border-zinc-800/50 rounded-3xl p-8 md:p-10 shadow-2xl relative z-10 glow-effect"
       >
@@ -63,8 +63,8 @@ export default function AdminLogin() {
         </div>
         
         <motion.h1 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, filter: "blur(10px)", y: 10 }}
+          animate={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" }, y: 0 }}
           transition={{ delay: 0.3 }}
           className="text-3xl font-bold text-center mb-8 tracking-tight relative z-10"
         >
@@ -73,8 +73,8 @@ export default function AdminLogin() {
         
         {!isConfigValid && (
           <motion.div 
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
+            initial={{ opacity: 0, filter: "blur(10px)", height: 0 }}
+            animate={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" }, height: 'auto' }}
             className="bg-amber-500/10 border border-amber-500/30 text-amber-400 p-4 rounded-2xl mb-8 flex flex-col items-center gap-3 text-center relative z-10"
           >
             <AlertTriangle className="w-8 h-8" />
@@ -87,8 +87,8 @@ export default function AdminLogin() {
 
         {error && (
           <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, filter: "blur(10px)", x: -20 }}
+            animate={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" }, x: 0 }}
             className="bg-red-500/10 border border-red-500/30 text-red-400 p-4 rounded-2xl mb-8 text-sm text-center relative z-10"
           >
             {error}

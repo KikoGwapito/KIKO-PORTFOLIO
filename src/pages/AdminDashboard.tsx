@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from "react-router-dom";
 import { useAppData, ProjectData, MediaItem } from "../context/AppDataContext";
 import { storage } from "../firebase";
@@ -43,17 +44,17 @@ export default function AdminDashboard() {
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [isTestingCloudinary, setIsTestingCloudinary] = useState(false);
   const [uploadTarget, setUploadTargetState] = useState<{
-    section: 'project' | 'hero' | 'trust' | 'about' | 'process' | 'contact' | 'pageTitle';
+    section: 'project' | 'hero' | 'trust' | 'about' | 'process' | 'contact' | 'pageTitle' | 'process_modal';
     index?: number;
     isSecond?: boolean;
   } | null>(null);
   const uploadTargetRef = useRef<{
-    section: 'project' | 'hero' | 'trust' | 'about' | 'process' | 'contact' | 'pageTitle';
+    section: 'project' | 'hero' | 'trust' | 'about' | 'process' | 'contact' | 'pageTitle' | 'process_modal';
     index?: number;
     isSecond?: boolean;
   } | null>(null);
 
-  const setUploadTarget = (target: { section: 'project' | 'hero' | 'trust' | 'about' | 'process' | 'contact' | 'pageTitle', index?: number, isSecond?: boolean } | null) => {
+  const setUploadTarget = (target: { section: 'project' | 'hero' | 'trust' | 'about' | 'process' | 'contact' | 'pageTitle' | 'process_modal', index?: number, isSecond?: boolean } | null) => {
     uploadTargetRef.current = target;
     setUploadTargetState(target);
   };
@@ -69,6 +70,14 @@ export default function AdminDashboard() {
     title: '',
     message: '',
     onConfirm: () => {}
+  });
+
+  const [stepModal, setStepModal] = useState<{
+    isOpen: boolean;
+    data: any;
+  }>({
+    isOpen: false,
+    data: { title: '', description: '', media: { url: '', type: 'image' } }
   });
 
   const confirmAction = (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => {
@@ -106,11 +115,28 @@ export default function AdminDashboard() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [activeTab]);
 
+  const hasUnsavedChanges = useMemo(() => {
+    try {
+      if (activeTab === 'hero') return JSON.stringify(heroData) !== JSON.stringify(data.hero);
+      if (activeTab === 'trust') return JSON.stringify(trustData) !== JSON.stringify(data.trust);
+      if (activeTab === 'featured') return JSON.stringify(featuredWorkData) !== JSON.stringify(data.featuredWork) || (selectedProjectId !== null && JSON.stringify(editingProject) !== JSON.stringify(data.projects[selectedProjectId]));
+      if (activeTab === 'about') return JSON.stringify(aboutData) !== JSON.stringify(data.about);
+      if (activeTab === 'process') return JSON.stringify(processData) !== JSON.stringify(data.process);
+      if (activeTab === 'contact') return JSON.stringify(contactData) !== JSON.stringify(data.contact);
+      if (activeTab === 'pageTitle') return JSON.stringify(pageTitleData) !== JSON.stringify(data.pageTitle);
+      if (activeTab === 'theme') return JSON.stringify(themeData) !== JSON.stringify(data.theme);
+      if (activeTab === 'reviews') return JSON.stringify(reviewsData) !== JSON.stringify(data.reviews);
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }, [activeTab, heroData, trustData, featuredWorkData, aboutData, processData, contactData, pageTitleData, themeData, reviewsData, editingProject, selectedProjectId, data]);
+
   if (!isAdmin) return null;
 
   const handleLogout = () => {
-    logout();
     navigate("/");
+    logout();
   };
 
   const handleSaveSection = (section: keyof typeof data, sectionData: any) => {
@@ -279,7 +305,7 @@ export default function AdminDashboard() {
     );
   };
 
-  const handleUploadClick = (target: { section: 'project' | 'hero' | 'trust' | 'about' | 'process' | 'contact' | 'pageTitle', index?: number, isSecond?: boolean }) => {
+  const handleUploadClick = (target: { section: 'project' | 'hero' | 'trust' | 'about' | 'process' | 'contact' | 'pageTitle' | 'process_modal', index?: number, isSecond?: boolean }) => {
     setUploadTarget(target);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -428,11 +454,18 @@ export default function AdminDashboard() {
         case 'process':
           if (target.index !== undefined) {
             setProcessData(prev => {
-              const newMedia = [...prev.media];
-              const oldUrl = newMedia[target.index]?.url;
+              const newSteps = [...prev.steps];
+              const oldUrl = newSteps[target.index]?.media?.url;
               if (oldUrl) deleteMediaFromServer(oldUrl);
-              newMedia[target.index] = { ...newMedia[target.index], url, type: mediaType };
-              return { ...prev, media: newMedia };
+              newSteps[target.index] = {
+                ...newSteps[target.index], 
+                media: { 
+                  type: mediaType, 
+                  url, 
+                  className: newSteps[target.index]?.media?.className || '' 
+                } 
+              };
+              return { ...prev, steps: newSteps };
             });
           }
           break;
@@ -446,6 +479,14 @@ export default function AdminDashboard() {
               return { ...prev, media: newMedia };
             });
           }
+          break;
+        case 'process_modal':
+          const oldModalUrl = stepModal.data?.media?.url;
+          if (oldModalUrl) deleteMediaFromServer(oldModalUrl);
+          setStepModal(prev => ({
+            ...prev,
+            data: { ...prev.data, media: { ...prev.data?.media, url, type: mediaType } }
+          }));
           break;
         case 'pageTitle':
           if (pageTitleData.logo) deleteMediaFromServer(pageTitleData.logo);
@@ -518,10 +559,13 @@ export default function AdminDashboard() {
         hasExistingMedia = !!aboutData.image;
         break;
       case 'process':
-        hasExistingMedia = !!(target.index !== undefined && processData.media[target.index]?.url);
+        hasExistingMedia = !!(target.index !== undefined && processData.steps[target.index]?.media?.url);
         break;
       case 'contact':
         hasExistingMedia = !!(target.index !== undefined && contactData.media[target.index]?.url);
+        break;
+      case 'process_modal':
+        hasExistingMedia = !!stepModal.data?.media?.url;
         break;
       case 'pageTitle':
         hasExistingMedia = !!pageTitleData.logo;
@@ -540,6 +584,26 @@ export default function AdminDashboard() {
       );
     } else {
       performUpload(file, target);
+    }
+  };
+
+  const handleSaveActiveTab = () => {
+    switch (activeTab) {
+      case 'hero': handleSaveSection('hero', heroData); break;
+      case 'trust': handleSaveSection('trust', trustData); break;
+      case 'featured': 
+        if (selectedProjectId !== null) {
+            handleSaveProject();
+        } else {
+            handleSaveSection('featuredWork', featuredWorkData);
+        }
+        break;
+      case 'about': handleSaveSection('about', aboutData); break;
+      case 'process': handleSaveSection('process', processData); break;
+      case 'contact': handleSaveSection('contact', contactData); break;
+      case 'pageTitle': handleSaveSection('pageTitle', pageTitleData); break;
+      case 'theme': handleSaveSection('theme', themeData); break;
+      case 'reviews': handleSaveSection('reviews', reviewsData); break;
     }
   };
 
@@ -582,9 +646,6 @@ export default function AdminDashboard() {
     <div className="space-y-6 bg-zinc-900 border border-zinc-800 rounded-2xl p-6 md:p-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <h2 className="text-2xl font-bold">Hero Section</h2>
-        <button onClick={() => handleSaveSection('hero', heroData)} className="flex items-center gap-2 px-6 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-lg transition-colors">
-          <Save className="w-4 h-4" /> Save
-        </button>
       </div>
       <div className="grid gap-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -682,9 +743,6 @@ export default function AdminDashboard() {
     <div className="space-y-6 bg-zinc-900 border border-zinc-800 rounded-2xl p-6 md:p-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <h2 className="text-2xl font-bold">Trust Section</h2>
-        <button onClick={() => handleSaveSection('trust', trustData)} className="flex items-center gap-2 px-6 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-lg transition-colors">
-          <Save className="w-4 h-4" /> Save
-        </button>
       </div>
       <div className="grid gap-6">
         <div>
@@ -809,9 +867,6 @@ export default function AdminDashboard() {
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 md:p-8">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <h2 className="text-2xl font-bold">Featured Work Section</h2>
-          <button onClick={() => handleSaveSection('featuredWork', featuredWorkData)} className="flex items-center gap-2 px-6 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-lg transition-colors">
-            <Save className="w-4 h-4" /> Save Title
-          </button>
         </div>
         <div>
           <label className="block text-sm font-medium text-zinc-400 mb-2">Label (use `accent` for accent color)</label>
@@ -886,9 +941,6 @@ export default function AdminDashboard() {
             <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 md:p-8">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
                 <h2 className="text-2xl font-bold">Editing: {editingProject.title}</h2>
-                <button onClick={handleSaveProject} className="flex items-center gap-2 px-6 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-lg transition-colors">
-                  <Save className="w-4 h-4" /> Save Project
-                </button>
               </div>
 
               <div className="space-y-6">
@@ -1031,9 +1083,6 @@ export default function AdminDashboard() {
     <div className="space-y-6 bg-zinc-900 border border-zinc-800 rounded-2xl p-6 md:p-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <h2 className="text-2xl font-bold">About Section</h2>
-        <button onClick={() => handleSaveSection('about', aboutData)} className="flex items-center gap-2 px-6 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-lg transition-colors">
-          <Save className="w-4 h-4" /> Save
-        </button>
       </div>
       <div className="grid gap-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1096,7 +1145,11 @@ export default function AdminDashboard() {
           <div className="space-y-4">
             {(aboutData.experience || []).map((exp, index) => (
               <div key={exp.id} className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 relative">
-                <button onClick={() => setAboutData({...aboutData, experience: aboutData.experience?.filter((_, i) => i !== index)})} className="absolute top-4 right-4 text-red-500 hover:text-red-400">
+                <button onClick={() => {
+                  confirmAction("Delete Experience", "Are you sure you want to delete this experience record?", () => {
+                    setAboutData({...aboutData, experience: aboutData.experience?.filter((_, i) => i !== index)});
+                  });
+                }} className="absolute top-4 right-4 text-red-500 hover:text-red-400">
                   <Trash2 className="w-4 h-4" />
                 </button>
                 <div className="grid gap-4 pr-8">
@@ -1104,17 +1157,21 @@ export default function AdminDashboard() {
                     <div>
                       <label className="block text-xs font-medium text-zinc-500 mb-1">Year</label>
                       <input type="text" value={exp.year} onChange={e => {
-                        const newExp = [...(aboutData.experience || [])];
-                        newExp[index].year = e.target.value;
-                        setAboutData({...aboutData, experience: newExp});
+                        setAboutData(prev => {
+                          const newExp = [...(prev.experience || [])];
+                          newExp[index] = { ...newExp[index], year: e.target.value };
+                          return { ...prev, experience: newExp };
+                        });
                       }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-zinc-500 mb-1">Month</label>
                       <input type="text" value={exp.month} onChange={e => {
-                        const newExp = [...(aboutData.experience || [])];
-                        newExp[index].month = e.target.value;
-                        setAboutData({...aboutData, experience: newExp});
+                        setAboutData(prev => {
+                          const newExp = [...(prev.experience || [])];
+                          newExp[index] = { ...newExp[index], month: e.target.value };
+                          return { ...prev, experience: newExp };
+                        });
                       }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" />
                     </div>
                   </div>
@@ -1122,26 +1179,32 @@ export default function AdminDashboard() {
                     <div>
                       <label className="block text-xs font-medium text-zinc-500 mb-1">Role (use `accent` for accent color)</label>
                       <input type="text" value={exp.role} onChange={e => {
-                        const newExp = [...(aboutData.experience || [])];
-                        newExp[index].role = e.target.value;
-                        setAboutData({...aboutData, experience: newExp});
+                        setAboutData(prev => {
+                          const newExp = [...(prev.experience || [])];
+                          newExp[index] = { ...newExp[index], role: e.target.value };
+                          return { ...prev, experience: newExp };
+                        });
                       }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-zinc-500 mb-1">Company (use `accent` for accent color)</label>
                       <input type="text" value={exp.company} onChange={e => {
-                        const newExp = [...(aboutData.experience || [])];
-                        newExp[index].company = e.target.value;
-                        setAboutData({...aboutData, experience: newExp});
+                        setAboutData(prev => {
+                          const newExp = [...(prev.experience || [])];
+                          newExp[index] = { ...newExp[index], company: e.target.value };
+                          return { ...prev, experience: newExp };
+                        });
                       }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" />
                     </div>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-zinc-500 mb-1">Description</label>
                     <textarea value={exp.description} onChange={e => {
-                      const newExp = [...(aboutData.experience || [])];
-                      newExp[index].description = e.target.value;
-                      setAboutData({...aboutData, experience: newExp});
+                      setAboutData(prev => {
+                        const newExp = [...(prev.experience || [])];
+                        newExp[index] = { ...newExp[index], description: e.target.value };
+                        return { ...prev, experience: newExp };
+                      });
                     }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)] min-h-[80px]" />
                   </div>
                 </div>
@@ -1157,9 +1220,6 @@ export default function AdminDashboard() {
     <div className="space-y-6 bg-zinc-900 border border-zinc-800 rounded-2xl p-6 md:p-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <h2 className="text-2xl font-bold">Process Section</h2>
-        <button onClick={() => handleSaveSection('process', processData)} className="flex items-center gap-2 px-6 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-lg transition-colors">
-          <Save className="w-4 h-4" /> Save
-        </button>
       </div>
       <div className="grid gap-6">
         <div>
@@ -1178,85 +1238,102 @@ export default function AdminDashboard() {
         <div className="pt-6 border-t border-zinc-800">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
             <h3 className="text-xl font-bold">Steps</h3>
-            <button onClick={() => setProcessData({...processData, steps: [{ title: 'New Step', description: 'Description', isNew: true } as any, ...processData.steps]})} className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors text-sm">
+            <button onClick={() => {
+              setStepModal({ isOpen: true, data: { title: '', description: '', media: { url: '', type: 'image' } } });
+            }} className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors text-sm">
               <Plus className="w-4 h-4" /> Add Step
             </button>
           </div>
           <div className="space-y-4">
             {processData.steps.map((step, index) => (
               <div key={index} className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 relative">
-                <button onClick={() => setProcessData({...processData, steps: processData.steps.filter((_, i) => i !== index)})} className="absolute top-4 right-4 text-red-500 hover:text-red-400">
+                <button onClick={() => {
+                  confirmAction("Delete Step", "Are you sure you want to delete this step?", () => {
+                    setProcessData({...processData, steps: processData.steps.filter((_, i) => i !== index)});
+                  });
+                }} className="absolute top-4 right-4 text-red-500 hover:text-red-400">
                   <Trash2 className="w-4 h-4" />
                 </button>
                 <div className="grid gap-4 pr-8">
                   <div>
                     <label className="block text-xs font-medium text-zinc-500 mb-1">Step Title (use `accent` for accent color)</label>
                     <input type="text" value={step.title} onChange={e => {
-                      const newSteps = [...processData.steps];
-                      newSteps[index].title = e.target.value;
-                      setProcessData({...processData, steps: newSteps});
+                      setProcessData(prev => {
+                        const newSteps = [...prev.steps];
+                        newSteps[index] = { ...newSteps[index], title: e.target.value };
+                        return { ...prev, steps: newSteps };
+                      });
                     }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-zinc-500 mb-1">Step Description (use `accent` for accent color)</label>
                     <textarea value={step.description} onChange={e => {
-                      const newSteps = [...processData.steps];
-                      newSteps[index].description = e.target.value;
-                      setProcessData({...processData, steps: newSteps});
+                      setProcessData(prev => {
+                        const newSteps = [...prev.steps];
+                        newSteps[index] = { ...newSteps[index], description: e.target.value };
+                        return { ...prev, steps: newSteps };
+                      });
                     }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)] min-h-[80px]" />
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="pt-6 border-t border-zinc-800">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
-            <h3 className="text-xl font-bold">Media Files</h3>
-            <button onClick={() => setProcessData({...processData, media: [{ type: 'image', url: '', className: 'w-full h-auto', isNew: true } as any, ...(processData.media || [])]})} className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors text-sm">
-              <Plus className="w-4 h-4" /> Add Media
-            </button>
-          </div>
-          <div className="space-y-4">
-            {(processData.media || []).map((media, index) => (
-              <div key={index} className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 relative">
-                <button onClick={() => {
-                  const mediaToDelete = processData.media[index];
-                  confirmAction(
-                    "Delete Media",
-                    "Are you sure you want to permanently delete this media file?",
-                    () => {
-                      if (mediaToDelete && mediaToDelete.url) {
-                        deleteMediaFromServer(mediaToDelete.url);
-                      }
-                      setProcessData({...processData, media: processData.media.filter((_, i) => i !== index)});
-                    }
-                  );
-                }} className="absolute top-4 right-4 text-red-500 hover:text-red-400">
-                  <Trash2 className="w-4 h-4" />
-                </button>
-                <div className="grid gap-4 pr-8">
-                  <div className="grid gap-4">
-                    <div>
-                      <label className="block text-xs font-medium text-zinc-500 mb-1">Media Source</label>
-                      <div className="flex flex-col sm:flex-row gap-3">
-                        <button onClick={() => handleUploadClick({ section: 'process', index })} disabled={uploadTarget?.section === 'process' && uploadTarget?.index === index} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors flex items-center justify-center gap-2 border border-zinc-700 disabled:opacity-50 whitespace-nowrap font-medium">
-                          {uploadTarget?.section === 'process' && uploadTarget?.index === index ? (
-                            <div className="flex items-center gap-2">
-                              <div className="w-5 h-5 border-2 border-zinc-400 border-t-emerald-400 rounded-full animate-spin" />
-                              <span className="text-xs font-mono">{uploadProgress}%</span>
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-500 mb-1">Step Media (Optional)</label>
+                    <div className="flex flex-col gap-3">
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <button onClick={() => handleUploadClick({ section: 'process', index })} disabled={uploadTarget?.section === 'process' && uploadTarget?.index === index} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors flex items-center justify-center gap-2 border border-zinc-700 disabled:opacity-50 whitespace-nowrap font-medium text-sm">
+                              {uploadTarget?.section === 'process' && uploadTarget?.index === index ? (
+                                <div className="flex items-center gap-2">
+                                  <div className="w-4 h-4 border-2 border-zinc-400 border-t-emerald-400 rounded-full animate-spin" />
+                                  <span className="font-mono">{uploadProgress}%</span>
+                                </div>
+                              ) : (
+                                <>
+                                  <Upload className="w-4 h-4" />
+                                  {step.media?.url ? 'Change Media' : 'Upload Media'}
+                                </>
+                              )}
+                            </button>
+                            <div className="flex items-center text-zinc-500 text-xs font-medium">OR</div>
+                            <input type="text" value={step.media?.url || ''} onChange={e => {
+                              setProcessData(prev => {
+                                const newSteps = [...prev.steps];
+                                const currentStep = { ...newSteps[index] };
+                                if (!currentStep.media) currentStep.media = { type: 'image', url: '', className: '' };
+                                currentStep.media = {
+                                  ...currentStep.media,
+                                  url: e.target.value,
+                                  type: e.target.value.match(/\.(mp4|webm|ogg)$/i) ? 'video' : 'image'
+                                };
+                                newSteps[index] = currentStep;
+                                return { ...prev, steps: newSteps };
+                              });
+                            }} className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)] text-sm" placeholder="Paste external URL..." />
+                            
+                            {step.media?.url && (
+                                <button onClick={() => {
+                                    confirmAction("Delete Media", "Remove media from this step?", () => {
+                                        if (step.media?.url) deleteMediaFromServer(step.media.url);
+                                        setProcessData(prev => {
+                                          const newSteps = [...prev.steps];
+                                          const currentStep = { ...newSteps[index] };
+                                          delete currentStep.media;
+                                          newSteps[index] = currentStep;
+                                          return { ...prev, steps: newSteps };
+                                        });
+                                    });
+                                }} className="text-red-500 hover:text-red-400 px-3 py-2 bg-zinc-800 rounded-lg border border-zinc-700 flex items-center justify-center">
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            )}
+                        </div>
+                        {step.media?.url && (
+                            <div className="w-full max-w-[200px] aspect-video rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800 mt-2">
+                                {step.media.type === 'video' ? (
+                                    <video src={step.media.url} className="w-full h-full object-cover opacity-60" controls muted />
+                                ) : (
+                                    <img src={step.media.url} alt="Step preview" className="w-full h-full object-cover opacity-60" referrerPolicy="no-referrer" />
+                                )}
                             </div>
-                          ) : <Upload className="w-5 h-5" />}
-                          Upload File
-                        </button>
-                        <div className="flex items-center text-zinc-500 text-xs font-medium">OR</div>
-                        <input type="text" value={media.url} onChange={e => {
-                          const newMedia = [...processData.media];
-                          newMedia[index].url = e.target.value;
-                          setProcessData({...processData, media: newMedia});
-                        }} className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" placeholder="Paste external URL..." />
-                      </div>
+                        )}
                     </div>
                   </div>
                 </div>
@@ -1272,9 +1349,6 @@ export default function AdminDashboard() {
     <div className="space-y-6 bg-zinc-900 border border-zinc-800 rounded-2xl p-6 md:p-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <h2 className="text-2xl font-bold">Contact Section</h2>
-        <button onClick={() => handleSaveSection('contact', contactData)} className="flex items-center gap-2 px-6 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-lg transition-colors">
-          <Save className="w-4 h-4" /> Save
-        </button>
       </div>
       <div className="grid gap-6">
         <div>
@@ -1307,16 +1381,22 @@ export default function AdminDashboard() {
           <div className="space-y-4">
             {(contactData.socials || []).map((social, index) => (
               <div key={index} className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 relative">
-                <button onClick={() => setContactData({...contactData, socials: contactData.socials.filter((_, i) => i !== index)})} className="absolute top-4 right-4 text-red-500 hover:text-red-400">
+                <button onClick={() => {
+                  confirmAction("Delete Social Link", "Are you sure you want to delete this social link?", () => {
+                    setContactData({...contactData, socials: contactData.socials.filter((_, i) => i !== index)});
+                  });
+                }} className="absolute top-4 right-4 text-red-500 hover:text-red-400">
                   <Trash2 className="w-4 h-4" />
                 </button>
                 <div className="grid gap-4 pr-8 md:grid-cols-3">
                   <div>
                     <label className="block text-xs font-medium text-zinc-400 mb-1">Platform</label>
                     <select value={social.platform} onChange={e => {
-                      const newSocials = [...contactData.socials];
-                      newSocials[index] = { ...newSocials[index], platform: e.target.value };
-                      setContactData({...contactData, socials: newSocials});
+                      setContactData(prev => {
+                        const newSocials = [...prev.socials];
+                        newSocials[index] = { ...newSocials[index], platform: e.target.value as any };
+                        return { ...prev, socials: newSocials };
+                      });
                     }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]">
                       <option value="Twitter">Twitter / X</option>
                       <option value="LinkedIn">LinkedIn</option>
@@ -1333,17 +1413,21 @@ export default function AdminDashboard() {
                   <div>
                     <label className="block text-xs font-medium text-zinc-400 mb-1">Username / Handle</label>
                     <input type="text" value={social.username || ''} onChange={e => {
-                      const newSocials = [...contactData.socials];
-                      newSocials[index] = { ...newSocials[index], username: e.target.value };
-                      setContactData({...contactData, socials: newSocials});
+                      setContactData(prev => {
+                        const newSocials = [...prev.socials];
+                        newSocials[index] = { ...newSocials[index], username: e.target.value };
+                        return { ...prev, socials: newSocials };
+                      });
                     }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" placeholder="@username" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-zinc-400 mb-1">URL</label>
                     <input type="text" value={social.url} onChange={e => {
-                      const newSocials = [...contactData.socials];
-                      newSocials[index] = { ...newSocials[index], url: e.target.value };
-                      setContactData({...contactData, socials: newSocials});
+                      setContactData(prev => {
+                        const newSocials = [...prev.socials];
+                        newSocials[index] = { ...newSocials[index], url: e.target.value };
+                        return { ...prev, socials: newSocials };
+                      });
                     }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" placeholder="https://..." />
                   </div>
                 </div>
@@ -1393,9 +1477,11 @@ export default function AdminDashboard() {
                         </button>
                         <div className="flex items-center text-zinc-500 text-xs font-medium">OR</div>
                         <input type="text" value={media.url} onChange={e => {
-                          const newMedia = [...contactData.media];
-                          newMedia[index].url = e.target.value;
-                          setContactData({...contactData, media: newMedia});
+                          setContactData(prev => {
+                            const newMedia = [...prev.media];
+                            newMedia[index] = { ...newMedia[index], url: e.target.value };
+                            return { ...prev, media: newMedia };
+                          });
                         }} className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" placeholder="Paste external URL..." />
                       </div>
                     </div>
@@ -1413,9 +1499,6 @@ export default function AdminDashboard() {
     <div className="space-y-6 bg-zinc-900 border border-zinc-800 rounded-2xl p-6 md:p-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <h2 className="text-2xl font-bold">Page Title & Logo</h2>
-        <button onClick={() => handleSaveSection('pageTitle', pageTitleData)} className="flex items-center gap-2 px-6 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-lg transition-colors">
-          <Save className="w-4 h-4" /> Save
-        </button>
       </div>
       <div className="grid gap-6">
         <div>
@@ -1461,9 +1544,6 @@ export default function AdminDashboard() {
     <div className="space-y-6 bg-zinc-900 border border-zinc-800 rounded-2xl p-6 md:p-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <h2 className="text-2xl font-bold">Theme Settings</h2>
-        <button onClick={() => handleSaveSection('theme', themeData)} className="flex items-center gap-2 px-6 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-lg transition-colors">
-          <Save className="w-4 h-4" /> Save
-        </button>
       </div>
       <div className="grid md:grid-cols-2 gap-6">
         <div>
@@ -1554,9 +1634,6 @@ export default function AdminDashboard() {
     <div className="space-y-6 bg-zinc-900 border border-zinc-800 rounded-2xl p-6 md:p-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <h2 className="text-2xl font-bold">Reviews Section</h2>
-        <button onClick={() => handleSaveSection('reviews', reviewsData)} className="flex items-center gap-2 px-6 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-lg transition-colors">
-          <Save className="w-4 h-4" /> Save
-        </button>
       </div>
       <div className="grid gap-6">
         <div className="flex items-center gap-4">
@@ -1603,7 +1680,11 @@ export default function AdminDashboard() {
               const index = reviewsData.list.findIndex(r => r.id === review.id);
               return (
               <div key={review.id} className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 relative">
-                <button onClick={() => setReviewsData({...reviewsData, list: reviewsData.list.filter((_, i) => i !== index)})} className="absolute top-4 right-4 text-red-500 hover:text-red-400">
+                <button onClick={() => {
+                  confirmAction("Delete Review", "Are you sure you want to delete this review?", () => {
+                    setReviewsData({...reviewsData, list: reviewsData.list.filter((_, i) => i !== index)});
+                  });
+                }} className="absolute top-4 right-4 text-red-500 hover:text-red-400">
                   <Trash2 className="w-4 h-4" />
                 </button>
                 <div className="grid gap-4 pr-8">
@@ -1611,17 +1692,21 @@ export default function AdminDashboard() {
                     <div>
                       <label className="block text-xs font-medium text-zinc-500 mb-1">Client Name (use `accent` for accent color)</label>
                       <input type="text" value={review.clientName} onChange={e => {
-                        const newList = [...reviewsData.list];
-                        newList[index].clientName = e.target.value;
-                        setReviewsData({...reviewsData, list: newList});
+                        setReviewsData(prev => {
+                          const newList = [...prev.list];
+                          newList[index] = { ...newList[index], clientName: e.target.value };
+                          return { ...prev, list: newList };
+                        });
                       }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-zinc-500 mb-1">Client Role (use `accent` for accent color)</label>
                       <input type="text" value={review.clientRole} onChange={e => {
-                        const newList = [...reviewsData.list];
-                        newList[index].clientRole = e.target.value;
-                        setReviewsData({...reviewsData, list: newList});
+                        setReviewsData(prev => {
+                          const newList = [...prev.list];
+                          newList[index] = { ...newList[index], clientRole: e.target.value };
+                          return { ...prev, list: newList };
+                        });
                       }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" />
                     </div>
                   </div>
@@ -1629,26 +1714,32 @@ export default function AdminDashboard() {
                     <div>
                       <label className="block text-xs font-medium text-zinc-500 mb-1">Date</label>
                       <input type="text" value={review.date || ''} onChange={e => {
-                        const newList = [...reviewsData.list];
-                        newList[index].date = e.target.value;
-                        setReviewsData({...reviewsData, list: newList});
+                        setReviewsData(prev => {
+                          const newList = [...prev.list];
+                          newList[index] = { ...newList[index], date: e.target.value };
+                          return { ...prev, list: newList };
+                        });
                       }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-zinc-500 mb-1">Rating (1-5)</label>
                       <input type="number" min="1" max="5" value={review.rating} onChange={e => {
-                        const newList = [...reviewsData.list];
-                        newList[index].rating = Number(e.target.value);
-                        setReviewsData({...reviewsData, list: newList});
+                        setReviewsData(prev => {
+                          const newList = [...prev.list];
+                          newList[index] = { ...newList[index], rating: Number(e.target.value) };
+                          return { ...prev, list: newList };
+                        });
                       }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" />
                     </div>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-zinc-500 mb-1">Review Content (use `accent` for accent color)</label>
                     <textarea value={review.content} onChange={e => {
-                      const newList = [...reviewsData.list];
-                      newList[index].content = e.target.value;
-                      setReviewsData({...reviewsData, list: newList});
+                      setReviewsData(prev => {
+                        const newList = [...prev.list];
+                        newList[index] = { ...newList[index], content: e.target.value };
+                        return { ...prev, list: newList };
+                      });
                     }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)] min-h-[80px]" />
                   </div>
                 </div>
@@ -1796,6 +1887,121 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+      {stepModal.isOpen && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[60]">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-xl w-full max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-bold mb-4">Add Process Step</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-1">Step Title</label>
+                <input type="text" value={stepModal.data.title} onChange={e => setStepModal(prev => ({ ...prev, data: { ...prev.data, title: e.target.value } }))} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" placeholder="E.g., Discovery" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-1">Step Description</label>
+                <textarea value={stepModal.data.description} onChange={e => setStepModal(prev => ({ ...prev, data: { ...prev.data, description: e.target.value } }))} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)] min-h-[100px]" placeholder="Describe what happens in this step..." />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-1">Step Media (Optional)</label>
+                <div className="flex flex-col gap-3">
+                   <div className="flex flex-col sm:flex-row gap-3">
+                        <button onClick={() => handleUploadClick({ section: 'process_modal', index: 0 })} disabled={uploadTarget?.section === 'process_modal'} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors flex items-center justify-center gap-2 border border-zinc-700 disabled:opacity-50 whitespace-nowrap font-medium text-sm">
+                          {uploadTarget?.section === 'process_modal' ? (
+                            <div className="flex items-center gap-2">
+                              <div className="w-4 h-4 border-2 border-zinc-400 border-t-emerald-400 rounded-full animate-spin" />
+                              <span className="font-mono">{uploadProgress}%</span>
+                            </div>
+                          ) : (
+                            <>
+                              <Upload className="w-4 h-4" />
+                              {stepModal.data.media?.url ? 'Change Media' : 'Upload Media'}
+                            </>
+                          )}
+                        </button>
+                        <div className="flex items-center text-zinc-500 text-xs font-medium">OR</div>
+                        <input type="text" value={stepModal.data.media?.url || ''} onChange={e => {
+                          const url = e.target.value;
+                          setStepModal(prev => ({
+                            ...prev,
+                            data: {
+                              ...prev.data,
+                              media: { url, type: url.match(/\.(mp4|webm|ogg)$/i) ? 'video' : 'image' }
+                            }
+                          }));
+                        }} className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)] text-sm" placeholder="Paste external URL..." />
+                        
+                        {stepModal.data.media?.url && (
+                            <button onClick={() => {
+                                confirmAction("Delete Media", "Remove media from this new step?", () => {
+                                    if (stepModal.data.media?.url) deleteMediaFromServer(stepModal.data.media.url);
+                                    setStepModal(prev => ({
+                                      ...prev,
+                                      data: { ...prev.data, media: { url: '', type: 'image' } }
+                                    }));
+                                });
+                            }} className="text-red-500 hover:text-red-400 px-3 py-2 bg-zinc-800 rounded-lg border border-zinc-700 flex items-center justify-center">
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        )}
+                    </div>
+                    {stepModal.data.media?.url && (
+                        <div className="w-full max-w-[200px] aspect-video rounded-xl overflow-hidden bg-zinc-950 border border-zinc-800 mt-2">
+                            {stepModal.data.media.type === 'video' ? (
+                                <video src={stepModal.data.media.url} className="w-full h-full object-cover opacity-60" controls muted />
+                            ) : (
+                                <img src={stepModal.data.media.url} alt="Step preview" className="w-full h-full object-cover opacity-60" referrerPolicy="no-referrer" />
+                            )}
+                        </div>
+                    )}
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-3 mt-8 pt-4 border-t border-zinc-800">
+               <button onClick={() => setStepModal(prev => ({ ...prev, isOpen: false }))} className="px-5 py-2 text-zinc-400 hover:text-white transition-colors">Cancel</button>
+               <button onClick={() => {
+                  setProcessData(prev => ({
+                    ...prev,
+                    steps: [...prev.steps, {
+                      title: stepModal.data.title || 'New Step',
+                      description: stepModal.data.description,
+                      media: stepModal.data.media?.url ? stepModal.data.media : undefined,
+                      isNew: true
+                    } as any]
+                  }));
+                  setStepModal(prev => ({ ...prev, isOpen: false }));
+               }} className="px-6 py-2 bg-[var(--color-primary)] text-white font-bold rounded-lg hover:opacity-90 transition-opacity">Add Step to Bottom</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Floating Save Action */}
+      <AnimatePresence>
+        {hasUnsavedChanges && activeTab !== 'security' && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.9 }}
+            className="fixed bottom-8 right-8 z-[100] flex flex-col items-end gap-3 pointer-events-none"
+          >
+            <div className="bg-zinc-900 border border-zinc-700 text-zinc-300 text-sm px-4 py-2 rounded-xl shadow-xl pointer-events-auto flex items-center gap-3">
+              <div className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+              </div>
+              <span className="font-medium tracking-tight">Unsaved changes detected</span>
+            </div>
+            <button 
+               onClick={handleSaveActiveTab} 
+               className="flex items-center gap-2 px-8 py-4 bg-[var(--color-primary)] hover:opacity-90 text-zinc-950 font-bold rounded-full shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.3)] transition-all hover:scale-105 pointer-events-auto active:scale-95"
+               style={{ '--color-primary': themeData.primaryColor } as any}
+            >
+              <Save className="w-5 h-5" /> 
+              Save Changes
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

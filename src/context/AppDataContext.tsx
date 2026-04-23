@@ -92,8 +92,7 @@ export type ProcessData = {
   label: string;
   title: string;
   subtitle: string;
-  steps: { title: string; description: string; }[];
-  media: MediaItem[];
+  steps: { title: string; description: string; media?: MediaItem }[];
 };
 
 export type ContactData = {
@@ -253,7 +252,6 @@ const defaultData: AppData = {
     title: 'My Process',
     subtitle: 'I follow a user-centered design process, starting with research and ending with a polished, accessible product.',
     steps: [],
-    media: []
   },
   contact: {
     label: 'Connect',

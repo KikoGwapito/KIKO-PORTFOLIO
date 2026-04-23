@@ -41,8 +41,8 @@ export default function Contact() {
       <div className="grid lg:grid-cols-2 gap-24 items-start relative z-10">
         {/* Left Column - Contact Info */}
         <motion.div 
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
+          initial={{ opacity: 0, filter: "blur(10px)", x: -30 }}
+          animate={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" }, x: 0 }}
           transition={{ duration: 1.2 / speed, ease: [0.22, 1, 0.36, 1] }}
           className="min-w-0 w-full"
         >
@@ -104,8 +104,8 @@ export default function Contact() {
 
         {/* Right Column - Form */}
         <motion.div 
-          initial={{ opacity: 0, x: 30 }}
-          animate={{ opacity: 1, x: 0 }}
+          initial={{ opacity: 0, filter: "blur(10px)", x: 30 }}
+          animate={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" }, x: 0 }}
           transition={{ duration: 1.2 / speed, delay: 0.2 / speed, ease: [0.22, 1, 0.36, 1] }}
           className="relative"
         >
@@ -198,8 +198,8 @@ export default function Contact() {
               ) : (
                 <motion.div 
                   key="success"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                  initial={{ opacity: 0, filter: "blur(10px)", scale: 0.9 }}
+                  animate={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" }, scale: 1 }}
                   className="py-20 text-center space-y-8"
                 >
                   <div className="w-24 h-24 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto" style={{ color: data.theme.primaryColor }}>
@@ -227,9 +227,9 @@ export default function Contact() {
           {data.contact.media.map((m, i) => (
             <motion.div 
               key={i}
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
+              initial={{ opacity: 0, filter: "blur(10px)", y: 40 }}
+              whileInView={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" }, y: 0 }}
+              viewport={{ once: false, margin: "-100px" }}
               transition={{ duration: 1.2 / speed, delay: (i * 0.1) / speed, ease: [0.22, 1, 0.36, 1] }}
               className="rounded-[2.5rem] overflow-hidden bg-zinc-900 border border-zinc-800/50 relative group shadow-2xl"
             >

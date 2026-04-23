@@ -216,8 +216,8 @@ export default function Project() {
 
         <div className="w-full px-4 md:px-8 lg:px-12 mx-auto relative z-10">
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, filter: "blur(10px)", y: 30 }}
+            animate={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" }, y: 0 }}
             transition={{ duration: 1.2 / speed, ease: [0.22, 1, 0.36, 1] }}
           >
             <Magnetic strength={0.1} className="inline-block">
@@ -243,9 +243,9 @@ export default function Project() {
       <div className="w-full px-4 md:px-8 lg:px-12 mx-auto">
         {/* Info Grid */}
         <motion.div 
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
+          initial={{ opacity: 0, filter: "blur(10px)", y: 40 }}
+          whileInView={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" }, y: 0 }}
+          viewport={{ once: false }}
           transition={{ duration: 1.2 / speed, ease: [0.22, 1, 0.36, 1] }}
           className="grid md:grid-cols-4 gap-12 py-24 border-b border-zinc-800/50 mb-24"
         >
@@ -308,9 +308,9 @@ export default function Project() {
             <motion.div 
               key={i}
               ref={(el) => mediaRefs.current[i] = el}
-              initial={{ opacity: 0, y: 60 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
+              initial={{ opacity: 0, filter: "blur(10px)", y: 60 }}
+              whileInView={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" }, y: 0 }}
+              viewport={{ once: false, margin: "-100px" }}
               transition={{ duration: 1.2 / speed, delay: (i * 0.1) / speed, ease: [0.22, 1, 0.36, 1] }}
               className={`relative group ${getSpanClass(i)}`}
             >
@@ -351,9 +351,9 @@ export default function Project() {
         {/* Next Project CTA */}
         <div className="mt-40 pt-40 border-t border-zinc-800/50 text-center">
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            initial={{ opacity: 0, filter: "blur(10px)", y: 40 }}
+            whileInView={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" }, y: 0 }}
+            viewport={{ once: false }}
             transition={{ duration: 1.2 / speed, ease: [0.22, 1, 0.36, 1] }}
           >
             <h2 className="text-5xl md:text-8xl font-bold tracking-tighter mb-12">Ready to create something <span style={{ color: data.theme.primaryColor }}>extraordinary?</span></h2>

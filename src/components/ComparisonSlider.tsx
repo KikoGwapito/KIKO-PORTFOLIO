@@ -117,16 +117,16 @@ export default function ComparisonSlider({ beforeUrl, afterUrl, className = "" }
         {isHovered && (
           <>
             <motion.div 
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, filter: "blur(10px)", y: -10 }}
+              animate={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" }, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               className="absolute top-4 left-4 px-2 py-1 bg-black/50 backdrop-blur-md rounded text-[10px] font-bold uppercase tracking-wider text-white pointer-events-none"
             >
               Before
             </motion.div>
             <motion.div 
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, filter: "blur(10px)", y: -10 }}
+              animate={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" }, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               className="absolute top-4 right-4 px-2 py-1 bg-black/50 backdrop-blur-md rounded text-[10px] font-bold uppercase tracking-wider text-white pointer-events-none"
             >

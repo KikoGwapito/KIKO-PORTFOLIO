@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, Lock, CheckCircle2, AlertCircle, Info, ArrowRight, Sun, Moon, Twitter, Instagram, Linkedin, Github, Facebook, Youtube, Dribbble, Figma, Globe, Music2 } from 'lucide-react';
-import { AnimatePresence, motion, useScroll, useTransform, useSpring, useMotionValue } from 'motion/react';
+import { AnimatePresence, motion, useScroll, useTransform, useSpring, useMotionValue, useMotionValueEvent } from 'motion/react';
 import { LenisProvider } from './components/LenisProvider';
 import { Magnetic } from './components/Magnetic';
+import { LiquidBackground } from './components/LiquidBackground';
 import Home from './pages/Home';
 import About from './pages/About';
 import Process from './pages/Process';
@@ -84,8 +85,8 @@ function NotificationToast() {
     <AnimatePresence>
       {notification && (
         <motion.div
-          initial={{ opacity: 0, y: -50 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, filter: "blur(10px)", y: -50 }}
+          animate={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" }, y: 0 }}
           exit={{ opacity: 0, y: -50 }}
           className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl border backdrop-blur-md"
           style={{
@@ -249,35 +250,76 @@ export default function App() {
   const navigate = useNavigate();
   const isInitialMount = React.useRef(true);
 
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const { scrollY } = useScroll();
+  
+  const isMenuOpenRef = React.useRef(isMenuOpen);
+  useEffect(() => {
+    isMenuOpenRef.current = isMenuOpen;
+  }, [isMenuOpen]);
+
+  useMotionValueEvent(scrollY, "change", (latest) => {
+    const previous = scrollY.getPrevious() || 0;
+    
+    // Close mobile menu on scroll
+    if (isMenuOpenRef.current && Math.abs(latest - previous) > 10) {
+      setIsMenuOpen(false);
+    }
+    
+    if (latest > previous && latest > 150) {
+      setHeaderVisible(false);
+    } else {
+      setHeaderVisible(true);
+    }
+  });
+
   const closeMenu = () => setIsMenuOpen(false);
+
+  useEffect(() => {
+    // Clean URL from environment-injected query params
+    const params = new URLSearchParams(location.search);
+    if (params.has('origin')) {
+      params.delete('origin');
+      const newSearch = params.toString();
+      const newPath = location.pathname + (newSearch ? `?${newSearch}` : '') + location.hash;
+      navigate(newPath, { replace: true });
+    }
+  }, []);
 
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
       const lastPath = sessionStorage.getItem('lastPath');
-      if (lastPath && lastPath !== '/' && location.pathname === '/') {
+      // Only redirect if lastPath is actually different and not just root with params
+      if (lastPath && lastPath !== '/' && !lastPath.startsWith('/?') && location.pathname === '/') {
         navigate(lastPath, { replace: true });
         return;
       }
     }
-    sessionStorage.setItem('lastPath', location.pathname + location.search + location.hash);
+    // Store clean path
+    const cleanSearch = new URLSearchParams(location.search);
+    cleanSearch.delete('origin');
+    const searchString = cleanSearch.toString();
+    sessionStorage.setItem('lastPath', location.pathname + (searchString ? `?${searchString}` : '') + location.hash);
   }, [location, navigate]);
 
   useEffect(() => {
     document.documentElement.style.setProperty('--color-primary', data.theme.primaryColor);
+    
+    // Create an RGB version for advanced shadow mapping and opacities
+    const hexToRgbStr = (hex: string) => {
+      const fullHex = hex.length === 4 ? '#' + hex[1]+hex[1]+hex[2]+hex[2]+hex[3]+hex[3] : hex;
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(fullHex);
+      return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '16, 185, 129';
+    };
+    
+    document.documentElement.style.setProperty('--color-primary-rgb', hexToRgbStr(data.theme.primaryColor));
   }, [data.theme.primaryColor]);
 
   return (
     <LenisProvider>
-      <div className="min-h-screen text-zinc-50 font-sans cursor-none relative" style={{ backgroundColor: data.theme.backgroundColor, '--color-primary': data.theme.primaryColor } as React.CSSProperties}>
-        {/* Global Futuristic Background */}
-        <div className="fixed inset-0 z-[-1] pointer-events-none">
-          <div className="absolute inset-0 bg-grid opacity-20" />
-          <div className="absolute inset-0 bg-grid-large opacity-10" />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-zinc-950/50 to-zinc-950" />
-          
-
-        </div>
+      <div className="min-h-screen text-zinc-50 font-sans cursor-none relative" style={{ '--color-primary': data.theme.primaryColor } as React.CSSProperties}>
+        <LiquidBackground />
 
         <FirebaseConfigBanner />
       <SecurityOverlay />
@@ -289,14 +331,37 @@ export default function App() {
       
       {/* Navigation */}
       <motion.header 
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 1.0, ease: [0.22, 1, 0.36, 1] }}
-        className="fixed top-0 w-full z-50 backdrop-blur-md border-b border-zinc-800/50" 
-        style={{ backgroundColor: data.theme.headerColor ? `${data.theme.headerColor}cc` : 'rgba(9, 9, 11, 0.8)' }}
+        initial={{ y: -100, x: '-50%' }}
+        animate={{ y: headerVisible ? 0 : -150, x: '-50%' }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className={`group fixed top-4 left-1/2 w-[95%] max-w-7xl z-50 backdrop-blur-xl border border-white/10 glow-top-edge-hover overflow-hidden ${isMenuOpen ? 'rounded-[32px]' : 'rounded-full'}`} 
+        style={{ backgroundColor: data.theme.headerColor ? `${data.theme.headerColor}99` : 'rgba(9, 9, 11, 0.5)' }}
       >
-        <div className="w-full px-4 md:px-8 lg:px-12 h-20 flex items-center justify-between">
-          <Link to="/" onClick={closeMenu} className="shrink-0">
+        {/* Subtle Resting Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
+        
+        {/* Hover Light Reflection */}
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent" />
+        </div>
+
+        <div className="w-full px-6 md:px-8 h-16 md:h-20 flex items-center justify-between relative z-10">
+          <Link 
+            to="/" 
+            onClick={() => {
+              closeMenu();
+              if ((window as any).lenis) {
+                (window as any).lenis.scrollTo(0, { 
+                  immediate: false, 
+                  duration: 1.2,
+                  onComplete: () => ScrollTrigger.refresh()
+                });
+              } else {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            }} 
+            className="shrink-0"
+          >
             <motion.div 
               className="text-xl font-bold font-heading tracking-tighter flex items-center gap-2 origin-left"
               whileHover={{ x: 5 }}
@@ -370,8 +435,7 @@ export default function App() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="md:hidden border-b border-zinc-800/50 backdrop-blur-md overflow-hidden"
-              style={{ backgroundColor: data.theme.headerColor ? `${data.theme.headerColor}f2` : 'rgba(9, 9, 11, 0.95)' }}
+              className="md:hidden border-t border-zinc-800/50"
             >
               <nav className="flex flex-col px-6 py-8 gap-8 text-2xl font-bold text-zinc-400">
                 <Link to="/#work" onClick={closeMenu} className="hover:text-zinc-50 transition-colors flex items-center justify-between group">
@@ -431,13 +495,21 @@ export default function App() {
       <AnimatePresence mode="wait">
         <motion.footer 
           key={location.pathname}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, filter: "blur(10px)", y: 20 }}
+          animate={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" }, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 1.2 / (data.theme.animationSpeed || 1), ease: [0.22, 1, 0.36, 1] }}
-          className="relative overflow-hidden pt-32 pb-12 mt-20 border-t border-zinc-800/50 w-full" 
-          style={{ backgroundColor: data.theme.footerColor || '#09090b' }}
+          className="group relative overflow-hidden pt-32 pb-12 mt-20 border-t border-white/5 w-full backdrop-blur-xl glow-top-edge-hover rounded-t-[3rem]" 
+          style={{ backgroundColor: data.theme.footerColor ? `${data.theme.footerColor}aa` : 'rgba(9, 9, 11, 0.6)' }}
         >
+          {/* Subtle Resting Gradient */}
+          <div className="absolute inset-0 bg-gradient-to-b from-white/5 via-transparent to-transparent pointer-events-none" />
+
+          {/* Hover Light Reflection */}
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none">
+            <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-white/10 to-transparent" />
+          </div>
+
           <div className="absolute inset-0 bg-grid opacity-10 pointer-events-none object-cover" />
           <div className="w-full px-4 md:px-8 lg:px-12 relative z-10 text-left">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 mb-24 w-full">
@@ -522,10 +594,31 @@ export default function App() {
             <div className="w-full px-4 md:px-8 lg:px-12 mx-auto h-[1px] bg-zinc-800/50 mb-8" />
 
             <div className="flex flex-col md:flex-row items-center justify-between gap-6 w-full px-4 md:px-8 lg:px-12">
-              <div className="text-xl font-bold font-heading tracking-tighter flex items-center justify-center gap-2">
-                {data.pageTitle.logo && <img src={data.pageTitle.logo} alt="Logo" referrerPolicy="no-referrer" className="h-6 w-auto grayscale opacity-50 select-none pointer-events-none" draggable={false} onContextMenu={(e) => e.preventDefault()} />}
-                <span className="truncate max-w-[200px] sm:max-w-none">{formatTextWithAccent(data.pageTitle.title, data.theme.primaryColor)}</span>
-              </div>
+              <Link 
+                to="/" 
+                className="shrink-0"
+                onClick={() => {
+                  if ((window as any).lenis) {
+                    (window as any).lenis.scrollTo(0, { 
+                      immediate: false, 
+                      duration: 1.2,
+                      onComplete: () => ScrollTrigger.refresh()
+                    });
+                  } else {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                }}
+              >
+                <motion.div 
+                  className="text-xl font-bold font-heading tracking-tighter flex items-center justify-center gap-2"
+                  whileHover={{ x: 5 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                >
+                  {data.pageTitle.logo && <img src={data.pageTitle.logo} alt="Logo" referrerPolicy="no-referrer" className="h-6 w-auto grayscale opacity-50 select-none pointer-events-none" draggable={false} onContextMenu={(e) => e.preventDefault()} />}
+                  <span className="truncate max-w-[200px] sm:max-w-none">{formatTextWithAccent(data.pageTitle.title, data.theme.primaryColor)}</span>
+                </motion.div>
+              </Link>
               <div className="text-zinc-500 text-sm">
                 © {new Date().getFullYear()} All rights reserved.
               </div>
@@ -603,6 +696,14 @@ function PageTransition({ children }: { children: React.ReactNode }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 1.2 / speed, ease: [0.22, 1, 0.36, 1] }}
+      onAnimationComplete={() => {
+        if ((window as any).ScrollTrigger) {
+          (window as any).ScrollTrigger.refresh();
+        } else {
+          // If not globally available, import could be used, but since it's global let's dispatch an event
+          window.dispatchEvent(new Event('resize'));
+        }
+      }}
       className="relative"
     >
       {/* Shutter reveal effect */}
