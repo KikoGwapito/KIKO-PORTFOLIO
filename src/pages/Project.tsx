@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { motion, useScroll, useTransform } from 'motion/react';
-import { ArrowLeft, ArrowRight, Play, Pause, Maximize, ExternalLink, Calendar, User, Cpu } from 'lucide-react';
+import { motion, useScroll, useTransform, useMotionValue, animate, AnimatePresence } from 'motion/react';
+import { ArrowLeft, ArrowRight, Play, Pause, Maximize, ExternalLink, Calendar, User, Cpu, MousePointer2, SplitSquareHorizontal } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { formatTextWithAccent } from '../utils/formatText';
-import { ImageViewer } from '../components/ImageViewer';
 import ComparisonSlider from '../components/ComparisonSlider';
 import { Magnetic } from '../components/Magnetic';
+import { ImageViewer } from '../components/ImageViewer';
 
 function VideoPlayer({ src, autoPlay }: { src: string, autoPlay?: boolean }) {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -79,7 +79,7 @@ function VideoPlayer({ src, autoPlay }: { src: string, autoPlay?: boolean }) {
   return (
     <div 
       ref={containerRef}
-      className={`relative w-full group cursor-pointer bg-black overflow-hidden flex items-center justify-center rounded-3xl ${isFullscreen ? 'h-full' : 'h-auto'}`} 
+      className={`relative w-full h-full group cursor-pointer bg-black/50 overflow-hidden flex items-center justify-center rounded-[2.5rem]`} 
       onClick={togglePlay}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -103,7 +103,7 @@ function VideoPlayer({ src, autoPlay }: { src: string, autoPlay?: boolean }) {
           });
         }}
         onPause={() => setIsPlaying(false)}
-        className={`w-full transition-transform duration-700 ${isFullscreen ? 'h-full object-contain' : 'h-auto'} group-hover:scale-105`}
+        className={`w-full h-full object-contain transition-transform duration-700`}
       />
       
       <div className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-all duration-300 ${isPlaying ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
@@ -140,13 +140,207 @@ function VideoPlayer({ src, autoPlay }: { src: string, autoPlay?: boolean }) {
   );
 }
 
+function MediaModal({ media, onClose }: { media: any, onClose: () => void }) {
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    if ((window as any).lenis) (window as any).lenis.stop();
+    return () => { 
+      document.body.style.overflow = ''; 
+      document.documentElement.style.overflow = ''; 
+      if ((window as any).lenis) (window as any).lenis.start();
+    };
+  }, []);
+
+  if (!media) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+      animate={{ opacity: 1, backdropFilter: "blur(10px)" }}
+      exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+      className="fixed inset-0 z-[10000] flex items-center justify-center bg-zinc-950/90 overflow-hidden"
+      onClick={onClose}
+    >
+      <button
+        onClick={onClose}
+        className="absolute top-6 right-6 z-50 p-3 bg-zinc-900/80 hover:bg-zinc-800 text-white rounded-full transition-colors"
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="relative w-full h-full max-h-[100vh] flex items-center justify-center pointer-events-auto p-4 md:p-12"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {media.type === 'video' ? (
+          <VideoPlayer src={media.url} autoPlay />
+        ) : media.type === 'comparison' ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <ComparisonSlider 
+              beforeUrl={media.url || ''} 
+              afterUrl={media.secondUrl || ''} 
+              objectFit="contain"
+              className="w-full h-full object-contain rounded-[2.5rem] overflow-hidden shadow-2xl bg-black"
+            />
+          </div>
+        ) : (
+          <img
+            src={media.url}
+            alt="fullscreen"
+            className="w-full h-full object-contain rounded-[2.5rem] shadow-2xl"
+            draggable={false}
+            onContextMenu={(e) => e.preventDefault()}
+          />
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function Carousel3D({ items, onMediaClick }: { items: any[], onMediaClick: (media: any) => void }) {
+  const rotation = useMotionValue(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const isDraggingRef = useRef(false);
+  const animationRef = useRef<any>(null);
+
+  // Minimum 10 items to show 5 on the front side
+  let displayItems = [...items];
+  while (displayItems.length < 10) {
+    const needed = 10 - displayItems.length;
+    displayItems = [...displayItems, ...items.slice(0, needed)];
+  }
+
+  const handlePanStart = () => {
+    if (animationRef.current) {
+      animationRef.current.stop();
+    }
+    setIsDragging(true);
+    isDraggingRef.current = true;
+  };
+
+  const handlePan = (e: any, info: any) => {
+    rotation.set(rotation.get() - info.delta.x * 0.1);
+  };
+
+  const handlePanEnd = (e: any, info: any) => {
+    animationRef.current = animate(rotation, rotation.get() - info.velocity.x * 0.05, {
+      type: "spring",
+      stiffness: 50,
+      damping: 20,
+      mass: 1
+    });
+    setTimeout(() => {
+      setIsDragging(false);
+      isDraggingRef.current = false;
+    }, 50);
+  };
+
+  const numItems = displayItems.length;
+  // 2:3 ratio
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const itemWidth = isMobile ? 240 : 360;
+  const itemHeight = isMobile ? 360 : 540;
+  // Increase distance between containers
+  const radius = Math.round((itemWidth / 2) / Math.tan(Math.PI / numItems)) + 40;
+
+  return (
+    <div 
+      className="relative w-full max-w-full overflow-hidden my-32 flex items-center justify-center pointer-events-none" 
+      style={{ perspective: '2000px', height: itemHeight + 100 }}
+    >
+      {/* Floating Drag Instruction */}
+      <motion.div 
+        className="absolute top-4 left-1/2 -translate-x-1/2 z-20 glass px-6 py-3 rounded-full flex gap-3 items-center pointer-events-none"
+        animate={{ 
+          opacity: isDragging ? 0 : 1, 
+          y: isDragging ? -20 : [0, -5, 0],
+          scale: isDragging ? 0.9 : 1
+        }}
+        transition={{ 
+          opacity: { duration: 0.2 },
+          scale: { duration: 0.2 },
+          y: { duration: 2, repeat: Infinity, ease: "easeInOut" }
+        }}
+      >
+        <div className="w-6 h-6 flex items-center justify-center">
+          <MousePointer2 className="w-5 h-5 text-zinc-400" />
+        </div>
+        <span className="text-sm font-bold uppercase tracking-widest text-zinc-300">Drag to move</span>
+      </motion.div>
+
+      <motion.div 
+        className="relative flex items-center justify-center pointer-events-none mt-10"
+        style={{ 
+          rotateY: rotation, 
+          transformStyle: "preserve-3d",
+          width: itemWidth,
+          height: itemHeight
+        }}
+      >
+        {displayItems.map((item, i) => {
+          const angle = i * (360 / numItems);
+          return (
+            <motion.div 
+              key={i} 
+              className="absolute w-full h-full rounded-[2rem] overflow-hidden border border-zinc-800/50 shadow-2xl glass transition-transform cursor-grab active:cursor-grabbing pointer-events-auto"
+              style={{ 
+                transform: `rotateY(${angle}deg) translateZ(-${radius}px)`,
+                backfaceVisibility: 'hidden'
+              }}
+              onPanStart={handlePanStart}
+              onPan={handlePan}
+              onPanEnd={handlePanEnd}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!isDraggingRef.current) {
+                  onMediaClick(item);
+                }
+              }}
+            >
+              {item.type === 'video' ? (
+                <video 
+                  src={`${item.url}#t=1`} 
+                  preload="metadata"
+                  muted playsInline 
+                  draggable={false}
+                  className="w-full h-full object-cover pointer-events-none select-none" 
+                />
+              ) : item.type === 'comparison' ? (
+                <>
+                  <img src={item.url} alt="Comparison" draggable={false} className="w-full h-full object-cover pointer-events-none select-none" />
+                  <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full z-10 flex items-center gap-2 border border-white/10 pointer-events-none">
+                    <SplitSquareHorizontal className="w-4 h-4 text-white" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-white">Compare</span>
+                  </div>
+                </>
+              ) : (
+                <img src={item.url} alt="Media" draggable={false} className="w-full h-full object-cover pointer-events-none select-none" />
+              )}
+              
+              {/* Overlay Play/View Icon */}
+              <div className="absolute inset-0 bg-zinc-950/20 opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
+                <div className="w-16 h-16 glass rounded-full flex items-center justify-center text-white scale-90 transition-transform duration-300">
+                  {item.type === 'video' ? <Play className="w-6 h-6 ml-1" fill="currentColor" /> : <Maximize className="w-6 h-6" />}
+                </div>
+              </div>
+            </motion.div>
+          );
+        })}
+      </motion.div>
+    </div>
+  );
+}
+
 export default function Project() {
   const { id } = useParams<{ id: string }>();
   const { data } = useAppData();
   const location = useLocation();
   const project = id ? data.projects[id] : null;
-  const [selectedImage, setSelectedImage] = useState<{src: string, alt: string} | null>(null);
-  const mediaRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [activeMedia, setActiveMedia] = useState<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const speed = data.theme.animationSpeed || 1;
 
@@ -170,17 +364,14 @@ export default function Project() {
       const media = project.images[index];
       
       setTimeout(() => {
-        mediaRefs.current[index]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        if (media.type === 'image') {
-          setSelectedImage({ src: media.url || '', alt: `${project.title} screenshot ${index + 1}` });
-        }
+        setActiveMedia(media);
       }, 500);
     }
   }, [location.state, project, location.pathname]);
 
   if (!project) {
     return (
-      <div className="pt-40 pb-20 px-4 md:px-8 lg:px-12 w-full mx-auto min-h-[90vh] flex flex-col items-center justify-center">
+      <div ref={containerRef} className="pt-40 pb-20 px-4 md:px-8 lg:px-12 w-full mx-auto min-h-[90vh] flex flex-col items-center justify-center">
         <h1 className="text-4xl font-bold mb-4">Project not found</h1>
         <Link to="/" className="text-zinc-400 hover:text-white flex items-center gap-2">
           <ArrowLeft className="w-4 h-4" /> Back to Home
@@ -190,7 +381,7 @@ export default function Project() {
   }
 
   return (
-    <div ref={containerRef} className="pb-40 min-h-screen">
+    <div ref={containerRef} className="pb-40 min-h-screen overflow-x-hidden">
       {/* Hero Section */}
       <div className="h-[90vh] relative overflow-hidden flex items-end pb-24 px-6">
         <motion.div style={{ y: heroY, opacity: heroOpacity }} className="absolute inset-0 z-0">
@@ -290,63 +481,7 @@ export default function Project() {
         </motion.div>
 
         {/* Gallery */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-          {project.images.map((media: any, i: number) => {
-            const getSpanClass = (index: number) => {
-              const pattern = [
-                "md:col-span-12",
-                "md:col-span-7",
-                "md:col-span-5",
-                "md:col-span-5",
-                "md:col-span-7",
-                "md:col-span-12"
-              ];
-              return pattern[index % pattern.length];
-            };
-            
-            return (
-            <motion.div 
-              key={i}
-              ref={(el) => mediaRefs.current[i] = el}
-              initial={{ opacity: 0, filter: "blur(10px)", y: 60 }}
-              whileInView={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" }, y: 0 }}
-              viewport={{ once: false, margin: "-100px" }}
-              transition={{ duration: 1.2 / speed, delay: (i * 0.1) / speed, ease: [0.22, 1, 0.36, 1] }}
-              className={`relative group ${getSpanClass(i)}`}
-            >
-              {media.type === 'video' ? (
-                <VideoPlayer src={media.url} autoPlay={location.state?.openMediaIndex === i} />
-              ) : media.type === 'comparison' ? (
-                <div className="rounded-[2.5rem] overflow-hidden border border-zinc-800/50 shadow-2xl h-full">
-                  <ComparisonSlider 
-                    beforeUrl={media.url || ''} 
-                    afterUrl={media.secondUrl || ''} 
-                    className="w-full h-full min-h-[400px] object-cover"
-                  />
-                </div>
-              ) : (
-                <div 
-                  className="relative cursor-pointer group rounded-[2.5rem] overflow-hidden border border-zinc-800/50 shadow-2xl h-full"
-                  onClick={() => setSelectedImage({ src: media.url || '', alt: `${project.title} screenshot ${i + 1}` })}
-                >
-                  <img 
-                    src={media.url || undefined} 
-                    alt={`${project.title} screenshot ${i + 1}`} 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 select-none pointer-events-none"
-                    referrerPolicy="no-referrer"
-                    draggable={false}
-                    onContextMenu={(e) => e.preventDefault()}
-                  />
-                  <div className="absolute inset-0 bg-zinc-950/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center">
-                    <div className="w-16 h-16 glass rounded-full flex items-center justify-center text-white scale-90 group-hover:scale-100 transition-transform duration-500">
-                      <ExternalLink className="w-6 h-6" />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          )})}
-        </div>
+        <Carousel3D items={project.images} onMediaClick={(media) => setActiveMedia(media)} />
         
         {/* Next Project CTA */}
         <div className="mt-40 pt-40 border-t border-zinc-800/50 text-center">
@@ -379,12 +514,15 @@ export default function Project() {
         </div>
       </div>
 
-      <ImageViewer 
-        src={selectedImage?.src || ''} 
-        alt={selectedImage?.alt || ''}
-        isOpen={!!selectedImage}
-        onClose={() => setSelectedImage(null)}
-      />
+      <AnimatePresence>
+        {activeMedia && (
+          (!activeMedia.type || activeMedia.type === 'image') ? (
+            <ImageViewer src={activeMedia.url} alt="media" isOpen={!!activeMedia} onClose={() => setActiveMedia(null)} />
+          ) : (
+            <MediaModal media={activeMedia} onClose={() => setActiveMedia(null)} />
+          )
+        )}
+      </AnimatePresence>
     </div>
   );
 }

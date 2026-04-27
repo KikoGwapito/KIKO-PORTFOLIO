@@ -656,8 +656,14 @@ function PageTransition({ children }: { children: React.ReactNode }) {
           if (element) {
             if ((window as any).lenis) {
               (window as any).lenis.scrollTo(element, { offset: 0 });
+              setTimeout(() => {
+                (window as any).lenis?.scrollTo(element, { offset: 0 });
+              }, 1000);
             } else {
               element.scrollIntoView({ behavior: 'smooth' });
+              setTimeout(() => {
+                element.scrollIntoView({ behavior: 'smooth' });
+              }, 1000);
             }
           }
         }, 1200 / speed);
@@ -671,11 +677,18 @@ function PageTransition({ children }: { children: React.ReactNode }) {
           if (element) {
             if ((window as any).lenis) {
               (window as any).lenis.scrollTo(element, { offset: 0 });
+              // Double scroll to ensure destination is reached after layout shifts
+              setTimeout(() => {
+                (window as any).lenis?.scrollTo(element, { offset: 0 });
+              }, 1000);
             } else {
               element.scrollIntoView({ behavior: 'smooth' });
+              setTimeout(() => {
+                element.scrollIntoView({ behavior: 'smooth' });
+              }, 1000);
             }
           }
-        }, 100);
+        }, 400); // Increased initial timeout to allow for route transition
       } else {
         // Ensure scroll to top on navigation without hash
         window.scrollTo(0, 0);

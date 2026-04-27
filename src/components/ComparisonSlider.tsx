@@ -8,7 +8,7 @@ interface ComparisonSliderProps {
   className?: string;
 }
 
-export default function ComparisonSlider({ beforeUrl, afterUrl, className = "" }: ComparisonSliderProps) {
+export default function ComparisonSlider({ beforeUrl, afterUrl, className = "", objectFit = "cover" }: ComparisonSliderProps & { objectFit?: 'cover' | 'contain' }) {
   const [isResizing, setIsResizing] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -82,7 +82,7 @@ export default function ComparisonSlider({ beforeUrl, afterUrl, className = "" }
       <img 
         src={afterUrl} 
         alt="After" 
-        className={`w-full h-full ${isFullscreen ? 'object-contain' : 'object-cover'} pointer-events-none`}
+        className={`w-full h-full ${isFullscreen || objectFit === 'contain' ? 'object-contain' : 'object-cover'} pointer-events-none`}
         referrerPolicy="no-referrer"
       />
 
@@ -94,7 +94,7 @@ export default function ComparisonSlider({ beforeUrl, afterUrl, className = "" }
         <img 
           src={beforeUrl} 
           alt="Before" 
-          className={`w-full h-full ${isFullscreen ? 'object-contain' : 'object-cover'} pointer-events-none`}
+          className={`w-full h-full ${isFullscreen || objectFit === 'contain' ? 'object-contain' : 'object-cover'} pointer-events-none`}
           referrerPolicy="no-referrer"
         />
       </motion.div>

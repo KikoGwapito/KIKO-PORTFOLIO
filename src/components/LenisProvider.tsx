@@ -53,6 +53,10 @@ export function LenisProvider({ children }: { children: React.ReactNode }) {
                 onComplete: () => {
                   // After scrolling to a hash, ensure ScrollTrigger is synchronized
                   ScrollTrigger.refresh();
+                  // Second scroll to handle late layout shifts
+                  setTimeout(() => {
+                    lenis.scrollTo(targetEl as HTMLElement, { duration: 0.5 });
+                  }, 1000);
                 }
               });
             }

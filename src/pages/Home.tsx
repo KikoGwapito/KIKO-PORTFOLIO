@@ -220,7 +220,7 @@ export default function Home() {
               transition={{ duration: 1.2 / speed, ease: [0.22, 1, 0.36, 1] }}
               className="text-5xl sm:text-6xl md:text-8xl font-bold tracking-tighter leading-[0.9] mb-8 break-words w-full"
             >
-              {formatTextWithAccent(data.hero.title, data.theme.primaryColor)}
+              {formatTextWithAccent(data.hero.title, data.theme.primaryColor, { flareInterval: 0.5 })}
             </motion.h1>
             
             <motion.p 
@@ -335,8 +335,8 @@ export default function Home() {
             </motion.div>
           </div>
           
-          {/* Overlay to darken/blur the image when content scrolls over */}
-          <div ref={overlayRef} className="absolute inset-0 bg-zinc-950/70 backdrop-blur-xl opacity-0 z-40 pointer-events-none" />
+          {/* Overlay to darken the image when content scrolls over */}
+          <div ref={overlayRef} className="absolute inset-0 bg-zinc-950/90 opacity-0 z-40 pointer-events-none" />
         </div>
 
         {/* Spacer for the expansion animation */}
@@ -364,7 +364,7 @@ export default function Home() {
       </motion.div>
 
       {/* Featured Work Header */}
-      <section className="py-24 relative z-20">
+      <section id="work" className="py-24 relative z-20">
     <div className="w-full px-4 md:px-8 lg:px-12 mx-auto">
       <motion.div 
         initial={{ opacity: 0, filter: "blur(10px)", y: 20 }}
@@ -391,7 +391,7 @@ export default function Home() {
   </section>
 
       {/* Featured Work Projects */}
-      <section id="work" className="relative z-20 bg-transparent">
+      <section className="relative z-20 bg-transparent">
         {(() => {
       const validProjects = (data.projectOrder || []).map(id => ({ ...data.projects[id], id })).filter(p => p.title);
       return (

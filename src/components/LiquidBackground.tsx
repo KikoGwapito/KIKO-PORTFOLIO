@@ -12,6 +12,9 @@ class Particle {
   glowMultiplier: number;
   wanderAngle: number;
   wanderSpeed: number;
+  shape: 'circle' | 'square' | 'triangle' | 'diamond' | 'star';
+  rotation: number;
+  rotationSpeed: number;
 
   constructor(width: number, height: number) {
     // Randomize Position (X, Y, Z)
@@ -20,11 +23,18 @@ class Particle {
     this.z = Math.random() * 800 - 400; // Deep 3D space (-400 to 400)
     this.vx = 0;
     this.vy = 0;
-    this.size = Math.random() * 2 + 1.2; // Minimalist varied size
+    this.size = Math.random() * 3 + 1.5; // Minimalist varied size, slightly larger to see shapes
     this.baseAlpha = Math.random() * 0.6 + 0.4; // Randomize base glowing (brighter opacities)
     this.glowMultiplier = 1;
     this.wanderAngle = Math.random() * Math.PI * 2;
     this.wanderSpeed = Math.random() * 0.3 + 0.1;
+    
+    // Assign shape
+    const shapes = ['circle', 'square', 'triangle', 'diamond', 'star'] as const;
+    this.shape = shapes[Math.floor(Math.random() * shapes.length)];
+    
+    this.rotation = Math.random() * Math.PI * 2;
+    this.rotationSpeed = (Math.random() - 0.5) * 0.05;
   }
 
   update(mouseX: number, mouseY: number, isHovering: boolean, isHolding: boolean, width: number, height: number) {
@@ -33,6 +43,8 @@ class Particle {
     this.wanderAngle += (Math.random() - 0.5) * 0.15 * holdSpeedMult;
     this.vx += Math.cos(this.wanderAngle) * this.wanderSpeed * 0.1 * holdSpeedMult;
     this.vy += Math.sin(this.wanderAngle) * this.wanderSpeed * 0.1 * holdSpeedMult;
+    
+    this.rotation += this.rotationSpeed * holdSpeedMult;
 
     if (isHovering && mouseX > -100) {
       const dx = mouseX - this.x;
@@ -117,22 +129,45 @@ class Particle {
     const scaledSize = Math.max(0.1, this.size * p * (1 + (this.glowMultiplier - 1) * 0.3));
     const alpha = Math.max(0, Math.min(1, this.baseAlpha * p * this.glowMultiplier));
 
+    ctx.save();
+    ctx.translate(drawX, drawY);
+    ctx.rotate(this.rotation);
     ctx.beginPath();
-    ctx.arc(drawX, drawY, scaledSize, 0, Math.PI * 2);
+    
+    if (this.shape === 'circle') {
+      ctx.arc(0, 0, scaledSize, 0, Math.PI * 2);
+    } else if (this.shape === 'square') {
+      ctx.rect(-scaledSize, -scaledSize, scaledSize * 2, scaledSize * 2);
+    } else if (this.shape === 'triangle') {
+      ctx.moveTo(0, -scaledSize);
+      ctx.lineTo(scaledSize, scaledSize);
+      ctx.lineTo(-scaledSize, scaledSize);
+      ctx.closePath();
+    } else if (this.shape === 'diamond') {
+      ctx.moveTo(0, -scaledSize * 1.5);
+      ctx.lineTo(scaledSize, 0);
+      ctx.lineTo(0, scaledSize * 1.5);
+      ctx.lineTo(-scaledSize, 0);
+      ctx.closePath();
+    } else if (this.shape === 'star') {
+      const spikes = 5;
+      const outerRadius = scaledSize * 1.5;
+      const innerRadius = scaledSize * 0.6;
+      for (let i = 0; i < spikes * 2; i++) {
+        const radius = i % 2 === 0 ? outerRadius : innerRadius;
+        const angle = (Math.PI * i) / spikes - Math.PI / 2;
+        const x = Math.cos(angle) * radius;
+        const y = Math.sin(angle) * radius;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+    }
     
     ctx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
     
-    // Dynamic bloom: apply expensive shadow effects ONLY when particle is actively glowing 
-    // from a click to ensure 60fps steady rendering
-    if (this.glowMultiplier > 1.2) {
-      ctx.shadowBlur = 15 * this.glowMultiplier;
-      ctx.shadowColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
-    } else {
-      ctx.shadowBlur = 0; 
-    }
-
     ctx.fill();
-    ctx.shadowBlur = 0; // Reset state
+    ctx.restore(); // Restore context state to prevent rotation/translation from affecting other elements
   }
 }
 
@@ -169,8 +204,8 @@ export function LiquidBackground() {
     
     const createParticles = () => {
       particles = [];
-      // Calculate density dynamically based on user screen size for consistent aesthetics
-      const count = Math.min(300, Math.max(100, Math.floor((width * height) / 9000)));
+      // Calculate density dynamically based on user screen size for consistent aesthetics (reduced for performance)
+      const count = Math.min(100, Math.max(50, Math.floor((width * height) / 18000)));
       for (let i = 0; i < count; i++) {
         particles.push(new Particle(width, height));
       }
@@ -294,7 +329,7 @@ export function LiquidBackground() {
       
       {/* Delicate grain/grid and vignette for the minimalist glass effect overlay */}
       <div className="absolute inset-0 bg-zinc-950/20" />
-      <div className="absolute inset-0 bg-grid opacity-10 mix-blend-overlay" />
+      <div className="absolute inset-0 bg-grid opacity-5" />
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-zinc-950/50 to-zinc-950 pointer-events-none opacity-60" />
     </div>
   );

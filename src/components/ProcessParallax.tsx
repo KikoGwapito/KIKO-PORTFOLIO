@@ -47,20 +47,9 @@ export const ProcessParallax: React.FC<ProcessParallaxProps> = ({ steps, primary
   useGSAP(() => {
     if (!containerRef.current || totalCards <= 1) return;
 
-    const st = ScrollTrigger.create({
-      trigger: containerRef.current,
-      start: "top top",
-      end: "bottom bottom",
-      snap: {
-        snapTo: 1 / (numPhases + 1), // Using numPhases + 1 intervals for the extended intro sequence
-        duration: { min: 0.2, max: 0.6 },
-        delay: 0.05,
-        ease: "power1.inOut",
-        directional: true
-      }
-    });
+    // Sticky pinning and parallax effects are handled by Framer Motion's useScroll.
+    // We remove the ScrollTrigger snap behavior to stop scroll "magnets".
 
-    return () => st.kill();
   }, { scope: containerRef, dependencies: [numPhases] });
 
   const { scrollYProgress } = useScroll({
@@ -86,18 +75,8 @@ export const ProcessParallax: React.FC<ProcessParallaxProps> = ({ steps, primary
     }
     if (p >= numPhases - 1) return numPhases - 1;
     
-    // Regular scrolling easing
-    const base = Math.floor(p);
-    const fraction = p - base;
-    const flatThreshold = 0.4; 
-    
-    if (fraction <= flatThreshold) {
-      return base;
-    } else {
-      const t = (fraction - flatThreshold) / (1 - flatThreshold);
-      const easedT = t * t * (3 - 2 * t);
-      return base + easedT;
-    }
+    // Regular scrolling without pauses (simple linear mapping)
+    return p;
   });
 
   const scrollToPhase = (phaseTarget: number) => {
@@ -108,7 +87,7 @@ export const ProcessParallax: React.FC<ProcessParallaxProps> = ({ steps, primary
     
     // progress adjusted for the -2 to (numPhases-1) mapping
     const progress = (phaseTarget + 2) / (numPhases + 1);
-    const totalScroll = window.innerHeight * ((numPhases + 2) * 1.5 - 1);
+    const totalScroll = window.innerHeight * ((numPhases + 2) * 1.0 - 1);
     const targetY = absoluteTop + Math.max(0, progress * totalScroll);
     
     window.scrollTo({ top: targetY, behavior: 'smooth' });
@@ -118,7 +97,7 @@ export const ProcessParallax: React.FC<ProcessParallaxProps> = ({ steps, primary
     <section 
       ref={containerRef} 
       className="w-full relative z-20 border-t border-zinc-800/30 bg-transparent"
-      style={{ height: `${(numPhases + 2) * 150}vh` }}
+      style={{ height: `${(numPhases + 2) * 100}vh` }}
     >
       <div className="sticky top-0 h-screen w-full overflow-hidden flex items-center justify-center" style={{ perspective: "1500px" }}>
         {/* Ambient Glow */}
@@ -246,15 +225,14 @@ function CarouselCard({
     return Math.round(100 - diff * 10);
   });
 
-  const filter = useTransform(phase, (p: number) => {
+  const darknessOpacity = useTransform(phase, (p: number) => {
     if (p < 0) {
-      if (index === 0) return `brightness(100%) grayscale(0%)`;
-      const target = interpolateRaw(Math.abs(0 - index), [0, 1, 2], [100, 70, 50]);
-      return `brightness(${interpolateRaw(p, [-2, -1, 0], [30, 30, target])}%) grayscale(0%)`;
+      if (index === 0) return 0;
+      const target = interpolateRaw(Math.abs(0 - index), [0, 1, 2], [0, 0.4, 0.7]);
+      return interpolateRaw(p, [-2, -1, 0], [0.8, 0.8, target]);
     }
     const diff = p - index;
-    const b = interpolateRaw(Math.abs(diff), [0, 1, 2], [100, 70, 50]);
-    return `brightness(${b}%) grayscale(${100 - b}%)`;
+    return interpolateRaw(Math.abs(diff), [0, 1, 2], [0, 0.4, 0.7]);
   });
 
   const pointerEvents = "auto";
@@ -333,7 +311,6 @@ function CarouselCard({
             style={{
               rotateX: hoverRotateX,
               rotateY: hoverRotateY,
-              filter,
               transformStyle: "preserve-3d"
             }}
             className="w-full h-full relative"
@@ -344,6 +321,8 @@ function CarouselCard({
               <StepCard3D card={card} index={index} primaryColor={primaryColor} imageIndex={imageIndex} />
             )}
             
+            <motion.div className="absolute inset-0 bg-black pointer-events-none rounded-[2rem] z-40" style={{ opacity: darknessOpacity, transform: 'translateZ(1px)' }} />
+
             {/* Interactive Shiny Glare Overlay */}
             <motion.div 
                className="absolute inset-0 pointer-events-none rounded-[2rem] z-50 mix-blend-overlay"
@@ -362,7 +341,7 @@ function CarouselCard({
 function TitleCard({ card, primaryColor, imageIndex }: { card: any, primaryColor: string, imageIndex: string }) {
   return (
     <div 
-        className="group w-full h-full relative rounded-[2rem] bg-zinc-900 border border-zinc-800/50 flex flex-col justify-end p-6 md:p-8 shadow-2xl overflow-hidden transition-colors glow-top-edge-hover"
+        className="group w-full h-full relative rounded-[2rem] bg-zinc-900 border border-zinc-800/50 flex flex-col justify-end p-6 md:p-8 shadow-2xl overflow-hidden transition-colors"
         style={{ transformStyle: "preserve-3d" }}
     >
       <div className="absolute inset-0 z-0 overflow-hidden">
@@ -410,7 +389,7 @@ function TitleCard({ card, primaryColor, imageIndex }: { card: any, primaryColor
 function StepCard3D({ card, index, primaryColor, imageIndex }: { card: any, index: number, primaryColor: string, imageIndex: string }) {
   return (
     <div 
-        className="group w-full h-full relative rounded-[2rem] bg-zinc-900 border border-zinc-800/50 flex flex-col justify-end p-6 md:p-8 shadow-2xl overflow-hidden transition-colors glow-top-edge-hover"
+        className="group w-full h-full relative rounded-[2rem] bg-zinc-900 border border-zinc-800/50 flex flex-col justify-end p-6 md:p-8 shadow-2xl overflow-hidden transition-colors"
         style={{ transformStyle: "preserve-3d" }}
     >
       <div className="absolute inset-0 z-0 overflow-hidden">
@@ -465,7 +444,7 @@ function StepCard3D({ card, index, primaryColor, imageIndex }: { card: any, inde
           </h3>
           
           <div className="overflow-y-auto max-h-[140px] md:max-h-[160px] pr-2" style={{ scrollbarWidth: 'thin', scrollbarColor: '#3f3f46 transparent' }}>
-            <p className="text-zinc-300 leading-relaxed text-sm drop-shadow-md group-hover:text-white transition-colors duration-300 whitespace-normal break-words">
+            <p className="text-zinc-300 leading-relaxed text-sm drop-shadow-md whitespace-normal break-words">
               {card.description}
             </p>
           </div>

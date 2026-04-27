@@ -19,11 +19,17 @@ export function ImageViewer({ src, alt, isOpen, onClose }: ImageViewerProps) {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+      if ((window as any).lenis) (window as any).lenis.stop();
     } else {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+      if ((window as any).lenis) (window as any).lenis.start();
     }
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+      if ((window as any).lenis) (window as any).lenis.start();
     };
   }, [isOpen]);
 
@@ -35,7 +41,7 @@ export function ImageViewer({ src, alt, isOpen, onClose }: ImageViewerProps) {
           animate={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" } }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 / speed }}
-          className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/95 backdrop-blur-sm"
+          className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/95 backdrop-blur-sm overflow-hidden"
           onClick={onClose}
           onContextMenu={(e) => e.preventDefault()}
         >

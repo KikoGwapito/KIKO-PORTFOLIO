@@ -60,7 +60,6 @@
 }
 
 html {
-  scroll-behavior: smooth;
   transition: filter 0.5s ease;
   height: auto;
   min-height: 100%;
