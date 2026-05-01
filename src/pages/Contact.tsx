@@ -237,7 +237,7 @@ export default function Contact() {
                 <video src={m.url || undefined} autoPlay loop muted playsInline className="w-full h-full object-cover aspect-video" />
               ) : (
                 <>
-                  <img 
+                  <img loading="lazy" 
                     src={m.url || undefined} 
                     alt={`Contact media ${i + 1}`} 
                     className="w-full h-full object-cover aspect-video select-none pointer-events-none grayscale-hover transition-all duration-700 group-hover:scale-105" 

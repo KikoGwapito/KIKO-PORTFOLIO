@@ -79,7 +79,7 @@ export default function ComparisonSlider({ beforeUrl, afterUrl, className = "", 
       transition={{ duration: 0.3 }}
     >
       {/* After Image (Background) */}
-      <img 
+      <img loading="lazy" 
         src={afterUrl} 
         alt="After" 
         className={`w-full h-full ${isFullscreen || objectFit === 'contain' ? 'object-contain' : 'object-cover'} pointer-events-none`}
@@ -91,7 +91,7 @@ export default function ComparisonSlider({ beforeUrl, afterUrl, className = "", 
         className="absolute inset-0 w-full h-full flex items-center justify-center"
         style={{ clipPath }}
       >
-        <img 
+        <img loading="lazy" 
           src={beforeUrl} 
           alt="Before" 
           className={`w-full h-full ${isFullscreen || objectFit === 'contain' ? 'object-contain' : 'object-cover'} pointer-events-none`}

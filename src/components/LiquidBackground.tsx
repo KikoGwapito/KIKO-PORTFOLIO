@@ -37,63 +37,94 @@ class Particle {
     this.rotationSpeed = (Math.random() - 0.5) * 0.05;
   }
 
-  update(mouseX: number, mouseY: number, isHovering: boolean, isHolding: boolean, width: number, height: number) {
-    // Randomize moving (organic 3D drifting)
-    const holdSpeedMult = isHolding ? 5 : 1;
-    this.wanderAngle += (Math.random() - 0.5) * 0.15 * holdSpeedMult;
-    this.vx += Math.cos(this.wanderAngle) * this.wanderSpeed * 0.1 * holdSpeedMult;
-    this.vy += Math.sin(this.wanderAngle) * this.wanderSpeed * 0.1 * holdSpeedMult;
-    
-    this.rotation += this.rotationSpeed * holdSpeedMult;
-
-    if (isHovering && mouseX > -100) {
-      const dx = mouseX - this.x;
-      const dy = mouseY - this.y;
-      // Calculate distance in 2D space for simple interactive feeling
+  update(mouseX: number, mouseY: number, isHovering: boolean, isHolding: boolean, width: number, height: number, speedMult: number, speedState: string) {
+    if (speedState === 'gathering') {
+      const dx = width / 2 - this.x;
+      const dy = height / 2 - this.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
-
-      if (dist < 250) {
-        const force = (250 - dist) / 250;
-        const angle = Math.atan2(dy, dx);
+      
+      if (dist > 5) {
+        // Pull towards center
+        const pullStrength = 0.5;
+        this.vx += (dx / dist) * pullStrength;
+        this.vy += (dy / dist) * pullStrength;
         
-        if (isHolding) {
-          // Attract strongly when holding! Like a black hole
-          this.vx += Math.cos(angle) * force * 1.5;
-          this.vy += Math.sin(angle) * force * 1.5;
-          this.z -= force * 15; // Pull forward
-          this.glowMultiplier = Math.max(this.glowMultiplier, 1 + force * 2);
-        } else {
-          // Subtle drift away from mouse
-          this.vx -= Math.cos(angle) * force * 0.4;
-          this.vy -= Math.sin(angle) * force * 0.4;
+        // Swirl around center
+        const swirlStrength = 3;
+        this.vx += (-dy / dist) * swirlStrength;
+        this.vy += (dx / dist) * swirlStrength;
+      }
+      
+      this.glowMultiplier = Math.max(this.glowMultiplier, 2 + (300 / Math.max(dist, 10)));
+      this.z += (0 - this.z) * 0.05; // Flatten Z towards 0
+      
+      this.rotation += this.rotationSpeed * 5;
+    } else {
+      // Normal behavior
+      const holdSpeedMult = isHolding ? 5 : 1;
+      const effectiveSpeedMult = speedMult * holdSpeedMult;
+      
+      this.wanderAngle += (Math.random() - 0.5) * 0.15 * effectiveSpeedMult;
+      this.vx += Math.cos(this.wanderAngle) * this.wanderSpeed * 0.1 * effectiveSpeedMult;
+      this.vy += Math.sin(this.wanderAngle) * this.wanderSpeed * 0.1 * effectiveSpeedMult;
+      
+      this.rotation += this.rotationSpeed * effectiveSpeedMult;
+
+      if (isHovering && mouseX > -100) {
+        const dx = mouseX - this.x;
+        const dy = mouseY - this.y;
+        // Calculate distance in 2D space for simple interactive feeling
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < 250) {
+          const force = (250 - dist) / 250;
+          const angle = Math.atan2(dy, dx);
+          
+          if (isHolding) {
+            // Attract strongly when holding! Like a black hole
+            this.vx += Math.cos(angle) * force * 1.5;
+            this.vy += Math.sin(angle) * force * 1.5;
+            this.z -= force * 15; // Pull forward
+            this.glowMultiplier = Math.max(this.glowMultiplier, 1 + force * 2);
+          } else {
+            // Subtle drift away from mouse
+            this.vx -= Math.cos(angle) * force * 0.4;
+            this.vy -= Math.sin(angle) * force * 0.4;
+          }
         }
       }
     }
 
     // Subtly animate Z (depth) so things slowly drift forward/back
-    this.z += Math.sin(Date.now() * 0.001 + this.x * 0.01) * 0.3 * holdSpeedMult;
+    if (speedState !== 'gathering') {
+       this.z += Math.sin(Date.now() * 0.001 + this.x * 0.01) * 0.3 * (isHolding ? 5 : 1);
+    }
 
     // Smooth decay for click glow burst
     if (this.glowMultiplier > 1) {
-      this.glowMultiplier -= 0.02;
+      this.glowMultiplier -= speedState === 'gathering' ? 0.05 : 0.02;
     } else {
       this.glowMultiplier = 1;
     }
 
-    // Apply soft friction
-    this.vx *= 0.96;
-    this.vy *= 0.96;
+    // Apply soft friction (stronger if gathering)
+    const friction = speedState === 'gathering' ? 0.92 : 0.96;
+    this.vx *= friction;
+    this.vy *= friction;
     
     // Update vector
     this.x += this.vx;
     this.y += this.vy;
 
     // Organic infinite wrap-around (with margin so they don't clip visibly on edges)
-    const margin = 200;
-    if (this.x < -margin) this.x = width + margin;
-    if (this.x > width + margin) this.x = -margin;
-    if (this.y < -margin) this.y = height + margin;
-    if (this.y > height + margin) this.y = -margin;
+    // Don't wrap around if gathering to center nicely
+    if (speedState !== 'gathering') {
+      const margin = 200;
+      if (this.x < -margin) this.x = width + margin;
+      if (this.x > width + margin) this.x = -margin;
+      if (this.y < -margin) this.y = height + margin;
+      if (this.y > height + margin) this.y = -margin;
+    }
   }
 
   triggerClick(mouseX: number, mouseY: number) {
@@ -171,11 +202,18 @@ class Particle {
   }
 }
 
-export function LiquidBackground() {
+export function LiquidBackground({ speedState = 'normal' }: { speedState?: 'gathering' | 'wild' | 'slow' | 'normal' }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { data } = useAppData();
   const primaryColor = data.theme.primaryColor || '#10b981';
   const backgroundColor = data.theme.backgroundColor || '#09090b';
+  const speedStateRef = useRef(speedState);
+  const prevSpeedStateRef = useRef(speedState);
+
+  useEffect(() => {
+    prevSpeedStateRef.current = speedStateRef.current;
+    speedStateRef.current = speedState;
+  }, [speedState]);
   
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -262,14 +300,23 @@ export function LiquidBackground() {
       { x: width * 0.5, y: height * 0.5, r: Math.max(width * 0.3, 500), vx: 0.2, vy: -0.1 }
     ];
 
+    let currentBlobSpeed = speedStateRef.current === 'wild' ? 15 : speedStateRef.current === 'slow' ? 0.3 : speedStateRef.current === 'gathering' ? 5 : 1;
+    let currentParticleSpeed = speedStateRef.current === 'wild' ? 30 : speedStateRef.current === 'slow' ? 0.1 : speedStateRef.current === 'gathering' ? 2 : 1;
+
     let animationId: number;
     const render = () => {
       ctx.clearRect(0, 0, width, height);
 
+      const targetBlobSpeed = speedStateRef.current === 'wild' ? 15 : speedStateRef.current === 'slow' ? 0.3 : speedStateRef.current === 'gathering' ? 5 : 1;
+      currentBlobSpeed += (targetBlobSpeed - currentBlobSpeed) * 0.02;
+      
+      const targetParticleSpeed = speedStateRef.current === 'wild' ? 30 : speedStateRef.current === 'slow' ? 0.1 : speedStateRef.current === 'gathering' ? 2 : 1;
+      currentParticleSpeed += (targetParticleSpeed - currentParticleSpeed) * 0.02;
+
       // Render moving minimalist fluid gradient glass wave
       blobs.forEach((blob, i) => {
-        blob.x += blob.vx;
-        blob.y += blob.vy;
+        blob.x += blob.vx * currentBlobSpeed;
+        blob.y += blob.vy * currentBlobSpeed;
 
         if (blob.x < -blob.r || blob.x > width + blob.r) blob.vx *= -1;
         if (blob.y < -blob.r || blob.y > height + blob.r) blob.vy *= -1;
@@ -292,12 +339,28 @@ export function LiquidBackground() {
       });
 
       // Sort particles by Z index BEFORE drawing for proper 3D rendering occlusion (back to front)
+      // Detect gathering -> slow/normal explosion
+      if (prevSpeedStateRef.current === 'gathering' && speedStateRef.current !== 'gathering') {
+        // Explode!
+        particles.forEach(p => {
+          const dx = p.x - width/2;
+          const dy = p.y - height/2;
+          const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+          const force = Math.random() * 25 + 15; // Strong explosion
+          p.vx += (dx / dist) * force;
+          p.vy += (dy / dist) * force;
+          p.z += (Math.random() - 0.5) * 600;
+          p.glowMultiplier = 5;
+        });
+        prevSpeedStateRef.current = speedStateRef.current; // Reset so it doesn't fire again
+      }
+
       // This is crucial for true 3D spatial alignment
       particles.sort((a, b) => b.z - a.z);
 
       // Update and Draw interacting particles
       particles.forEach(p => {
-        p.update(mouseX, mouseY, isHovering, isHolding, width, height);
+        p.update(mouseX, mouseY, isHovering, isHolding, width, height, currentParticleSpeed, speedStateRef.current);
         p.draw(ctx, rgb, width, height);
       });
 

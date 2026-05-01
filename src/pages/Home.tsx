@@ -70,17 +70,21 @@ function TrustSectionScroll({ data, speed }: { data: any, speed: number }) {
                   <div className="marquee-track gap-4">
                     {[...data.trust.logos, ...data.trust.logos, ...data.trust.logos].map((logo: any, i: number) => {
                       const logoSrc = typeof logo === 'object' && logo !== null ? logo.image : logo;
+                      const logoLink = typeof logo === 'object' && logo !== null ? logo.link : null;
                       const isImage = typeof logoSrc === 'string' && (logoSrc.startsWith('http') || logoSrc.includes('.'));
                       
+                      const Container = logoLink ? 'a' : 'div';
+                      const containerProps = logoLink ? { href: logoLink, target: '_blank', rel: 'noopener noreferrer' } : {};
+                      
                       return (
-                        <div key={i} className="relative group/logo cursor-pointer overflow-hidden rounded-full px-8 py-4 bg-gradient-to-b from-white/[0.08] to-transparent border border-white/10 transition-all duration-500 hover:border-white/20 hover:from-white/[0.12] shrink-0 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] backdrop-blur-md">
+                        <Container key={i} {...containerProps} className="relative group/logo cursor-pointer overflow-hidden rounded-full px-8 py-4 bg-gradient-to-b from-white/[0.08] to-transparent border border-white/10 transition-all duration-500 hover:border-white/20 hover:from-white/[0.12] shrink-0 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] backdrop-blur-md block">
                           <div className="absolute inset-0 w-full h-full opacity-0 group-hover/logo:opacity-20 transition-opacity duration-500 ease-[0.22,1,0.36,1]" style={{ backgroundColor: data.theme.primaryColor }} />
                           <div className="absolute inset-0 opacity-0 group-hover/logo:opacity-100 transition-opacity duration-500 pointer-events-none">
                             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent" />
                           </div>
                           <div className="relative z-10 flex items-center justify-center h-full grayscale opacity-50 group-hover/logo:opacity-100 group-hover/logo:grayscale-0 transition-all duration-500 drop-shadow-md">
                             {isImage ? (
-                              <img 
+                              <img loading="lazy" 
                                 src={logoSrc} 
                                 alt={`Partner ${i + 1}`} 
                                 className="h-8 w-auto object-contain select-none pointer-events-none"
@@ -92,7 +96,7 @@ function TrustSectionScroll({ data, speed }: { data: any, speed: number }) {
                               <span className="text-sm font-bold tracking-widest uppercase group-hover/logo:text-zinc-950 transition-colors duration-500 text-white">{logoSrc}</span>
                             )}
                           </div>
-                        </div>
+                        </Container>
                       );
                     })}
                   </div>
@@ -117,7 +121,7 @@ function TrustSectionScroll({ data, speed }: { data: any, speed: number }) {
               </blockquote>
               <div className="flex items-center gap-4 md:gap-5 relative z-10 flex-wrap sm:flex-nowrap">
                 <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-zinc-800 overflow-hidden border border-zinc-700/50 p-1 shrink-0">
-                  <img src={data.trust.authorImage || undefined} alt={data.trust.authorName} referrerPolicy="no-referrer" className="w-full h-full object-cover rounded-xl grayscale select-none pointer-events-none" draggable={false} onContextMenu={(e) => e.preventDefault()} />
+                  <img loading="lazy" src={data.trust.authorImage || undefined} alt={data.trust.authorName} referrerPolicy="no-referrer" className="w-full h-full object-cover rounded-xl grayscale select-none pointer-events-none" draggable={false} onContextMenu={(e) => e.preventDefault()} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="font-bold text-zinc-50 text-base md:text-lg break-words">{data.trust.authorName}</div>
@@ -304,7 +308,7 @@ export default function Home() {
                   className="w-full h-full object-cover grayscale-hover transition-transform duration-1000"
                 />
               ) : (
-                <img 
+                <img loading="lazy" 
                   src={data.hero.media.url || undefined} 
                   alt="Hero" 
                   className="w-full h-full object-cover select-none grayscale-hover transition-transform duration-1000"

@@ -12,6 +12,8 @@ export default function Reviews() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFilter, setSearchFilter] = useState<'all' | 'name' | 'role'>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const reviewsPerPage = 7;
   const [formData, setFormData] = useState({
     clientName: '',
     clientRole: '',
@@ -39,6 +41,24 @@ export default function Reviews() {
       }
     });
   }, [data.reviews.list, searchQuery, searchFilter]);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, searchFilter]);
+
+  const listRef = useRef<HTMLDivElement>(null);
+  
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    if (listRef.current) {
+      if ((window as any).lenis) {
+        (window as any).lenis.scrollTo(listRef.current, { offset: -100 });
+      } else {
+        const y = listRef.current.getBoundingClientRect().top + window.scrollY - 100;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      }
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -240,7 +260,52 @@ export default function Reviews() {
             {formatTextWithAccent("Client `Reviews`", data.theme.primaryColor)}
           </h1>
           <div className="flex items-center gap-4 xl:ml-8">
-            <Star className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 fill-current" style={{ color: data.theme.primaryColor }} />
+            <div className="relative">
+              <motion.div
+                animate={{
+                  opacity: [0.2, 0.5, 0.2],
+                  scale: [0.9, 1.1, 0.9],
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                className="absolute inset-0 bg-current rounded-full blur-2xl z-0"
+                style={{ color: data.theme.primaryColor }}
+              />
+              <Star 
+                className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 fill-current relative z-10" 
+                style={{ 
+                  color: data.theme.primaryColor,
+                  filter: `drop-shadow(0 0 20px ${data.theme.primaryColor}80)`
+                }} 
+              />
+              
+              <motion.div
+                initial={{ opacity: 0, scale: 0, rotate: 0 }}
+                animate={{ 
+                  opacity: [0, 1, 1, 0],
+                  scale: [0, 1.2, 1.2, 0],
+                  rotate: [0, 180]
+                }}
+                transition={{
+                  duration: 2.5,
+                  times: [0, 0.4, 0.6, 1],
+                  repeat: Infinity,
+                  repeatDelay: 2,
+                  ease: "easeInOut"
+                }}
+                className="absolute z-20 pointer-events-none flex items-center justify-center mix-blend-screen"
+                style={{ top: '50%', left: '50%', width: '150%', height: '150%', x: '-50%', y: '-50%' }}
+              >
+                <div className="absolute w-[100%] h-[2px] rounded-full" style={{ background: `linear-gradient(90deg, transparent 15%, ${data.theme.primaryColor} 45%, white 50%, ${data.theme.primaryColor} 55%, transparent 85%)`, filter: 'blur(1px)' }} />
+                <div className="absolute w-[100%] h-[12px] rounded-full opacity-60" style={{ background: `linear-gradient(90deg, transparent 15%, ${data.theme.primaryColor} 45%, white 50%, ${data.theme.primaryColor} 55%, transparent 85%)`, filter: 'blur(6px)' }} />
+                <div className="absolute h-[30%] w-[2px] rounded-full" style={{ background: `linear-gradient(180deg, transparent 15%, ${data.theme.primaryColor} 45%, white 50%, ${data.theme.primaryColor} 55%, transparent 85%)`, filter: 'blur(1px)' }} />
+                <div className="absolute w-[20%] h-[20%] max-w-[24px] max-h-[24px] rounded-full opacity-90" style={{ background: data.theme.primaryColor, filter: 'blur(5px)' }} />
+                <div className="absolute w-[3px] h-[3px] bg-white rounded-full" style={{ filter: 'blur(1px)' }} />
+              </motion.div>
+            </div>
             <div className="flex flex-col justify-center">
               <div className="flex items-baseline gap-2">
                 <span className="text-5xl sm:text-7xl md:text-8xl font-bold text-zinc-100 leading-[1] tracking-tighter">
@@ -287,7 +352,7 @@ export default function Reviews() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-6" ref={listRef}>
             {filteredReviews.length === 0 ? (
               <div className="p-12 rounded-3xl glass border border-zinc-800/50 text-center">
                 <p className="text-zinc-500 font-mono text-sm uppercase tracking-widest">
@@ -295,47 +360,92 @@ export default function Reviews() {
                 </p>
               </div>
             ) : (
-              filteredReviews.map((review, i) => (
-                <motion.div
-                  key={review.id}
-                  initial={{ opacity: 0, filter: "blur(10px)", x: -20 }}
-                  whileInView={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" }, x: 0 }}
-                  viewport={{ once: false }}
-                  transition={{ duration: 0.8, delay: i * 0.1 }}
-                  className="p-8 rounded-3xl glass border border-zinc-800/50 relative overflow-hidden group"
-                >
-                  <div className="absolute top-0 right-0 p-4 opacity-5 font-mono text-4xl select-none">
-                    {String(i + 1).padStart(2, '0')}
-                  </div>
-                  
-                  <div className="flex gap-1 mb-6">
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`w-4 h-4 transition-all duration-500 ${i < review.rating ? 'fill-current' : 'text-zinc-800'}`}
-                        style={{ 
-                          color: i < review.rating ? data.theme.primaryColor : undefined,
-                          filter: i < review.rating ? `drop-shadow(0 0 5px ${data.theme.primaryColor}40)` : undefined
-                        }}
-                      />
-                    ))}
-                  </div>
-                  
-                  <p className="text-xl text-zinc-300 mb-8 leading-relaxed font-light italic">
-                    "{formatTextWithAccent(review.content, data.theme.primaryColor)}"
-                  </p>
-                  
-                  <div className="flex items-center justify-between border-t border-zinc-800/50 pt-6">
-                    <div>
-                      <div className="font-bold text-zinc-100 tracking-tight">{formatTextWithAccent(review.clientName, data.theme.primaryColor)}</div>
-                      <div className="text-sm text-zinc-500 font-mono uppercase tracking-tighter">{formatTextWithAccent(review.clientRole, data.theme.primaryColor)}</div>
+              <>
+                {filteredReviews.slice((currentPage - 1) * reviewsPerPage, currentPage * reviewsPerPage).map((review, i) => (
+                  <motion.div
+                    key={review.id}
+                    initial={{ opacity: 0, filter: "blur(10px)", x: -20 }}
+                    whileInView={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" }, x: 0 }}
+                    viewport={{ once: false }}
+                    transition={{ duration: 0.8, delay: i * 0.1 }}
+                    className="p-8 rounded-3xl glass border border-zinc-800/50 relative overflow-hidden group"
+                  >
+                    <div className="absolute top-0 right-0 p-4 opacity-5 font-mono text-4xl select-none">
+                      {String((currentPage - 1) * reviewsPerPage + i + 1).padStart(2, '0')}
                     </div>
-                    <div className="text-[10px] font-mono text-zinc-600 uppercase tracking-widest">
-                      {new Date(review.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                    
+                    <div className="flex gap-1 mb-6">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`w-4 h-4 transition-all duration-500 ${i < review.rating ? 'fill-current' : 'text-zinc-800'}`}
+                          style={{ 
+                            color: i < review.rating ? data.theme.primaryColor : undefined,
+                            filter: i < review.rating ? `drop-shadow(0 0 5px ${data.theme.primaryColor}40)` : undefined
+                          }}
+                        />
+                      ))}
                     </div>
+                    
+                    <p className="text-xl text-zinc-300 mb-8 leading-relaxed font-light italic break-words whitespace-pre-wrap">
+                      "{formatTextWithAccent(review.content, data.theme.primaryColor)}"
+                    </p>
+                    
+                    <div className="flex items-center justify-between border-t border-zinc-800/50 pt-6 gap-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-bold text-zinc-100 tracking-tight break-words">{formatTextWithAccent(review.clientName, data.theme.primaryColor)}</div>
+                        <div className="text-sm text-zinc-500 font-mono uppercase tracking-tighter break-words">{formatTextWithAccent(review.clientRole, data.theme.primaryColor)}</div>
+                      </div>
+                      <div className="text-[10px] font-mono text-zinc-600 uppercase tracking-widest shrink-0">
+                        {new Date(review.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+                
+                {filteredReviews.length > reviewsPerPage && (
+                  <div className="flex items-center justify-center gap-2 mt-8">
+                    <button
+                      onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="px-4 py-2 rounded-xl border border-zinc-800/50 bg-zinc-900/50 text-zinc-400 hover:text-white disabled:opacity-50 transition-colors cursor-pointer"
+                    >
+                      Previous
+                    </button>
+                    <div className="flex flex-wrap items-center justify-center gap-2 mx-2">
+                      {Array.from({ length: Math.ceil(filteredReviews.length / reviewsPerPage) }).map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => handlePageChange(i + 1)}
+                          className={`relative w-10 h-10 flex items-center justify-center font-mono text-sm transition-colors cursor-pointer rounded-full ${
+                            currentPage !== i + 1 ? 'text-zinc-500 hover:text-zinc-300' : 'text-zinc-950 font-bold'
+                          }`}
+                        >
+                          {currentPage === i + 1 && (
+                            <motion.div
+                              layoutId="paginationIndicator"
+                              className="absolute inset-0 rounded-full z-0"
+                              style={{ 
+                                backgroundColor: data.theme.primaryColor,
+                                boxShadow: `0 0 15px ${data.theme.primaryColor}50`
+                              }}
+                              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                            />
+                          )}
+                          <span className="relative z-10">{i + 1}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => handlePageChange(Math.min(currentPage + 1, Math.ceil(filteredReviews.length / reviewsPerPage)))}
+                      disabled={currentPage === Math.ceil(filteredReviews.length / reviewsPerPage)}
+                      className="px-4 py-2 rounded-xl border border-zinc-800/50 bg-zinc-900/50 text-zinc-400 hover:text-white disabled:opacity-50 transition-colors cursor-pointer"
+                    >
+                      Next
+                    </button>
                   </div>
-                </motion.div>
-              ))
+                )}
+              </>
             )}
           </div>
         </div>
@@ -365,22 +475,20 @@ export default function Reviews() {
           }}
           className="absolute top-0 right-0 pointer-events-auto"
         >
+          <motion.div 
+            className="absolute inset-0 rounded-full blur-md"
+            style={{ backgroundColor: data.theme.primaryColor }}
+            animate={isDragging ? { opacity: 0, scale: 0.9 } : { scale: [1, 1.25, 1], opacity: [0.3, 0.6, 0.3] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          />
           <motion.button
-            animate={{ 
-              scale: [1, 1.08, 1],
-              opacity: [0.3, 0.5, 0.3]
-            }}
-            transition={{ 
-              duration: 2, 
-              repeat: Infinity, 
-              ease: "easeInOut" 
-            }}
-            whileHover={{ scale: 1.1, opacity: 1, transition: { duration: 0.2 } }}
-            whileTap={{ scale: 0.9, opacity: 1, transition: { duration: 0.2 } }}
+            animate={{ scale: isDragging ? 0.9 : 1 }}
+            whileHover={!isDragging ? { scale: 1.1, opacity: 1 } : undefined}
+            whileTap={!isDragging ? { scale: 0.9, opacity: 1 } : undefined}
             onClick={() => {
               if (!isDragging) setIsModalOpen(!isModalOpen);
             }}
-            className="w-16 h-16 rounded-full shadow-2xl flex items-center justify-center text-zinc-950"
+            className="w-16 h-16 rounded-full shadow-2xl flex items-center justify-center text-zinc-950 relative z-10"
             style={{ backgroundColor: data.theme.primaryColor }}
           >
             <Star className="w-8 h-8 fill-current" />

@@ -658,12 +658,6 @@ export default function AdminDashboard() {
             <textarea value={heroData.floatingText || ''} onChange={e => setHeroData({...heroData, floatingText: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)] min-h-[80px]" />
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-2">Scroll Text</label>
-            <input type="text" value={heroData.scrollText || ''} onChange={e => setHeroData({...heroData, scrollText: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" />
-          </div>
-        </div>
         <div>
           <label className="block text-sm font-medium text-zinc-400 mb-2">Title (use `accent` for accent color)</label>
           <input type="text" value={heroData.title} onChange={e => setHeroData({...heroData, title: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" />
@@ -988,7 +982,7 @@ export default function AdminDashboard() {
                       <div key={index} className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 flex flex-col md:flex-row gap-4 items-start">
                         <div className="w-full md:w-32 h-32 bg-zinc-900 rounded-lg overflow-hidden flex-shrink-0 border border-zinc-800 flex items-center justify-center">
                           {media.type === "image" ? (
-                            media.url ? <img src={media.url} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" /> : <ImageIcon className="w-8 h-8 text-zinc-700" />
+                            media.url ? <img loading="lazy" src={media.url} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" /> : <ImageIcon className="w-8 h-8 text-zinc-700" />
                           ) : media.url ? (
                             <video src={media.url} autoPlay muted loop playsInline className="w-full h-full object-contain" />
                           ) : (
@@ -1330,7 +1324,7 @@ export default function AdminDashboard() {
                                 {step.media.type === 'video' ? (
                                     <video src={step.media.url} className="w-full h-full object-cover opacity-60" controls muted />
                                 ) : (
-                                    <img src={step.media.url} alt="Step preview" className="w-full h-full object-cover opacity-60" referrerPolicy="no-referrer" />
+                                    <img loading="lazy" src={step.media.url} alt="Step preview" className="w-full h-full object-cover opacity-60" referrerPolicy="no-referrer" />
                                 )}
                             </div>
                         )}
@@ -1609,6 +1603,17 @@ export default function AdminDashboard() {
             <option value="light">Light Mode</option>
           </select>
           <p className="text-xs text-zinc-500 mt-2">The theme mode visitors will see when they first visit your site.</p>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-400 mb-2">Loading Screen Greeting</label>
+          <input 
+            type="text" 
+            value={themeData.loadingText || 'ENJOY!'} 
+            onChange={e => setThemeData({...themeData, loadingText: e.target.value})} 
+            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]"
+            placeholder="ENJOY!"
+          />
+          <p className="text-xs text-zinc-500 mt-2">The large greeting text shown right before the landing page appears.</p>
         </div>
       </div>
     </div>
@@ -1949,7 +1954,7 @@ export default function AdminDashboard() {
                             {stepModal.data.media.type === 'video' ? (
                                 <video src={stepModal.data.media.url} className="w-full h-full object-cover opacity-60" controls muted />
                             ) : (
-                                <img src={stepModal.data.media.url} alt="Step preview" className="w-full h-full object-cover opacity-60" referrerPolicy="no-referrer" />
+                                <img loading="lazy" src={stepModal.data.media.url} alt="Step preview" className="w-full h-full object-cover opacity-60" referrerPolicy="no-referrer" />
                             )}
                         </div>
                     )}

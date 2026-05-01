@@ -345,7 +345,7 @@ function TitleCard({ card, primaryColor, imageIndex }: { card: any, primaryColor
         style={{ transformStyle: "preserve-3d" }}
     >
       <div className="absolute inset-0 z-0 overflow-hidden">
-        <img 
+        <img loading="lazy" 
           src={`https://picsum.photos/seed/${imageIndex}/800/1200`} 
           alt="Process Title"
           className="w-full h-full object-cover opacity-60 mix-blend-luminosity"
@@ -404,7 +404,7 @@ function StepCard3D({ card, index, primaryColor, imageIndex }: { card: any, inde
                className="w-full h-full object-cover opacity-60 pointer-events-none"
              />
            ) : (
-             <img 
+             <img loading="lazy" 
                src={card.media.url}
                alt={card.title || "Process Step"}
                className="w-full h-full object-cover opacity-60"
@@ -412,7 +412,7 @@ function StepCard3D({ card, index, primaryColor, imageIndex }: { card: any, inde
              />
            )
         ) : (
-          <img 
+          <img loading="lazy" 
             src={`https://picsum.photos/seed/${imageIndex}/800/1200`} 
             alt={card.title || "Process Step"}
             className="w-full h-full object-cover opacity-60 mix-blend-luminosity"

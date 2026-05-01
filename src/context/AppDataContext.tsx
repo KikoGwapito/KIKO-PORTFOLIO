@@ -113,6 +113,7 @@ export type ThemeSettings = {
   footerColor: string;
   animationSpeed: number;
   defaultMode?: 'light' | 'dark';
+  loadingText?: string;
 };
 
 export type Review = {
@@ -269,7 +270,8 @@ const defaultData: AppData = {
     headerColor: '#09090b', // zinc-950
     footerColor: '#09090b', // zinc-950
     animationSpeed: 3,
-    defaultMode: 'dark'
+    defaultMode: 'dark',
+    loadingText: 'ENJOY!'
   },
   reviews: {
     enabled: true,

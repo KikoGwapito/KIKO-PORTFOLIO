@@ -21,6 +21,7 @@ import { SkewedLink } from './components/SkewedLink';
 import { StaggeredLink } from './components/StaggeredLink';
 import { AnimatedFooterText } from './components/AnimatedFooterText';
 import { InteractiveIcon } from './components/InteractiveIcon';
+import { LoadingScreen } from './components/LoadingScreen';
 
 const getSocialIcon = (platform: string) => {
   const p = platform.toLowerCase();
@@ -243,7 +244,73 @@ function ScrollProgress() {
   );
 }
 
+function NavigationLink({ to, children, closeMenu, isMobile }: { to: string, children: React.ReactNode, closeMenu?: () => void, isMobile?: boolean }) {
+  const location = useLocation();
+  const { data } = useAppData();
+  
+  const isActive = React.useMemo(() => {
+    if (to.includes('#')) {
+      const hash = to.split('#')[1];
+      return location.pathname === '/' && location.hash === `#${hash}`;
+    }
+    // If we're at home, and hash is empty, then "work" might be active if there's no hash?
+    // Let's assume exact match.
+    if (location.pathname === '/' && !location.hash && to === '/#work') return true; // fallback
+    return location.pathname === to;
+  }, [location.pathname, location.hash, to]);
+
+  const primaryColor = data.theme.primaryColor || '#10b981';
+
+  return (
+    <Link 
+      to={to} 
+      onClick={closeMenu} 
+      className={`relative group transition-all duration-300 flex items-center justify-between ${
+        isMobile ? "py-4 px-6 rounded-xl" : "px-4 py-2 rounded-lg"
+      } ${isActive ? '' : 'hover:text-zinc-50 hover:bg-white/5'}`}
+    >
+      {/* Active Selection Indicator */}
+      <div 
+        className={`absolute inset-0 transition-opacity duration-500 pointer-events-none rounded-[inherit] overflow-hidden ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-30'}`}
+      >
+        {/* Gradient Background */}
+        <div 
+          className="absolute inset-0 transition-opacity duration-300"
+          style={{ 
+            background: `linear-gradient(to top, ${primaryColor}33, transparent)`,
+            opacity: isActive ? 1 : 0
+          }}
+        />
+        {/* Glowing Bottom Border */}
+        <div
+          className="absolute left-0 right-0 bottom-0 h-[2px]"
+          style={{ 
+            backgroundColor: primaryColor,
+            boxShadow: isActive ? `0 0 12px 2px ${primaryColor}80` : `0 0 0px 0px ${primaryColor}`
+          }}
+        />
+      </div>
+
+      <span 
+        className={`relative z-10 transition-colors duration-300 ${isMobile ? '' : 'font-medium'}`}
+        style={{ color: isActive ? primaryColor : undefined }}
+      >
+        {children}
+      </span>
+      
+      {isMobile && (
+        <ArrowRight 
+          className={`w-6 h-6 relative z-10 transition-all duration-300 ${isActive ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0'}`} 
+          style={{ color: isActive ? primaryColor : 'white' }}
+        />
+      )}
+    </Link>
+  );
+}
+
 export default function App() {
+  const [isLoadingScreen, setIsLoadingScreen] = useState(true);
+  const [backgroundSpeed, setBackgroundSpeed] = useState<'gathering' | 'wild' | 'slow' | 'normal'>('gathering');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { isAdmin, data } = useAppData();
   const location = useLocation();
@@ -319,33 +386,56 @@ export default function App() {
   return (
     <LenisProvider>
       <div className="min-h-screen text-zinc-50 font-sans cursor-none relative" style={{ '--color-primary': data.theme.primaryColor } as React.CSSProperties}>
-        <LiquidBackground />
+        <LiquidBackground speedState={backgroundSpeed} />
 
         <FirebaseConfigBanner />
       <SecurityOverlay />
       <CustomCursor />
-      <ScrollProgress />
-      <ThemeToggle />
-
-      <NotificationToast />
       
-      {/* Navigation */}
-      <motion.header 
-        initial={{ y: -100, x: '-50%' }}
-        animate={{ y: headerVisible ? 0 : -150, x: '-50%' }}
+      <AnimatePresence mode="wait">
+        {isLoadingScreen ? (
+          <LoadingScreen 
+            key="loading" 
+            onComplete={() => {
+              setIsLoadingScreen(false);
+              setBackgroundSpeed('normal');
+            }} 
+            onGreetingShow={() => setBackgroundSpeed('slow')}
+          />
+        ) : (
+          <motion.div
+            key="content"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <ScrollProgress />
+            <ThemeToggle />
+
+            <NotificationToast />
+            
+            {/* Navigation */}
+            <motion.header 
+              initial={{ y: -100, x: '-50%' }}
+              animate={{ y: headerVisible ? 0 : -150, x: '-50%' }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className={`group fixed top-4 left-1/2 w-[95%] max-w-7xl z-50 backdrop-blur-xl border border-white/10 glow-top-edge-hover overflow-hidden ${isMenuOpen ? 'rounded-[32px]' : 'rounded-full'}`} 
-        style={{ backgroundColor: data.theme.headerColor ? `${data.theme.headerColor}99` : 'rgba(9, 9, 11, 0.5)' }}
+        className={`group fixed top-4 left-1/2 w-[95%] max-w-7xl z-50 glow-top-edge-hover rounded-full ${isMenuOpen ? 'is-menu-open' : ''}`} 
       >
-        {/* Subtle Resting Gradient */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
-        
-        {/* Hover Light Reflection */}
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent" />
+        {/* Header Background */}
+        <div 
+          className="absolute inset-0 rounded-full backdrop-blur-xl border border-white/10 overflow-hidden pointer-events-none"
+          style={{ backgroundColor: data.theme.headerColor ? `${data.theme.headerColor}99` : 'rgba(9, 9, 11, 0.5)' }}
+        >
+          {/* Subtle Resting Gradient */}
+          <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
+          
+          {/* Hover Light Reflection */}
+          <div className={`absolute inset-0 transition-opacity duration-500 pointer-events-none ${isMenuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent" />
+          </div>
         </div>
 
-        <div className="w-full px-6 md:px-8 h-16 md:h-20 flex items-center justify-between relative z-10">
+        <div className="w-full px-6 md:px-8 h-16 md:h-20 flex items-center justify-between relative z-10 pointer-events-auto">
           <Link 
             to="/" 
             onClick={() => {
@@ -368,17 +458,18 @@ export default function App() {
               whileTap={{ scale: 0.98 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
             >
-              {data.pageTitle.logo && <img src={data.pageTitle.logo} alt="Logo" referrerPolicy="no-referrer" className="h-8 w-auto select-none pointer-events-none" draggable={false} onContextMenu={(e) => e.preventDefault()} />}
+              {data.pageTitle.logo && <img loading="lazy" src={data.pageTitle.logo} alt="Logo" referrerPolicy="no-referrer" className="h-8 w-auto select-none pointer-events-none" draggable={false} onContextMenu={(e) => e.preventDefault()} />}
               <span className="inline-block truncate max-w-[150px] sm:max-w-none">{formatTextWithAccent(data.pageTitle.title, data.theme.primaryColor)}</span>
             </motion.div>
           </Link>
           
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-400">
-            <Magnetic strength={0.2}><Link to="/#work" className="hover:text-zinc-50 transition-colors">Work</Link></Magnetic>
-            <Magnetic strength={0.2}><Link to="/about" className="hover:text-zinc-50 transition-colors">About</Link></Magnetic>
-            <Magnetic strength={0.2}><Link to="/process" className="hover:text-zinc-50 transition-colors">Process</Link></Magnetic>
-            <Magnetic strength={0.2}><Link to="/reviews" className="hover:text-zinc-50 transition-colors">Reviews</Link></Magnetic>
+          <nav className="hidden md:flex items-center gap-2 text-sm font-medium text-zinc-400">
+            <Magnetic strength={0.1}><NavigationLink to="/#work">Work</NavigationLink></Magnetic>
+            <Magnetic strength={0.1}><NavigationLink to="/about">About</NavigationLink></Magnetic>
+            <Magnetic strength={0.1}><NavigationLink to="/process">Process</NavigationLink></Magnetic>
+            <Magnetic strength={0.1}><NavigationLink to="/reviews">Reviews</NavigationLink></Magnetic>
+            <div className="w-[1px] h-6 bg-zinc-800 mx-2" />
             <Magnetic strength={0.3}>
               <Link to="/contact">
                 <motion.div 
@@ -432,44 +523,52 @@ export default function App() {
         <AnimatePresence>
           {isMenuOpen && (
             <motion.div 
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="md:hidden border-t border-zinc-800/50"
+              initial={{ height: 0, opacity: 0, y: -20 }}
+              animate={{ height: 'auto', opacity: 1, y: 0 }}
+              exit={{ height: 0, opacity: 0, y: -20, transition: { duration: 0.3 } }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              className="md:hidden absolute top-full left-0 right-0 mt-2 backdrop-blur-xl border border-white/10 rounded-[32px] overflow-hidden shadow-2xl"
+              style={{ backgroundColor: data.theme.headerColor ? `${data.theme.headerColor}e6` : 'rgba(9, 9, 11, 0.95)' }}
             >
-              <nav className="flex flex-col px-6 py-8 gap-8 text-2xl font-bold text-zinc-400">
-                <Link to="/#work" onClick={closeMenu} className="hover:text-zinc-50 transition-colors flex items-center justify-between group">
-                  <span>Work</span>
-                  <ArrowRight className="w-6 h-6 opacity-0 group-hover:opacity-100 -translate-x-4 group-hover:translate-x-0 transition-all" />
-                </Link>
-                <Link to="/about" onClick={closeMenu} className="hover:text-zinc-50 transition-colors flex items-center justify-between group">
-                  <span>About</span>
-                  <ArrowRight className="w-6 h-6 opacity-0 group-hover:opacity-100 -translate-x-4 group-hover:translate-x-0 transition-all" />
-                </Link>
-                <Link to="/process" onClick={closeMenu} className="hover:text-zinc-50 transition-colors flex items-center justify-between group">
-                  <span>Process</span>
-                  <ArrowRight className="w-6 h-6 opacity-0 group-hover:opacity-100 -translate-x-4 group-hover:translate-x-0 transition-all" />
-                </Link>
-                <Link to="/reviews" onClick={closeMenu} className="hover:text-zinc-50 transition-colors flex items-center justify-between group">
-                  <span>Reviews</span>
-                  <ArrowRight className="w-6 h-6 opacity-0 group-hover:opacity-100 -translate-x-4 group-hover:translate-x-0 transition-all" />
-                </Link>
-                <div className="flex justify-center mt-8">
+              <motion.nav 
+                initial="closed"
+                animate="open"
+                exit="closed"
+                variants={{
+                  open: { transition: { staggerChildren: 0.05, delayChildren: 0.1 } },
+                  closed: { transition: { staggerChildren: 0.05, staggerDirection: -1 } }
+                }}
+                className="flex flex-col px-6 py-8 gap-8 text-2xl font-bold text-zinc-400 relative z-10"
+              >
+                <motion.div variants={{ closed: { opacity: 0, y: -20 }, open: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
+                  <NavigationLink to="/#work" closeMenu={closeMenu} isMobile>Work</NavigationLink>
+                </motion.div>
+                <motion.div variants={{ closed: { opacity: 0, y: -20 }, open: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
+                  <NavigationLink to="/about" closeMenu={closeMenu} isMobile>About</NavigationLink>
+                </motion.div>
+                <motion.div variants={{ closed: { opacity: 0, y: -20 }, open: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
+                  <NavigationLink to="/process" closeMenu={closeMenu} isMobile>Process</NavigationLink>
+                </motion.div>
+                <motion.div variants={{ closed: { opacity: 0, y: -20 }, open: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
+                  <NavigationLink to="/reviews" closeMenu={closeMenu} isMobile>Reviews</NavigationLink>
+                </motion.div>
+                <motion.div variants={{ closed: { opacity: 0, y: -20 }, open: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }} className="flex justify-center mt-8">
                   <Magnetic strength={0.3}>
                     <Link to="/contact" onClick={closeMenu}>
                       <motion.div 
-                        className="px-10 py-4 rounded-full font-bold text-zinc-950 text-xl glow-primary"
+                        className="px-10 py-4 rounded-full font-bold text-zinc-950 text-xl glow-primary flex items-center gap-2 group/btn"
                         style={{ backgroundColor: data.theme.primaryColor }}
                         whileHover={{ scale: 1.05, opacity: 0.9 }}
                         whileTap={{ scale: 0.95 }}
                         transition={{ duration: 0.3 }}
                       >
                         Contact Me
+                        <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
                       </motion.div>
                     </Link>
                   </Magnetic>
-                </div>
-              </nav>
+                </motion.div>
+              </motion.nav>
             </motion.div>
           )}
         </AnimatePresence>
@@ -615,7 +714,7 @@ export default function App() {
                   whileTap={{ scale: 0.98 }}
                   transition={{ duration: 0.3, ease: "easeOut" }}
                 >
-                  {data.pageTitle.logo && <img src={data.pageTitle.logo} alt="Logo" referrerPolicy="no-referrer" className="h-6 w-auto grayscale opacity-50 select-none pointer-events-none" draggable={false} onContextMenu={(e) => e.preventDefault()} />}
+                  {data.pageTitle.logo && <img loading="lazy" src={data.pageTitle.logo} alt="Logo" referrerPolicy="no-referrer" className="h-6 w-auto grayscale opacity-50 select-none pointer-events-none" draggable={false} onContextMenu={(e) => e.preventDefault()} />}
                   <span className="truncate max-w-[200px] sm:max-w-none">{formatTextWithAccent(data.pageTitle.title, data.theme.primaryColor)}</span>
                 </motion.div>
               </Link>
@@ -626,18 +725,28 @@ export default function App() {
           </div>
         </motion.footer>
       </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
       </div>
     </LenisProvider>
   );
 }
+
+let isFirstPageLoad = true;
 
 function PageTransition({ children }: { children: React.ReactNode }) {
   const { data } = useAppData();
   const location = useLocation();
   const speed = data.theme.animationSpeed || 1;
   const isInitialMount = React.useRef(true);
+  
+  // Skip the shutter effect on the VERY first mount of the app, 
+  // since the new loading screen handles the initial reveal.
+  const [skipShutter] = React.useState(isFirstPageLoad);
 
   React.useEffect(() => {
+    isFirstPageLoad = false;
     let timeoutId: NodeJS.Timeout;
 
     if (isInitialMount.current) {
@@ -720,14 +829,16 @@ function PageTransition({ children }: { children: React.ReactNode }) {
       className="relative"
     >
       {/* Shutter reveal effect */}
-      <motion.div
-        initial={{ scaleY: 1 }}
-        animate={{ scaleY: 0 }}
-        exit={{ scaleY: 1 }}
-        transition={{ duration: 0.8 / speed, ease: [0.76, 0, 0.24, 1] }}
-        style={{ backgroundColor: data.theme.primaryColor, originY: 0 }}
-        className="fixed inset-0 z-[100] pointer-events-none"
-      />
+      {!skipShutter && (
+        <motion.div
+          initial={{ scaleY: 1 }}
+          animate={{ scaleY: 0 }}
+          exit={{ scaleY: 1 }}
+          transition={{ duration: 0.8 / speed, ease: [0.76, 0, 0.24, 1] }}
+          style={{ backgroundColor: data.theme.primaryColor, originY: 0 }}
+          className="fixed inset-0 z-[100] pointer-events-none"
+        />
+      )}
       {children}
     </motion.div>
   );

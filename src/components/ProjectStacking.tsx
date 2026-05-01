@@ -33,7 +33,7 @@ export const ProjectStacking: React.FC<ProjectStackingProps> = ({ projects, them
                       className="w-full h-full object-cover opacity-60" 
                     />
                   ) : (
-                    <img 
+                    <img loading="lazy" 
                       src={project.images?.[0]?.url || undefined} 
                       alt={project.title} 
                       className="w-full h-full object-cover opacity-60"

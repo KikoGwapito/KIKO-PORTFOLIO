@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { useAppData } from '../context/AppDataContext';
-import { Lock, Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import { Lock, Eye, EyeOff, Shield } from 'lucide-react';
 import { isConfigValid } from '../firebase';
 
 export default function AdminLogin() {
@@ -123,15 +123,18 @@ export default function AdminLogin() {
               <span className="text-zinc-300 font-mono mt-2 block lowercase tracking-normal">francisestologa@gmail.com</span>
             </p>
 
-            <div className="bg-zinc-950/50 border border-zinc-800/50 rounded-2xl p-5 text-xs text-zinc-500">
-              <p className="font-bold text-zinc-400 mb-3 flex items-center gap-2 uppercase tracking-wider">
-                <AlertTriangle className="w-4 h-4" /> System Diagnostics
+            <div className="bg-zinc-950/50 border border-zinc-800/50 rounded-2xl p-5 text-xs text-zinc-500 font-mono">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-zinc-400 font-sans font-bold uppercase tracking-wider flex items-center gap-2">
+                  <Shield className="w-4 h-4" /> Security Protocol
+                </span>
+                <span className="text-[var(--color-primary)] flex items-center gap-1.5 opacity-80">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)] animate-pulse" /> Active
+                </span>
+              </div>
+              <p className="leading-relaxed">
+                This portal is restricted to authorized personnel only. All authentication attempts are logged and monitored. Disconnect immediately if you lack authorization.
               </p>
-              <ul className="list-disc pl-4 space-y-2 leading-relaxed">
-                <li>Verify domain authorization in <strong>Firebase Console &gt; Authentication &gt; Settings &gt; Authorized domains</strong>.</li>
-                <li className="flex items-center gap-2 flex-wrap">Current Origin: <code className="bg-zinc-900 px-2 py-1 rounded-md text-zinc-300 font-mono text-[10px]">{window.location.hostname}</code></li>
-                <li>Monitor browser console for detailed security logs.</li>
-              </ul>
             </div>
           </div>
         </div>

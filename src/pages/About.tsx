@@ -115,7 +115,7 @@ export default function About() {
               className="aspect-[4/5] lg:aspect-auto lg:h-[65vh] w-full rounded-[2.5rem] overflow-hidden bg-zinc-900 border border-zinc-800/50 mb-12 relative group shadow-2xl"
             >
               <motion.div style={{ y: imageY }} className="absolute inset-0">
-                <img 
+                <img loading="lazy" 
                   src={data.about.image || "https://picsum.photos/seed/developer/800/800"} 
                   alt="Profile" 
                   className="w-full h-full object-cover select-none grayscale-hover scale-110"

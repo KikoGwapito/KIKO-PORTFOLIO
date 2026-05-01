@@ -92,7 +92,7 @@ export function ImageViewer({ src, alt, isOpen, onClose }: ImageViewerProps) {
                   onClick={(e) => e.stopPropagation()}
                 >
                   <TransformComponent wrapperClass="!w-full !h-full" contentClass="!w-full !h-full flex items-center justify-center">
-                    <img
+                    <img loading="lazy"
                       src={src}
                       alt={alt}
                       className="max-w-full max-h-full object-contain select-none pointer-events-auto cursor-grab active:cursor-grabbing"

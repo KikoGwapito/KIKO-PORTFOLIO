@@ -188,7 +188,7 @@ function MediaModal({ media, onClose }: { media: any, onClose: () => void }) {
             />
           </div>
         ) : (
-          <img
+          <img loading="lazy"
             src={media.url}
             alt="fullscreen"
             className="w-full h-full object-contain rounded-[2.5rem] shadow-2xl"
@@ -311,14 +311,14 @@ function Carousel3D({ items, onMediaClick }: { items: any[], onMediaClick: (medi
                 />
               ) : item.type === 'comparison' ? (
                 <>
-                  <img src={item.url} alt="Comparison" draggable={false} className="w-full h-full object-cover pointer-events-none select-none" />
+                  <img loading="lazy" src={item.url} alt="Comparison" draggable={false} className="w-full h-full object-cover pointer-events-none select-none" />
                   <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full z-10 flex items-center gap-2 border border-white/10 pointer-events-none">
                     <SplitSquareHorizontal className="w-4 h-4 text-white" />
                     <span className="text-[10px] font-bold uppercase tracking-wider text-white">Compare</span>
                   </div>
                 </>
               ) : (
-                <img src={item.url} alt="Media" draggable={false} className="w-full h-full object-cover pointer-events-none select-none" />
+                <img loading="lazy" src={item.url} alt="Media" draggable={false} className="w-full h-full object-cover pointer-events-none select-none" />
               )}
               
               {/* Overlay Play/View Icon */}
@@ -395,7 +395,7 @@ export default function Project() {
               className="w-full h-full object-cover scale-110"
             />
           ) : (
-            <img 
+            <img loading="lazy" 
               src={project.images[0]?.url || "https://picsum.photos/seed/project/1920/1080"} 
               alt={project.title}
               className="w-full h-full object-cover scale-110"
