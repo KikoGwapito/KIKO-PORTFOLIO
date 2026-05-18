@@ -290,6 +290,7 @@ export type NotificationType = 'success' | 'error' | 'info';
 type AppDataContextType = {
   isAdmin: boolean;
   isAuthReady: boolean;
+  isDataLoaded: boolean;
   login: () => Promise<boolean>;
   logout: () => void;
   data: AppData;
@@ -637,7 +638,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AppDataContext.Provider value={{ 
-      isAdmin, isAuthReady, login, logout, data, updateData, 
+      isAdmin, isAuthReady, isDataLoaded, login, logout, data, updateData, 
       updateProject, addProject, deleteProject, reorderProjects,
       addReview,
       notification, showNotification

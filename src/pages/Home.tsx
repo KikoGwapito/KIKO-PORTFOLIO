@@ -162,7 +162,7 @@ export default function Home() {
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: spacerRef.current,
-          start: 'top bottom',
+          start: 'top top',
           end: 'bottom bottom',
           scrub: 1,
         }
@@ -286,61 +286,63 @@ export default function Home() {
 
       {/* GSAP ScrollTrigger Hero Media Section */}
       <div ref={scrollContainerRef} className="w-full relative z-20">
-        <div className="sticky top-0 w-full h-screen flex items-center justify-center overflow-hidden z-0">
-          <div 
-            ref={mediaRef} 
-            className="hero-media overflow-hidden bg-zinc-900 shadow-2xl relative flex items-center justify-center"
-            style={{ 
-              width: '60%', 
-              height: '80vh', 
-              borderRadius: '40px',
-              willChange: 'width, height, border-radius'
-            }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent opacity-60 z-20 pointer-events-none" />
-            <div className="absolute inset-0 bg-grid opacity-20 z-10 pointer-events-none" />
-            
-            <div className="w-full h-full">
-              {data.hero.media.type === 'video' ? (
-                <video 
-                  src={data.hero.media.url || undefined} 
-                  autoPlay loop muted playsInline 
-                  className="w-full h-full object-cover grayscale-hover transition-transform duration-1000"
-                />
-              ) : (
-                <img loading="lazy" 
-                  src={data.hero.media.url || undefined} 
-                  alt="Hero" 
-                  className="w-full h-full object-cover select-none grayscale-hover transition-transform duration-1000"
-                  referrerPolicy="no-referrer"
-                  draggable={false}
-                  onContextMenu={(e) => e.preventDefault()}
-                />
-              )}
-            </div>
-          
-            {/* Floating Badge */}
-            <motion.div 
-              animate={{ y: [0, -10, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute bottom-6 right-6 sm:bottom-8 sm:right-8 z-30 glass px-4 py-3 sm:px-6 sm:py-4 rounded-2xl flex items-center gap-3 sm:gap-4"
+        <div className="absolute inset-x-0 top-0 bottom-[50vh] z-0">
+          <div className="sticky top-0 w-full h-screen flex items-center justify-center overflow-hidden z-0">
+            <div 
+              ref={mediaRef} 
+              className="hero-media overflow-hidden bg-zinc-900 shadow-2xl relative flex items-center justify-center"
+              style={{ 
+                width: '60%', 
+                height: '80vh', 
+                borderRadius: '40px',
+                willChange: 'width, height, border-radius'
+              }}
             >
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: data.theme.primaryColor }}>
-                <MousePointer2 className="w-4 h-4 sm:w-5 sm:h-5 text-zinc-950" />
+              <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent opacity-60 z-20 pointer-events-none" />
+              <div className="absolute inset-0 bg-grid opacity-20 z-10 pointer-events-none" />
+              
+              <div className="w-full h-full">
+                {data.hero.media.type === 'video' ? (
+                  <video 
+                    src={data.hero.media.url || undefined} 
+                    autoPlay loop muted playsInline 
+                    className="w-full h-full object-cover grayscale-hover transition-transform duration-1000"
+                  />
+                ) : (
+                  <img loading="lazy" 
+                    src={data.hero.media.url || undefined} 
+                    alt="Hero" 
+                    className="w-full h-full object-cover select-none grayscale-hover transition-transform duration-1000"
+                    referrerPolicy="no-referrer"
+                    draggable={false}
+                    onContextMenu={(e) => e.preventDefault()}
+                  />
+                )}
               </div>
-              <div>
-                <div className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-zinc-500">
-                  {data.hero.floatingText?.split('\n')[0] || 'AVAILABLE FOR'}
+            
+              {/* Floating Badge */}
+              <motion.div 
+                animate={{ y: [0, -10, 0] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute bottom-6 right-6 sm:bottom-8 sm:right-8 z-30 glass px-4 py-3 sm:px-6 sm:py-4 rounded-2xl flex items-center gap-3 sm:gap-4"
+              >
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: data.theme.primaryColor }}>
+                  <MousePointer2 className="w-4 h-4 sm:w-5 sm:h-5 text-zinc-950" />
                 </div>
-                <div className="text-xs sm:text-sm font-bold">
-                  {data.hero.floatingText?.split('\n').slice(1).join('\n') || 'New Projects'}
+                <div>
+                  <div className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-zinc-500">
+                    {data.hero.floatingText?.split('\n')[0] || 'AVAILABLE FOR'}
+                  </div>
+                  <div className="text-xs sm:text-sm font-bold">
+                    {data.hero.floatingText?.split('\n').slice(1).join('\n') || 'New Projects'}
+                  </div>
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            </div>
+            
+            {/* Overlay to darken the image when content scrolls over */}
+            <div ref={overlayRef} className="absolute inset-0 bg-zinc-950/90 opacity-0 z-40 pointer-events-none" />
           </div>
-          
-          {/* Overlay to darken the image when content scrolls over */}
-          <div ref={overlayRef} className="absolute inset-0 bg-zinc-950/90 opacity-0 z-40 pointer-events-none" />
         </div>
 
         {/* Spacer for the expansion animation */}

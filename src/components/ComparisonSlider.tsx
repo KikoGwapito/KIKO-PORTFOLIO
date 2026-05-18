@@ -77,6 +77,7 @@ export default function ComparisonSlider({ beforeUrl, afterUrl, className = "", 
       initial={{ scale: 1 }}
       whileHover={{ scale: 1.01 }}
       transition={{ duration: 0.3 }}
+      style={{ touchAction: 'pan-y' }}
     >
       {/* After Image (Background) */}
       <img loading="lazy" 

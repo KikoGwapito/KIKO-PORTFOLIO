@@ -8,11 +8,12 @@ class Particle {
   vx: number;
   vy: number;
   size: number;
+  baseSize: number;
   baseAlpha: number;
   glowMultiplier: number;
   wanderAngle: number;
   wanderSpeed: number;
-  shape: 'circle' | 'square' | 'triangle' | 'diamond' | 'star';
+  shape: 'bokeh' | 'flare' | 'star';
   rotation: number;
   rotationSpeed: number;
 
@@ -23,14 +24,15 @@ class Particle {
     this.z = Math.random() * 800 - 400; // Deep 3D space (-400 to 400)
     this.vx = 0;
     this.vy = 0;
-    this.size = Math.random() * 3 + 1.5; // Minimalist varied size, slightly larger to see shapes
+    this.size = Math.random() * 1.5 + 0.8; // Smaller base size for particles
+    this.baseSize = this.size;
     this.baseAlpha = Math.random() * 0.6 + 0.4; // Randomize base glowing (brighter opacities)
     this.glowMultiplier = 1;
     this.wanderAngle = Math.random() * Math.PI * 2;
     this.wanderSpeed = Math.random() * 0.3 + 0.1;
     
-    // Assign shape
-    const shapes = ['circle', 'square', 'triangle', 'diamond', 'star'] as const;
+    // Assign shape: mostly glowing bokeh, some bright stars/flares
+    const shapes = ['flare', 'star', 'bokeh', 'bokeh', 'bokeh'] as const;
     this.shape = shapes[Math.floor(Math.random() * shapes.length)];
     
     this.rotation = Math.random() * Math.PI * 2;
@@ -38,31 +40,54 @@ class Particle {
   }
 
   update(mouseX: number, mouseY: number, isHovering: boolean, isHolding: boolean, width: number, height: number, speedMult: number, speedState: string) {
-    if (speedState === 'gathering') {
-      const dx = width / 2 - this.x;
-      const dy = height / 2 - this.y;
+    const isGatheringState = speedState === 'gathering' || (isHolding && mouseX > -100);
+
+    if (isGatheringState) {
+      const isMouseVortex = isHolding && mouseX > -100;
+      const targetX = isMouseVortex ? mouseX : width / 2;
+      const targetY = isMouseVortex ? mouseY : height / 2;
+      const dx = targetX - this.x;
+      const dy = targetY - this.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       
-      if (dist > 5) {
-        // Pull towards center
-        const pullStrength = 0.5;
+      if (dist > 1) {
+        // Pull towards target (stronger if mouse vortex)
+        const pullStrength = isMouseVortex 
+          ? (12.0 + (1000 / Math.max(dist, 2))) 
+          : (0.5 + (100 / Math.max(dist, 50)));
         this.vx += (dx / dist) * pullStrength;
         this.vy += (dy / dist) * pullStrength;
         
-        // Swirl around center
-        const swirlStrength = 3;
+        // Slower, tighter swirl around target when holding
+        const swirlStrength = isMouseVortex 
+          ? (Math.min(10, 200 / Math.max(dist, 5))) 
+          : 2;
         this.vx += (-dy / dist) * swirlStrength;
         this.vy += (dx / dist) * swirlStrength;
+      } else {
+        // Softly settle in the center forming a compact core
+        this.x = targetX;
+        this.y = targetY;
+        this.vx *= isMouseVortex ? 0.1 : 0.8;
+        this.vy *= isMouseVortex ? 0.1 : 0.8;
       }
       
-      this.glowMultiplier = Math.max(this.glowMultiplier, 2 + (300 / Math.max(dist, 10)));
-      this.z += (0 - this.z) * 0.05; // Flatten Z towards 0
+      // Make them glow brightly, glowing more as they compact
+      this.glowMultiplier = Math.max(this.glowMultiplier, (isMouseVortex ? 2.0 : 1.5) + (300 / Math.max(dist, 10)));
+      this.z += (0 - this.z) * (isMouseVortex ? 0.2 : 0.05); // Flatten Z towards 0
       
-      this.rotation += this.rotationSpeed * 5;
+      this.rotation += this.rotationSpeed * (isMouseVortex ? 10 : 5);
+      
+      // Slowly shrink particles in the vortex to form a compressed dot
+      if (isMouseVortex) {
+        this.size = Math.max(0.3, this.size * 0.9);
+      }
     } else {
+      // Restore size
+      this.size += (this.baseSize - this.size) * 0.1;
+      
       // Normal behavior
-      const holdSpeedMult = isHolding ? 5 : 1;
-      const effectiveSpeedMult = speedMult * holdSpeedMult;
+      const effectiveSpeedMult = speedMult;
       
       this.wanderAngle += (Math.random() - 0.5) * 0.15 * effectiveSpeedMult;
       this.vx += Math.cos(this.wanderAngle) * this.wanderSpeed * 0.1 * effectiveSpeedMult;
@@ -80,35 +105,27 @@ class Particle {
           const force = (250 - dist) / 250;
           const angle = Math.atan2(dy, dx);
           
-          if (isHolding) {
-            // Attract strongly when holding! Like a black hole
-            this.vx += Math.cos(angle) * force * 1.5;
-            this.vy += Math.sin(angle) * force * 1.5;
-            this.z -= force * 15; // Pull forward
-            this.glowMultiplier = Math.max(this.glowMultiplier, 1 + force * 2);
-          } else {
-            // Subtle drift away from mouse
-            this.vx -= Math.cos(angle) * force * 0.4;
-            this.vy -= Math.sin(angle) * force * 0.4;
-          }
+          // Subtle drift away from mouse
+          this.vx -= Math.cos(angle) * force * 0.4;
+          this.vy -= Math.sin(angle) * force * 0.4;
         }
       }
     }
 
     // Subtly animate Z (depth) so things slowly drift forward/back
-    if (speedState !== 'gathering') {
-       this.z += Math.sin(Date.now() * 0.001 + this.x * 0.01) * 0.3 * (isHolding ? 5 : 1);
+    if (!isGatheringState) {
+       this.z += Math.sin(Date.now() * 0.001 + this.x * 0.01) * 0.3;
     }
 
     // Smooth decay for click glow burst
     if (this.glowMultiplier > 1) {
-      this.glowMultiplier -= speedState === 'gathering' ? 0.05 : 0.02;
+      this.glowMultiplier -= isGatheringState ? 0.05 : 0.02;
     } else {
       this.glowMultiplier = 1;
     }
 
     // Apply soft friction (stronger if gathering)
-    const friction = speedState === 'gathering' ? 0.92 : 0.96;
+    const friction = isGatheringState ? ((isHolding && mouseX > -100) ? 0.88 : 0.85) : 0.96;
     this.vx *= friction;
     this.vy *= friction;
     
@@ -118,7 +135,7 @@ class Particle {
 
     // Organic infinite wrap-around (with margin so they don't clip visibly on edges)
     // Don't wrap around if gathering to center nicely
-    if (speedState !== 'gathering') {
+    if (!isGatheringState) {
       const margin = 200;
       if (this.x < -margin) this.x = width + margin;
       if (this.x > width + margin) this.x = -margin;
@@ -160,44 +177,124 @@ class Particle {
     const scaledSize = Math.max(0.1, this.size * p * (1 + (this.glowMultiplier - 1) * 0.3));
     const alpha = Math.max(0, Math.min(1, this.baseAlpha * p * this.glowMultiplier));
 
+    // Twinkling effect
+    const twinkle = 0.7 + 0.3 * Math.sin(Date.now() * 0.003 + this.x * 10);
+    const finalAlpha = alpha * twinkle;
+
     ctx.save();
     ctx.translate(drawX, drawY);
     ctx.rotate(this.rotation);
-    ctx.beginPath();
     
-    if (this.shape === 'circle') {
-      ctx.arc(0, 0, scaledSize, 0, Math.PI * 2);
-    } else if (this.shape === 'square') {
-      ctx.rect(-scaledSize, -scaledSize, scaledSize * 2, scaledSize * 2);
-    } else if (this.shape === 'triangle') {
-      ctx.moveTo(0, -scaledSize);
-      ctx.lineTo(scaledSize, scaledSize);
-      ctx.lineTo(-scaledSize, scaledSize);
-      ctx.closePath();
-    } else if (this.shape === 'diamond') {
-      ctx.moveTo(0, -scaledSize * 1.5);
-      ctx.lineTo(scaledSize, 0);
-      ctx.lineTo(0, scaledSize * 1.5);
-      ctx.lineTo(-scaledSize, 0);
-      ctx.closePath();
+    if (this.shape === 'flare') {
+      const gColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b},`;
+      
+      // Luminous core
+      ctx.beginPath();
+      ctx.arc(0, 0, scaledSize * 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255, 255, 255, ${finalAlpha})`;
+      ctx.fill();
+
+      // Core glow
+      const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, scaledSize * 4);
+      grad.addColorStop(0, `rgba(255, 255, 255, ${finalAlpha * 0.9})`);
+      grad.addColorStop(0.3, `${gColor} ${finalAlpha * 0.8})`);
+      grad.addColorStop(0.6, `${gColor} ${finalAlpha * 0.3})`);
+      grad.addColorStop(1, `${gColor} 0)`);
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(0, 0, scaledSize * 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Horizontal streak (smaller and rounder feel)
+      const streakLen = scaledSize * 12;
+      const streakGrad = ctx.createLinearGradient(-streakLen, 0, streakLen, 0);
+      streakGrad.addColorStop(0, `${gColor} 0)`);
+      streakGrad.addColorStop(0.4, `rgba(255, 255, 255, ${finalAlpha * 0.8})`);
+      streakGrad.addColorStop(0.5, `rgba(255, 255, 255, ${finalAlpha})`);
+      streakGrad.addColorStop(0.6, `rgba(255, 255, 255, ${finalAlpha * 0.8})`);
+      streakGrad.addColorStop(1, `${gColor} 0)`);
+      ctx.fillStyle = streakGrad;
+      
+      // Make streaks a bit thicker for "roundness"
+      ctx.beginPath();
+      ctx.ellipse(0, 0, streakLen, scaledSize * 0.3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Vertical streak (cross)
+      const vStreakLen = scaledSize * 4;
+      const vStreakGrad = ctx.createLinearGradient(0, -vStreakLen, 0, vStreakLen);
+      vStreakGrad.addColorStop(0, `${gColor} 0)`);
+      vStreakGrad.addColorStop(0.4, `rgba(255, 255, 255, ${finalAlpha * 0.6})`);
+      vStreakGrad.addColorStop(0.5, `rgba(255, 255, 255, ${finalAlpha * 0.9})`);
+      vStreakGrad.addColorStop(0.6, `rgba(255, 255, 255, ${finalAlpha * 0.6})`);
+      vStreakGrad.addColorStop(1, `${gColor} 0)`);
+      ctx.fillStyle = vStreakGrad;
+      
+      ctx.beginPath();
+      ctx.ellipse(0, 0, scaledSize * 0.25, vStreakLen, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
     } else if (this.shape === 'star') {
-      const spikes = 5;
-      const outerRadius = scaledSize * 1.5;
-      const innerRadius = scaledSize * 0.6;
-      for (let i = 0; i < spikes * 2; i++) {
-        const radius = i % 2 === 0 ? outerRadius : innerRadius;
-        const angle = (Math.PI * i) / spikes - Math.PI / 2;
-        const x = Math.cos(angle) * radius;
-        const y = Math.sin(angle) * radius;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
+      const gColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b},`;
+      
+      // Luminous core
+      ctx.beginPath();
+      ctx.arc(0, 0, scaledSize, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255, 255, 255, ${finalAlpha})`;
+      ctx.fill();
+
+      // Soft halo
+      const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, scaledSize * 3);
+      grad.addColorStop(0, `rgba(255, 255, 255, ${finalAlpha * 0.8})`);
+      grad.addColorStop(0.3, `${gColor} ${finalAlpha * 0.6})`);
+      grad.addColorStop(1, `${gColor} 0)`);
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(0, 0, scaledSize * 3, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 4-point star cross (more compact, rounded core)
+      ctx.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const rad = i % 2 === 0 ? scaledSize * 6 : scaledSize * 0.8;
+        const angle = (Math.PI * i) / 4;
+        
+        if (i === 0) ctx.moveTo(Math.cos(angle) * rad, Math.sin(angle) * rad);
+        else {
+          // Quadratic curves for a rounder core
+          const prevAngle = (Math.PI * (i - 1)) / 4;
+          const cpRad = scaledSize * 0.4;
+          const cpX = Math.cos((angle + prevAngle) / 2) * cpRad;
+          const cpY = Math.sin((angle + prevAngle) / 2) * cpRad;
+          ctx.quadraticCurveTo(cpX, cpY, Math.cos(angle) * rad, Math.sin(angle) * rad);
+        }
       }
       ctx.closePath();
+      ctx.fillStyle = `rgba(255, 255, 255, ${finalAlpha * 0.6})`;
+      ctx.fill();
+      
+    } else {
+      // 'bokeh' particle
+      const gColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b},`;
+      
+      // Bright solid core
+      ctx.beginPath();
+      ctx.arc(0, 0, scaledSize * 0.8, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255, 255, 255, ${finalAlpha})`;
+      ctx.fill();
+
+      // Outer soft ring / glowing aura
+      const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, scaledSize * 3);
+      grad.addColorStop(0, `rgba(255, 255, 255, ${finalAlpha * 0.9})`);
+      grad.addColorStop(0.3, `${gColor} ${finalAlpha * 0.6})`);
+      grad.addColorStop(0.8, `${gColor} ${finalAlpha * 0.2})`);
+      grad.addColorStop(1, `${gColor} 0)`);
+      ctx.beginPath();
+      ctx.arc(0, 0, scaledSize * 3, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
     }
     
-    ctx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
-    
-    ctx.fill();
     ctx.restore(); // Restore context state to prevent rotation/translation from affecting other elements
   }
 }
@@ -254,6 +351,7 @@ export function LiquidBackground({ speedState = 'normal' }: { speedState?: 'gath
     let mouseY = -1000;
     let isHovering = false;
     let isHolding = false;
+    let prevIsHolding = false;
 
     const handleMouseMove = (e: MouseEvent) => {
       mouseX = e.clientX;
@@ -277,7 +375,7 @@ export function LiquidBackground({ speedState = 'normal' }: { speedState?: 'gath
     };
 
     const handleClick = (e: MouseEvent) => {
-      particles.forEach(p => p.triggerClick(e.clientX, e.clientY));
+      // Particles explosion handled by prevIsHolding logic now, but you can keep triggerClick for non-holding clicks
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -295,9 +393,9 @@ export function LiquidBackground({ speedState = 'normal' }: { speedState?: 'gath
 
     // Large fluid gradient blobs in background for wave effect
     const blobs = [
-      { x: width * 0.2, y: height * 0.2, r: Math.max(width * 0.4, 600), vx: 0.3, vy: 0.2 },
-      { x: width * 0.8, y: height * 0.8, r: Math.max(width * 0.5, 800), vx: -0.2, vy: -0.4 },
-      { x: width * 0.5, y: height * 0.5, r: Math.max(width * 0.3, 500), vx: 0.2, vy: -0.1 }
+      { x: width * 0.2, y: height * 0.2, baseR: Math.max(width * 0.4, 600), r: Math.max(width * 0.4, 600), vx: 0.3, vy: 0.2 },
+      { x: width * 0.8, y: height * 0.8, baseR: Math.max(width * 0.5, 800), r: Math.max(width * 0.5, 800), vx: -0.2, vy: -0.4 },
+      { x: width * 0.5, y: height * 0.5, baseR: Math.max(width * 0.3, 500), r: Math.max(width * 0.3, 500), vx: 0.2, vy: -0.1 }
     ];
 
     let currentBlobSpeed = speedStateRef.current === 'wild' ? 15 : speedStateRef.current === 'slow' ? 0.3 : speedStateRef.current === 'gathering' ? 5 : 1;
@@ -315,11 +413,24 @@ export function LiquidBackground({ speedState = 'normal' }: { speedState?: 'gath
 
       // Render moving minimalist fluid gradient glass wave
       blobs.forEach((blob, i) => {
-        blob.x += blob.vx * currentBlobSpeed;
-        blob.y += blob.vy * currentBlobSpeed;
+        const isGatheringState = speedStateRef.current === 'gathering' || (isHolding && mouseX > -100);
+        
+        if (isGatheringState) {
+          const isMouseVortex = isHolding && mouseX > -100;
+          const targetX = isMouseVortex ? mouseX : width / 2;
+          const targetY = isMouseVortex ? mouseY : height / 2;
+          // move blob to center and shrink slightly for a compact glowing effect
+          blob.x += (targetX - blob.x) * (isMouseVortex ? 0.15 : 0.05);
+          blob.y += (targetY - blob.y) * (isMouseVortex ? 0.15 : 0.05);
+          blob.r += (150 - blob.r) * (isMouseVortex ? 0.15 : 0.05); // Shrink to a dense core
+        } else {
+          blob.x += blob.vx * currentBlobSpeed;
+          blob.y += blob.vy * currentBlobSpeed;
+          blob.r += (blob.baseR - blob.r) * 0.05; // Restore size
 
-        if (blob.x < -blob.r || blob.x > width + blob.r) blob.vx *= -1;
-        if (blob.y < -blob.r || blob.y > height + blob.r) blob.vy *= -1;
+          if (blob.x < -blob.r || blob.x > width + blob.r) blob.vx *= -1;
+          if (blob.y < -blob.r || blob.y > height + blob.r) blob.vy *= -1;
+        }
 
         const grad = ctx.createRadialGradient(blob.x, blob.y, 0, blob.x, blob.y, blob.r);
         
@@ -340,20 +451,34 @@ export function LiquidBackground({ speedState = 'normal' }: { speedState?: 'gath
 
       // Sort particles by Z index BEFORE drawing for proper 3D rendering occlusion (back to front)
       // Detect gathering -> slow/normal explosion
-      if (prevSpeedStateRef.current === 'gathering' && speedStateRef.current !== 'gathering') {
+      if ((prevSpeedStateRef.current === 'gathering' && speedStateRef.current !== 'gathering') || (prevIsHolding && !isHolding)) {
         // Explode!
         particles.forEach(p => {
-          const dx = p.x - width/2;
-          const dy = p.y - height/2;
+          // Explode outwards from center
+          const originX = prevIsHolding ? mouseX : width / 2;
+          const originY = prevIsHolding ? mouseY : height / 2;
+          const dx = p.x - originX;
+          const dy = p.y - originY;
           const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-          const force = Math.random() * 25 + 15; // Strong explosion
-          p.vx += (dx / dist) * force;
-          p.vy += (dy / dist) * force;
-          p.z += (Math.random() - 0.5) * 600;
-          p.glowMultiplier = 5;
+          const force = (Math.random() * 50 + 30) * (prevIsHolding ? 1.5 : 1); // Stronger explosion on mouse release
+          p.vx += (dx / Math.max(dist, 10)) * force;
+          p.vy += (dy / Math.max(dist, 10)) * force;
+          p.z += (Math.random() - 0.5) * 800; // Deep scatter
+          p.glowMultiplier = 10;
         });
-        prevSpeedStateRef.current = speedStateRef.current; // Reset so it doesn't fire again
+
+        // Scatter blobs occasionally too
+        blobs.forEach(blob => {
+           blob.vx = (Math.random() - 0.5) * 15;
+           blob.vy = (Math.random() - 0.5) * 15;
+        });
+
+        if (prevSpeedStateRef.current === 'gathering') {
+          prevSpeedStateRef.current = speedStateRef.current; // Reset so it doesn't fire again
+        }
       }
+
+      prevIsHolding = isHolding;
 
       // This is crucial for true 3D spatial alignment
       particles.sort((a, b) => b.z - a.z);

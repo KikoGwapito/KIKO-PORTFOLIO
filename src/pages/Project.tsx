@@ -223,11 +223,11 @@ function Carousel3D({ items, onMediaClick }: { items: any[], onMediaClick: (medi
   };
 
   const handlePan = (e: any, info: any) => {
-    rotation.set(rotation.get() - info.delta.x * 0.1);
+    rotation.set(rotation.get() - info.delta.x * 0.2);
   };
 
   const handlePanEnd = (e: any, info: any) => {
-    animationRef.current = animate(rotation, rotation.get() - info.velocity.x * 0.05, {
+    animationRef.current = animate(rotation, rotation.get() - info.velocity.x * 0.08, {
       type: "spring",
       stiffness: 50,
       damping: 20,
@@ -289,7 +289,8 @@ function Carousel3D({ items, onMediaClick }: { items: any[], onMediaClick: (medi
               className="absolute w-full h-full rounded-[2rem] overflow-hidden border border-zinc-800/50 shadow-2xl glass transition-transform cursor-grab active:cursor-grabbing pointer-events-auto"
               style={{ 
                 transform: `rotateY(${angle}deg) translateZ(-${radius}px)`,
-                backfaceVisibility: 'hidden'
+                backfaceVisibility: 'hidden',
+                touchAction: 'pan-y'
               }}
               onPanStart={handlePanStart}
               onPan={handlePan}

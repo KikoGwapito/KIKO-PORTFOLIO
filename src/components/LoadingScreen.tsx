@@ -5,6 +5,7 @@ import { useAppData } from '../context/AppDataContext';
 interface LoadingScreenProps {
   onComplete: () => void;
   onGreetingShow?: () => void;
+  key?: string;
 }
 
 export function LoadingScreen({ onComplete, onGreetingShow }: LoadingScreenProps) {
@@ -61,7 +62,10 @@ export function LoadingScreen({ onComplete, onGreetingShow }: LoadingScreenProps
     <motion.div
       initial={{ opacity: 1 }}
       exit={{ opacity: 0, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } }}
-      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-transparent pointer-events-none"
+      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center pointer-events-none"
+      style={{
+        background: `radial-gradient(circle at center, ${primaryColor}15 0%, transparent 70%)`
+      }}
     >
       <AnimatePresence mode="wait">
         {!showGreeting ? (
@@ -72,31 +76,58 @@ export function LoadingScreen({ onComplete, onGreetingShow }: LoadingScreenProps
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
             className="flex flex-col items-center justify-center relative w-full max-w-sm px-8"
           >
-            {/* Loading Graph Visual */}
-            <div className="w-full h-32 relative mb-8 overflow-hidden rounded-lg">
+            {/* Loading Aesthetic Visual */}
+            <div className="w-full h-32 relative mb-8 overflow-hidden rounded-lg flex items-center justify-center">
+              {/* Glowing aesthetic orb for the loader */}
               <motion.div 
-                className="absolute inset-0 opacity-30"
+                className="absolute"
+                style={{
+                  width: '120px',
+                  height: '120px',
+                  borderRadius: '50%',
+                  background: `radial-gradient(circle, ${primaryColor} 0%, transparent 70%)`,
+                  filter: 'blur(20px)',
+                  opacity: 0.5 + (progress / 200)
+                }}
+                animate={{
+                  scale: [1, 1.2, 1],
+                  opacity: [0.4, 0.8, 0.4]
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+              <motion.div 
+                className="absolute inset-0 opacity-40 mix-blend-screen"
                 style={{ 
-                  background: `linear-gradient(to top, ${primaryColor}40, transparent)`,
+                  background: `linear-gradient(to top, ${primaryColor}, transparent)`,
                   clipPath: `polygon(${polygonPoints})`
                 }}
               />
-              {/* Scanning line indicator */}
+              {/* Scanning glowing line indicator */}
               <div 
-                className="absolute top-0 bottom-0 w-[1px] bg-white mix-blend-color-dodge transition-all duration-75"
+                className="absolute top-0 bottom-0 w-[2px] bg-white mix-blend-color-dodge transition-all duration-75"
                 style={{ 
                   left: `${progress}%`,
-                  boxShadow: `0 0 10px ${primaryColor}, 0 0 20px ${primaryColor}` 
+                  boxShadow: `0 0 15px 2px ${primaryColor}, 0 0 30px ${primaryColor}` 
                 }}
               />
               
-              <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/80 via-transparent to-zinc-950/80" />
+              <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-transparent to-zinc-950" />
             </div>
 
             {/* Counter */}
-            <div className="flex flex-col items-center">
-              <div className="text-6xl md:text-8xl font-bold font-mono tracking-tighter" style={{ color: primaryColor }}>
-                {Math.floor(progress)}<span className="text-3xl md:text-4xl text-zinc-600">%</span>
+            <div className="flex flex-col items-center relative z-10">
+              <div 
+                className="text-6xl md:text-8xl font-bold font-mono tracking-tighter text-transparent bg-clip-text" 
+                style={{ 
+                  backgroundImage: `linear-gradient(to bottom right, #fff 20%, ${primaryColor} 100%)`,
+                  filter: `drop-shadow(0 0 20px ${primaryColor}40)`
+                }}
+              >
+                {Math.floor(progress)}<span className="text-3xl md:text-4xl" style={{ color: `${primaryColor}aa` }}>%</span>
               </div>
               <motion.div 
                 initial={{ opacity: 1 }}

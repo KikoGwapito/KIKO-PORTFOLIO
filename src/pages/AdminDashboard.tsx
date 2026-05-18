@@ -33,6 +33,43 @@ type Tab = 'hero' | 'trust' | 'featured' | 'about' | 'process' | 'contact' | 'pa
 
 
 
+function DropZone({ 
+  onDropFile, 
+  children,
+  className = ""
+}: { 
+  onDropFile: (file: File) => void, 
+  children: React.ReactNode,
+  className?: string
+}) {
+  const [isDragOver, setIsDragOver] = useState(false);
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      onDropFile(e.dataTransfer.files[0]);
+    }
+  };
+  return (
+    <div 
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={`transition-all rounded-xl ${isDragOver ? 'ring-2 ring-[var(--color-primary)] ring-offset-2 ring-offset-zinc-950 bg-[var(--color-primary)]/10' : ''} ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const { isAdmin, isAuthReady, logout, data, updateData, updateProject, addProject, deleteProject, reorderProjects, showNotification } = useAppData();
   const navigate = useNavigate();
@@ -42,6 +79,7 @@ export default function AdminDashboard() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [editingProject, setEditingProject] = useState<ProjectData | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
   const [isTestingCloudinary, setIsTestingCloudinary] = useState(false);
   const [uploadTarget, setUploadTargetState] = useState<{
     section: 'project' | 'hero' | 'trust' | 'about' | 'process' | 'contact' | 'pageTitle' | 'process_modal';
@@ -134,7 +172,23 @@ export default function AdminDashboard() {
 
   if (!isAdmin) return null;
 
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isUploading) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isUploading]);
+
   const handleLogout = () => {
+    if (isUploading) {
+      if (!window.confirm("Media upload is in progress. Are you sure you want to log out and exit?")) {
+        return;
+      }
+    }
     navigate("/");
     logout();
   };
@@ -325,9 +379,55 @@ export default function AdminDashboard() {
 
   const performUpload = async (file: File, target: { section: string, index?: number, isSecond?: boolean }) => {
     setUploadProgress(0);
+    setIsUploading(true);
     try {
+      let fileToUpload = file;
+      const isVideo = file.type.startsWith("video/") || !!file.name.match(/\.(mp4|mov|webm|mkv|avi|m4v)$/i);
+      
+      // Auto-compress large images (> 9.5MB to be safe under Cloudinary's 10MB limit)
+      if (!isVideo && file.size > 9.5 * 1024 * 1024) {
+        try {
+          fileToUpload = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const img = new Image();
+              img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let { width, height } = img;
+                const maxDim = 2560; // Max reasonable dimension
+                if (width > maxDim || height > maxDim) {
+                  if (width > height) {
+                    height = Math.round(height * (maxDim / width));
+                    width = maxDim;
+                  } else {
+                    width = Math.round(width * (maxDim / height));
+                    height = maxDim;
+                  }
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx?.drawImage(img, 0, 0, width, height);
+                canvas.toBlob((blob) => {
+                  if (blob) {
+                    resolve(new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", { type: 'image/jpeg' }));
+                  } else {
+                    resolve(file);
+                  }
+                }, 'image/jpeg', 0.85);
+              };
+              img.onerror = () => resolve(file);
+              img.src = e.target?.result as string;
+            };
+            reader.onerror = () => resolve(file);
+            reader.readAsDataURL(file);
+          });
+        } catch(e) {
+          console.warn("Failed to compress image, trying original", e);
+        }
+      }
+
       let url = "";
-      const isVideo = file.type.startsWith("video/");
       const mediaType = isVideo ? "video" : "image";
 
       const cloudName = data.cloudinary.cloudName || import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
@@ -338,10 +438,10 @@ export default function AdminDashboard() {
         url = await new Promise((resolve, reject) => {
           const xhr = new XMLHttpRequest();
           const formData = new FormData();
-          formData.append('file', file);
+          formData.append('file', fileToUpload);
           formData.append('upload_preset', uploadPreset);
 
-          const resourceType = isVideo ? 'video' : 'image';
+          const resourceType = isVideo ? 'video' : 'auto';
           xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`);
 
           xhr.upload.onprogress = (event) => {
@@ -364,39 +464,12 @@ export default function AdminDashboard() {
           xhr.onerror = () => reject(new Error('Network error during Cloudinary upload'));
           xhr.send(formData);
         });
-      } else if (storage) {
-        // Upload to Firebase Storage
-        url = await new Promise((resolve, reject) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-          const extension = file.name.split('.').pop();
-          const fileName = `uploads/${uniqueSuffix}.${extension}`;
-          const storageRef = ref(storage!, fileName);
-          const uploadTask = uploadBytesResumable(storageRef, file);
-
-          uploadTask.on('state_changed', 
-            (snapshot) => {
-              const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-              setUploadProgress(progress);
-            }, 
-            (error) => {
-              reject(error);
-            }, 
-            async () => {
-              try {
-                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                resolve(downloadURL);
-              } catch (err) {
-                reject(err);
-              }
-            }
-          );
-        });
       } else {
         // Fallback to local server upload
         url = await new Promise((resolve, reject) => {
           const xhr = new XMLHttpRequest();
           const formData = new FormData();
-          formData.append('file', file);
+          formData.append('file', fileToUpload);
 
           xhr.open('POST', '/api/upload');
 
@@ -496,8 +569,10 @@ export default function AdminDashboard() {
       showNotification("Media uploaded successfully", "success");
     } catch (error) {
       console.error("Error uploading file:", error);
-      showNotification("Failed to upload file. Please try again.", "error");
+      const errorMessage = error instanceof Error ? error.message : "Failed to upload file. Please try again.";
+      showNotification(errorMessage, "error");
     } finally {
+      setIsUploading(false);
       setUploadTarget(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
@@ -512,25 +587,24 @@ export default function AdminDashboard() {
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
+    await processSelectedFile(file, target);
+  };
 
+  const handleDirectDrop = async (file: File, target: { section: 'project' | 'hero' | 'trust' | 'about' | 'process' | 'contact' | 'pageTitle' | 'process_modal', index?: number, isSecond?: boolean }) => {
+    if (isUploading) {
+      showNotification("Media upload is in progress.", "error");
+      return;
+    }
+    setUploadTarget(target);
+    await processSelectedFile(file, target);
+  };
+
+  const processSelectedFile = async (file: File, target: { section: 'project' | 'hero' | 'trust' | 'about' | 'process' | 'contact' | 'pageTitle' | 'process_modal', index?: number, isSecond?: boolean }) => {
     if (target.section === 'project' && target.index !== undefined) {
       const currentMedia = editingProject?.images[target.index];
-      const isImage = file.type.startsWith('image/');
-      const isVideo = file.type.startsWith('video/');
+      const isImage = file.type.startsWith('image/') || !!file.name.match(/\.(png|jpe?g|gif|svg|webp)$/i);
 
       if (currentMedia) {
-        if (currentMedia.type === 'image' && !isImage) {
-          showNotification("Please upload an image file.", "error");
-          setUploadTarget(null);
-          if (fileInputRef.current) fileInputRef.current.value = "";
-          return;
-        }
-        if (currentMedia.type === 'video' && !isVideo) {
-          showNotification("Please upload a video file.", "error");
-          setUploadTarget(null);
-          if (fileInputRef.current) fileInputRef.current.value = "";
-          return;
-        }
         if (currentMedia.type === 'comparison' && !isImage) {
           showNotification("Please upload an image file for comparison.", "error");
           setUploadTarget(null);
@@ -588,6 +662,10 @@ export default function AdminDashboard() {
   };
 
   const handleSaveActiveTab = () => {
+    if (isUploading) {
+      showNotification("Please wait for media upload to finish before saving.", "error");
+      return;
+    }
     switch (activeTab) {
       case 'hero': handleSaveSection('hero', heroData); break;
       case 'trust': handleSaveSection('trust', trustData); break;
@@ -626,7 +704,14 @@ export default function AdminDashboard() {
         {tabs.map(tab => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => {
+              if (isUploading) {
+                if (!window.confirm("Media upload is in progress. If you leave this tab, the upload might be interrupted or changes might be lost. Do you want to proceed?")) {
+                  return;
+                }
+              }
+              setActiveTab(tab.id);
+            }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
               activeTab === tab.id 
                 ? 'border' 
@@ -691,8 +776,9 @@ export default function AdminDashboard() {
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <label className="block text-sm font-medium text-zinc-400 mb-2">Media</label>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button onClick={() => handleUploadClick({ section: 'hero' })} disabled={uploadTarget?.section === 'hero'} className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors flex items-center justify-center gap-2 border border-zinc-700 disabled:opacity-50 whitespace-nowrap font-medium">
+              <DropZone onDropFile={(file) => handleDirectDrop(file, { section: 'hero' })}>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button onClick={() => handleUploadClick({ section: 'hero' })} disabled={uploadTarget?.section === 'hero'} className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors flex items-center justify-center gap-2 border border-zinc-700 disabled:opacity-50 whitespace-nowrap font-medium">
                   {uploadTarget?.section === 'hero' ? (
                     <div className="flex items-center gap-2">
                       <div className="w-5 h-5 border-2 border-zinc-400 border-t-emerald-400 rounded-full animate-spin" />
@@ -719,8 +805,9 @@ export default function AdminDashboard() {
                   </button>
                 )}
               </div>
-            </div>
-            <div className="w-32">
+            </DropZone>
+          </div>
+          <div className="w-32">
               <label className="block text-sm font-medium text-zinc-400 mb-2">Type</label>
               <select value={heroData.media.type} onChange={e => setHeroData({...heroData, media: {...heroData.media, type: e.target.value as 'image'|'video'}})} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]">
                 <option value="image">Image</option>
@@ -763,8 +850,9 @@ export default function AdminDashboard() {
         </div>
         <div>
           <label className="block text-sm font-medium text-zinc-400 mb-2">Author Image</label>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <button onClick={() => handleUploadClick({ section: 'trust' })} disabled={uploadTarget?.section === 'trust'} className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors flex items-center justify-center gap-2 border border-zinc-700 disabled:opacity-50 whitespace-nowrap font-medium">
+          <DropZone onDropFile={(file) => handleDirectDrop(file, { section: 'trust' })}>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button onClick={() => handleUploadClick({ section: 'trust' })} disabled={uploadTarget?.section === 'trust'} className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors flex items-center justify-center gap-2 border border-zinc-700 disabled:opacity-50 whitespace-nowrap font-medium">
               {uploadTarget?.section === 'trust' ? (
                 <div className="flex items-center gap-2">
                   <div className="w-5 h-5 border-2 border-zinc-400 border-t-emerald-400 rounded-full animate-spin" />
@@ -791,6 +879,7 @@ export default function AdminDashboard() {
               </button>
             )}
           </div>
+          </DropZone>
         </div>
         <div>
           <label className="block text-sm font-medium text-zinc-400 mb-2">Logos</label>
@@ -877,7 +966,14 @@ export default function AdminDashboard() {
         <div className="lg:col-span-1 space-y-4">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-zinc-400 uppercase tracking-wider text-sm">Projects</h2>
-            <button onClick={handleAddProject} className="p-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors">
+            <button onClick={() => {
+              if (isUploading) {
+                if (!window.confirm("Media upload is in progress. If you add a new project, you will switch to it and the upload might be interrupted or changes might be lost. Do you want to proceed?")) {
+                  return;
+                }
+              }
+              handleAddProject();
+            }} className="p-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors">
               <Plus className="w-4 h-4" />
             </button>
           </div>
@@ -911,7 +1007,14 @@ export default function AdminDashboard() {
                   <GripVertical className="w-4 h-4" />
                 </div>
                 <button
-                  onClick={() => setSelectedProjectId(id)}
+                  onClick={() => {
+                    if (isUploading) {
+                      if (!window.confirm("Media upload is in progress. If you switch projects, the upload might be interrupted or changes might be lost. Do you want to proceed?")) {
+                        return;
+                      }
+                    }
+                    setSelectedProjectId(id);
+                  }}
                   className={`flex-1 text-left px-4 py-3 rounded-lg transition-colors border ${
                     selectedProjectId === id
                       ? ""
@@ -997,9 +1100,7 @@ export default function AdminDashboard() {
                               <select 
                                 value={media.type} 
                                 onChange={(e) => updateMedia(index, "type", e.target.value)} 
-                                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)] disabled:opacity-50 disabled:cursor-not-allowed"
-                                disabled={!!media.url}
-                                title={media.url ? "Cannot change type after file is uploaded" : ""}
+                                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]"
                               >
                                 <option value="image">Image</option>
                                 <option value="video">Video</option>
@@ -1012,8 +1113,9 @@ export default function AdminDashboard() {
                             <label className="block text-xs font-medium text-zinc-500 mb-1">
                               {media.type === 'comparison' ? 'First Image (Before)' : 'Media Source'}
                             </label>
-                            <div className="flex flex-col sm:flex-row gap-3">
-                              <button onClick={() => handleUploadClick({ section: 'project', index })} disabled={uploadTarget?.section === 'project' && uploadTarget?.index === index && !uploadTarget?.isSecond} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors flex items-center justify-center gap-2 border border-zinc-700 disabled:opacity-50 whitespace-nowrap font-medium">
+                            <DropZone onDropFile={(file) => handleDirectDrop(file, { section: 'project', index })}>
+                              <div className="flex flex-col sm:flex-row gap-3">
+                                <button onClick={() => handleUploadClick({ section: 'project', index })} disabled={uploadTarget?.section === 'project' && uploadTarget?.index === index && !uploadTarget?.isSecond} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors flex items-center justify-center gap-2 border border-zinc-700 disabled:opacity-50 whitespace-nowrap font-medium">
                                 {uploadTarget?.section === 'project' && uploadTarget?.index === index && !uploadTarget?.isSecond ? (
                                   <div className="flex items-center gap-2">
                                     <div className="w-5 h-5 border-2 border-zinc-400 border-t-emerald-400 rounded-full animate-spin" />
@@ -1023,20 +1125,29 @@ export default function AdminDashboard() {
                                 Upload File
                               </button>
                               <div className="flex items-center text-zinc-500 text-xs font-medium">OR</div>
-                              <input type="text" value={media.url} onChange={(e) => updateMedia(index, "url", e.target.value)} className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" placeholder="Paste external URL..." />
+                              <input type="text" value={media.url} onChange={(e) => {
+                                const url = e.target.value;
+                                updateMedia(index, "url", url);
+                                if (media.type !== 'comparison') {
+                                  const isVideo = url.match(/\.(mp4|webm|ogg|mov|mkv|avi|m4v)$/i) || url.includes('video') || url.includes('youtube') || url.includes('vimeo');
+                                  updateMedia(index, "type", isVideo ? "video" : "image");
+                                }
+                              }} className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" placeholder="Paste external URL..." />
                               {media.type !== 'comparison' && (
                                 <button onClick={() => removeMedia(index)} className="p-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors border border-red-500/20" title="Remove media">
                                   <Trash2 className="w-5 h-5" />
                                 </button>
                               )}
                             </div>
+                            </DropZone>
                           </div>
 
                           {media.type === 'comparison' && (
                             <div>
                               <label className="block text-xs font-medium text-zinc-500 mb-1">Second Image (After)</label>
-                              <div className="flex flex-col sm:flex-row gap-3">
-                                <button onClick={() => handleUploadClick({ section: 'project', index, isSecond: true })} disabled={uploadTarget?.section === 'project' && uploadTarget?.index === index && uploadTarget?.isSecond} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors flex items-center justify-center gap-2 border border-zinc-700 disabled:opacity-50 whitespace-nowrap font-medium">
+                              <DropZone onDropFile={(file) => handleDirectDrop(file, { section: 'project', index, isSecond: true })}>
+                                <div className="flex flex-col sm:flex-row gap-3">
+                                  <button onClick={() => handleUploadClick({ section: 'project', index, isSecond: true })} disabled={uploadTarget?.section === 'project' && uploadTarget?.index === index && uploadTarget?.isSecond} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors flex items-center justify-center gap-2 border border-zinc-700 disabled:opacity-50 whitespace-nowrap font-medium">
                                   {uploadTarget?.section === 'project' && uploadTarget?.index === index && uploadTarget?.isSecond ? (
                                     <div className="flex items-center gap-2">
                                       <div className="w-5 h-5 border-2 border-zinc-400 border-t-emerald-400 rounded-full animate-spin" />
@@ -1051,6 +1162,7 @@ export default function AdminDashboard() {
                                   <Trash2 className="w-5 h-5" />
                                 </button>
                               </div>
+                              </DropZone>
                             </div>
                           )}
                         </div>
@@ -1099,6 +1211,7 @@ export default function AdminDashboard() {
         </div>
         <div>
           <label className="block text-sm font-medium text-zinc-400 mb-2">Image</label>
+          <DropZone onDropFile={(file) => handleDirectDrop(file, { section: 'about' })}>
           <div className="flex flex-col sm:flex-row gap-3">
             <button onClick={() => handleUploadClick({ section: 'about' })} disabled={uploadTarget?.section === 'about'} className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors flex items-center justify-center gap-2 border border-zinc-700 disabled:opacity-50 whitespace-nowrap font-medium">
               {uploadTarget?.section === 'about' ? (
@@ -1127,6 +1240,7 @@ export default function AdminDashboard() {
               </button>
             )}
           </div>
+          </DropZone>
         </div>
 
         <div className="pt-6 border-t border-zinc-800">
@@ -1272,6 +1386,7 @@ export default function AdminDashboard() {
                   <div>
                     <label className="block text-xs font-medium text-zinc-500 mb-1">Step Media (Optional)</label>
                     <div className="flex flex-col gap-3">
+                        <DropZone onDropFile={(file) => handleDirectDrop(file, { section: 'process', index })}>
                         <div className="flex flex-col sm:flex-row gap-3">
                             <button onClick={() => handleUploadClick({ section: 'process', index })} disabled={uploadTarget?.section === 'process' && uploadTarget?.index === index} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors flex items-center justify-center gap-2 border border-zinc-700 disabled:opacity-50 whitespace-nowrap font-medium text-sm">
                               {uploadTarget?.section === 'process' && uploadTarget?.index === index ? (
@@ -1295,7 +1410,7 @@ export default function AdminDashboard() {
                                 currentStep.media = {
                                   ...currentStep.media,
                                   url: e.target.value,
-                                  type: e.target.value.match(/\.(mp4|webm|ogg)$/i) ? 'video' : 'image'
+                                  type: e.target.value.match(/\.(mp4|webm|ogg|mov|mkv|avi|m4v)$/i) ? 'video' : 'image'
                                 };
                                 newSteps[index] = currentStep;
                                 return { ...prev, steps: newSteps };
@@ -1319,6 +1434,7 @@ export default function AdminDashboard() {
                                 </button>
                             )}
                         </div>
+                        </DropZone>
                         {step.media?.url && (
                             <div className="w-full max-w-[200px] aspect-video rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800 mt-2">
                                 {step.media.type === 'video' ? (
@@ -1459,6 +1575,7 @@ export default function AdminDashboard() {
                   <div className="grid gap-4">
                     <div>
                       <label className="block text-xs font-medium text-zinc-500 mb-1">Media Source</label>
+                      <DropZone onDropFile={(file) => handleDirectDrop(file, { section: 'contact', index })}>
                       <div className="flex flex-col sm:flex-row gap-3">
                         <button onClick={() => handleUploadClick({ section: 'contact', index })} disabled={uploadTarget?.section === 'contact' && uploadTarget?.index === index} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors flex items-center justify-center gap-2 border border-zinc-700 disabled:opacity-50 whitespace-nowrap font-medium">
                           {uploadTarget?.section === 'contact' && uploadTarget?.index === index ? (
@@ -1478,6 +1595,7 @@ export default function AdminDashboard() {
                           });
                         }} className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" placeholder="Paste external URL..." />
                       </div>
+                      </DropZone>
                     </div>
                   </div>
                 </div>
@@ -1501,6 +1619,7 @@ export default function AdminDashboard() {
         </div>
         <div>
           <label className="block text-sm font-medium text-zinc-400 mb-2">Logo</label>
+          <DropZone onDropFile={(file) => handleDirectDrop(file, { section: 'pageTitle' })}>
           <div className="flex flex-col sm:flex-row gap-3">
             <button onClick={() => handleUploadClick({ section: 'pageTitle' })} disabled={uploadTarget?.section === 'pageTitle'} className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors flex items-center justify-center gap-2 border border-zinc-700 disabled:opacity-50 whitespace-nowrap font-medium">
               {uploadTarget?.section === 'pageTitle' ? (
@@ -1529,6 +1648,7 @@ export default function AdminDashboard() {
               </button>
             )}
           </div>
+          </DropZone>
         </div>
       </div>
     </div>
@@ -1861,7 +1981,7 @@ export default function AdminDashboard() {
         ref={fileInputRef}
         onChange={handleFileUpload}
         className="hidden"
-        accept="image/*,video/*"
+        accept="image/*,video/*,.png,.jpg,.jpeg,.gif,.svg,.webp,.mp4,.mov,.webm,.mkv,.avi,.m4v"
       />
 
       {confirmModal.isOpen && (
@@ -1909,6 +2029,7 @@ export default function AdminDashboard() {
               <div>
                 <label className="block text-sm font-medium text-zinc-400 mb-1">Step Media (Optional)</label>
                 <div className="flex flex-col gap-3">
+                   <DropZone onDropFile={(file) => handleDirectDrop(file, { section: 'process_modal', index: 0 })}>
                    <div className="flex flex-col sm:flex-row gap-3">
                         <button onClick={() => handleUploadClick({ section: 'process_modal', index: 0 })} disabled={uploadTarget?.section === 'process_modal'} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors flex items-center justify-center gap-2 border border-zinc-700 disabled:opacity-50 whitespace-nowrap font-medium text-sm">
                           {uploadTarget?.section === 'process_modal' ? (
@@ -1930,7 +2051,7 @@ export default function AdminDashboard() {
                             ...prev,
                             data: {
                               ...prev.data,
-                              media: { url, type: url.match(/\.(mp4|webm|ogg)$/i) ? 'video' : 'image' }
+                              media: { url, type: url.match(/\.(mp4|webm|ogg|mov|mkv|avi|m4v)$/i) ? 'video' : 'image' }
                             }
                           }));
                         }} className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)] text-sm" placeholder="Paste external URL..." />
@@ -1949,6 +2070,7 @@ export default function AdminDashboard() {
                             </button>
                         )}
                     </div>
+                    </DropZone>
                     {stepModal.data.media?.url && (
                         <div className="w-full max-w-[200px] aspect-video rounded-xl overflow-hidden bg-zinc-950 border border-zinc-800 mt-2">
                             {stepModal.data.media.type === 'video' ? (

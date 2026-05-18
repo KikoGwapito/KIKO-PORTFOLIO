@@ -10,19 +10,19 @@ interface ProjectStackingProps {
 
 export const ProjectStacking: React.FC<ProjectStackingProps> = ({ projects, themeColor }) => {
   return (
-    <div className="w-full relative z-20 bg-zinc-950">
+    <div className="w-full relative z-20">
       {projects.map((project, index) => {
         // We use sticky top-0 to stack cards on top of each other naturally
         return (
           <div 
             key={project.id}
-            className="group sticky top-0 w-full h-screen flex flex-col items-center justify-center overflow-hidden border-t border-zinc-800/20"
+            className="group sticky top-0 w-full h-screen flex flex-col items-center justify-center overflow-hidden"
             style={{ zIndex: index + 1 }}
           >
-            <div className="absolute inset-0 w-full h-full bg-zinc-950">
+            <div className="w-full pointer-events-none">
               <Link 
                 to={`/work/${project.id}`}
-                className="relative w-full h-full block overflow-hidden glow-top-edge-hover"
+                className="relative w-full aspect-video md:aspect-[21/9] max-h-[80vh] block overflow-hidden bg-zinc-950 isolate pointer-events-auto border-t border-b border-white/5 transition-transform duration-700 ease-[0.22,1,0.36,1] group-hover:scale-[1.02]"
               >
                 {/* Background Media */}
                 <div className="absolute inset-0 w-full h-full">

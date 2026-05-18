@@ -25,7 +25,7 @@ export default function Process() {
       {/* Background Accents */}
       <div className="absolute top-40 right-0 w-96 h-96 bg-[var(--color-primary)] opacity-[0.03] blur-[120px] pointer-events-none" style={{ '--color-primary': data.theme.primaryColor } as any} />
       
-      <div className="fixed inset-0 pointer-events-none flex items-center justify-center z-50">
+      <div className="absolute top-0 left-0 w-full h-screen pointer-events-none flex items-center justify-center z-50">
         <motion.div 
           className="glass px-6 py-3 rounded-full flex gap-3 items-center"
           animate={{ 

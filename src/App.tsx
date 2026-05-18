@@ -312,7 +312,7 @@ export default function App() {
   const [isLoadingScreen, setIsLoadingScreen] = useState(true);
   const [backgroundSpeed, setBackgroundSpeed] = useState<'gathering' | 'wild' | 'slow' | 'normal'>('gathering');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { isAdmin, data } = useAppData();
+  const { isAdmin, data, isDataLoaded } = useAppData();
   const location = useLocation();
   const navigate = useNavigate();
   const isInitialMount = React.useRef(true);
@@ -383,6 +383,10 @@ export default function App() {
     document.documentElement.style.setProperty('--color-primary-rgb', hexToRgbStr(data.theme.primaryColor));
   }, [data.theme.primaryColor]);
 
+  if (!isDataLoaded) {
+    return <div className="fixed inset-0" style={{ backgroundColor: '#09090b' }} />;
+  }
+
   return (
     <LenisProvider>
       <div className="min-h-screen text-zinc-50 font-sans cursor-none relative" style={{ '--color-primary': data.theme.primaryColor } as React.CSSProperties}>
@@ -419,7 +423,7 @@ export default function App() {
               initial={{ y: -100, x: '-50%' }}
               animate={{ y: headerVisible ? 0 : -150, x: '-50%' }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className={`group fixed top-4 left-1/2 w-[95%] max-w-7xl z-50 glow-top-edge-hover rounded-full ${isMenuOpen ? 'is-menu-open' : ''}`} 
+        className={`group fixed top-4 left-1/2 w-[95%] max-w-7xl z-[150] glow-top-edge-hover rounded-full ${isMenuOpen ? 'is-menu-open' : ''}`} 
       >
         {/* Header Background */}
         <div 
@@ -737,12 +741,11 @@ let isFirstPageLoad = true;
 
 function PageTransition({ children }: { children: React.ReactNode }) {
   const { data } = useAppData();
+  const primaryColor = data.theme.primaryColor || '#10b981';
   const location = useLocation();
   const speed = data.theme.animationSpeed || 1;
   const isInitialMount = React.useRef(true);
   
-  // Skip the shutter effect on the VERY first mount of the app, 
-  // since the new loading screen handles the initial reveal.
   const [skipShutter] = React.useState(isFirstPageLoad);
 
   React.useEffect(() => {
@@ -813,33 +816,60 @@ function PageTransition({ children }: { children: React.ReactNode }) {
   }, [location.pathname, location.hash, speed]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 1.2 / speed, ease: [0.22, 1, 0.36, 1] }}
-      onAnimationComplete={() => {
-        if ((window as any).ScrollTrigger) {
-          (window as any).ScrollTrigger.refresh();
-        } else {
-          // If not globally available, import could be used, but since it's global let's dispatch an event
-          window.dispatchEvent(new Event('resize'));
-        }
-      }}
-      className="relative"
-    >
-      {/* Shutter reveal effect */}
-      {!skipShutter && (
-        <motion.div
-          initial={{ scaleY: 1 }}
-          animate={{ scaleY: 0 }}
-          exit={{ scaleY: 1 }}
-          transition={{ duration: 0.8 / speed, ease: [0.76, 0, 0.24, 1] }}
-          style={{ backgroundColor: data.theme.primaryColor, originY: 0 }}
-          className="fixed inset-0 z-[100] pointer-events-none"
-        />
-      )}
-      {children}
-    </motion.div>
+    <>
+      <motion.div
+        initial={skipShutter ? { opacity: 1, scale: 1, filter: 'blur(0px)', y: 0 } : { opacity: 0, scale: 0.96, filter: 'blur(10px)', y: 40 }}
+        animate={{ opacity: 1, scale: 1, filter: 'blur(0px)', y: 0, transitionEnd: { transform: "none", filter: "none" } }}
+        exit={{ opacity: 0, scale: 1.04, filter: 'blur(10px)', y: -40 }}
+        transition={{ 
+          duration: 1.0 / speed, 
+          delay: skipShutter ? 0 : 0.6 / speed,
+          ease: [0.22, 1, 0.36, 1] 
+        }}
+        onAnimationComplete={() => {
+          if ((window as any).ScrollTrigger) {
+            (window as any).ScrollTrigger.refresh();
+          } else {
+            // If not globally available, import could be used, but since it's global let's dispatch an event
+            window.dispatchEvent(new Event('resize'));
+          }
+        }}
+        className="relative"
+      >
+        {children}
+      </motion.div>
+
+      {/* Cinematic Staggered Solid Wipe */}
+      <div className="fixed inset-0 z-[100] pointer-events-none flex overflow-hidden">
+        {[0, 1, 2, 3, 4].map((i) => (
+            <motion.div
+              key={i}
+              initial={skipShutter ? { y: "120%" } : { y: "0%" }}
+              animate={{ y: "120%" }}
+              exit={{ y: "0%" }}
+              transition={{ 
+                duration: 0.8 / speed, 
+                ease: [0.85, 0, 0.15, 1], 
+                delay: i * 0.1 
+              }}
+              className="flex-1 bg-zinc-950 relative border-r border-zinc-900/50 last:border-r-0 h-full"
+            >
+              {/* Laser Core */}
+              <div 
+                className="absolute top-0 left-0 right-0 h-[2px]" 
+                style={{ 
+                  backgroundColor: primaryColor, 
+                  boxShadow: `0 0 20px 3px ${primaryColor}, 0 0 40px 10px ${primaryColor}40`
+                }} 
+              />
+              {/* Glowing Aura Trail */}
+              <div 
+                className="absolute top-0 left-0 right-0 h-32" 
+                style={{ background: `linear-gradient(to bottom, ${primaryColor}60, transparent)` }}
+              />
+            </motion.div>
+          ))}
+        </div>
+    </>
   );
 }

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { useAppData } from '../context/AppDataContext';
-import { Lock, Eye, EyeOff, Shield } from 'lucide-react';
+import { Lock, Eye, EyeOff, Shield, AlertTriangle } from 'lucide-react';
 import { isConfigValid } from '../firebase';
 
 export default function AdminLogin() {
