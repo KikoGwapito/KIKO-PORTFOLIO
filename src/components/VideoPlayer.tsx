@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Play, Pause, Maximize } from 'lucide-react';
+import { getEmbedInfo } from '../utils/embed';
+import { InstagramEmbed, TikTokEmbed, FacebookEmbed, YouTubeEmbed } from 'react-social-media-embed';
 
 export function VideoPlayer({ src, className = "", autoPlay = false, muted = false }: { src: string, className?: string, autoPlay?: boolean, muted?: boolean }) {
   const [isPlaying, setIsPlaying] = useState(autoPlay);
@@ -9,15 +11,24 @@ export function VideoPlayer({ src, className = "", autoPlay = false, muted = fal
   const containerRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
 
+  const embedInfo = getEmbedInfo(src);
+  const isSocial = embedInfo.type !== 'native';
+  let embedUrl = embedInfo.embedUrl;
+  
+  if (embedInfo.type === 'youtube' && embedUrl) {
+    embedUrl += `?autoplay=${autoPlay ? 1 : 0}&mute=${muted ? 1 : 0}&rel=0&modestbranding=1`;
+  }
+
   useEffect(() => {
-    if (autoPlay && videoRef.current) {
+    if (autoPlay && videoRef.current && !isSocial) {
       videoRef.current.play().catch(e => console.log("Autoplay prevented", e));
     }
-  }, [autoPlay]);
+  }, [autoPlay, isSocial]);
 
   const togglePlay = (e?: React.MouseEvent) => {
     e?.preventDefault();
     e?.stopPropagation();
+    if (isSocial) return; // Social iframe handles its own play/pause
     if (videoRef.current) {
       if (videoRef.current.paused) {
         videoRef.current.play();
@@ -38,6 +49,7 @@ export function VideoPlayer({ src, className = "", autoPlay = false, muted = fal
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isSocial) return;
     if (progressRef.current && videoRef.current) {
       const rect = progressRef.current.getBoundingClientRect();
       const pos = (e.clientX - rect.left) / rect.width;
@@ -49,11 +61,10 @@ export function VideoPlayer({ src, className = "", autoPlay = false, muted = fal
     e.preventDefault();
     e.stopPropagation();
     if (!containerRef.current) return;
-
     if (!document.fullscreenElement) {
       try {
         await containerRef.current.requestFullscreen();
-        if (window.screen && window.screen.orientation && videoRef.current && videoRef.current.videoWidth > videoRef.current.videoHeight) {
+        if (!isSocial && window.screen && window.screen.orientation && videoRef.current && videoRef.current.videoWidth > videoRef.current.videoHeight) {
           try {
             await (window.screen.orientation as any).lock('landscape');
           } catch (err) {
@@ -70,72 +81,97 @@ export function VideoPlayer({ src, className = "", autoPlay = false, muted = fal
     }
   };
 
+  const renderSocialEmbed = () => {
+    if (!src) return null;
+    
+    return (
+      <div className="w-full h-full flex items-center justify-center overflow-auto pointer-events-auto bg-black py-4">
+        {embedInfo.type === 'instagram' && (
+          <InstagramEmbed url={src} width={328} />
+        )}
+        {embedInfo.type === 'tiktok' && (
+          <TikTokEmbed url={src} width={328} />
+        )}
+        {embedInfo.type === 'facebook' && (
+          <FacebookEmbed url={src} width={328} />
+        )}
+        {embedInfo.type === 'youtube' && (
+          <YouTubeEmbed url={src} width="100%" height="100%" />
+        )}
+      </div>
+    );
+  };
+
   return (
     <div 
       ref={containerRef}
-      className={`relative w-full group cursor-pointer bg-black overflow-hidden flex items-center justify-center ${className}`} 
+      className={`relative w-full h-full group cursor-pointer bg-black overflow-hidden flex items-center justify-center ${className}`} 
       onClick={togglePlay}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <video 
-        ref={videoRef}
-        src={src ? (src.includes('#t=') ? src : `${src}#t=10.001`) : undefined} 
-        loop 
-        playsInline
-        autoPlay={autoPlay}
-        muted={muted}
-        controlsList="nodownload"
-        onContextMenu={(e) => e.preventDefault()}
-        onTimeUpdate={handleTimeUpdate}
-        onPlay={(e) => {
-          setIsPlaying(true);
-          const currentVideo = e.currentTarget;
-          const allVideos = document.querySelectorAll('video');
-          allVideos.forEach(video => {
-            if (video !== currentVideo && !video.paused) {
-              video.pause();
-            }
-          });
-        }}
-        onPause={() => setIsPlaying(false)}
-        className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-700"
-      />
-      
-      {/* Center Play Button */}
-      <div className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-all duration-300 ${isPlaying ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
-        <div className="w-16 h-16 bg-zinc-950/60 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/10 shadow-2xl group-hover:bg-emerald-500/90 group-hover:border-emerald-400/50 transition-colors duration-300">
-          <Play className="w-6 h-6 ml-1" fill="currentColor" />
-        </div>
-      </div>
-
-      {/* Bottom Controls */}
-      <div 
-        className={`absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent transition-opacity duration-300 flex flex-col gap-2 ${(isHovered || !isPlaying) ? 'opacity-100' : 'opacity-0'}`}
-        onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-      >
-        {/* Progress Bar */}
-        <div 
-          ref={progressRef}
-          className="w-full h-1.5 bg-white/30 rounded-full cursor-pointer overflow-hidden relative"
-          onClick={handleProgressClick}
-        >
-          <div 
-            className="absolute top-0 left-0 bottom-0 bg-emerald-500 transition-all duration-100 ease-linear"
-            style={{ width: `${progress}%` }}
+      {isSocial ? renderSocialEmbed() : (
+        <>
+          <video 
+            ref={videoRef}
+            src={src ? (src.includes('#t=') ? src : `${src}#t=10.001`) : undefined} 
+            loop 
+            playsInline
+            autoPlay={autoPlay}
+            muted={muted}
+            controlsList="nodownload"
+            onContextMenu={(e) => e.preventDefault()}
+            onTimeUpdate={handleTimeUpdate}
+            onPlay={(e) => {
+              setIsPlaying(true);
+              const currentVideo = e.currentTarget;
+              const allVideos = document.querySelectorAll('video');
+              allVideos.forEach(video => {
+                if (video !== currentVideo && !video.paused) {
+                  video.pause();
+                }
+              });
+            }}
+            onPause={() => setIsPlaying(false)}
+            className="w-full h-full object-contain transition-transform duration-700"
           />
-        </div>
-        
-        {/* Controls Row */}
-        <div className="flex items-center justify-between text-white">
-          <button onClick={togglePlay} className="p-1 hover:text-emerald-400 transition-colors">
-            {isPlaying ? <Pause className="w-5 h-5" fill="currentColor" /> : <Play className="w-5 h-5" fill="currentColor" />}
-          </button>
-          <button onClick={toggleFullScreen} className="p-1 hover:text-emerald-400 transition-colors">
-            <Maximize className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
+          
+          {/* Center Play Button */}
+          <div className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-all duration-300 ${isPlaying ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
+            <div className="w-16 h-16 bg-zinc-950/60 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/10 shadow-2xl group-hover:bg-emerald-500/90 group-hover:border-emerald-400/50 transition-colors duration-300">
+              <Play className="w-6 h-6 ml-1" fill="currentColor" />
+            </div>
+          </div>
+
+          {/* Bottom Controls */}
+          <div 
+            className={`absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent transition-opacity duration-300 flex flex-col gap-2 ${(isHovered || !isPlaying) ? 'opacity-100' : 'opacity-0'}`}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          >
+            {/* Progress Bar */}
+            <div 
+              ref={progressRef}
+              className="w-full h-1.5 bg-white/30 rounded-full cursor-pointer overflow-hidden relative"
+              onClick={handleProgressClick}
+            >
+              <div 
+                className="absolute top-0 left-0 bottom-0 bg-emerald-500 transition-all duration-100 ease-linear"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            
+            {/* Controls Row */}
+            <div className="flex items-center justify-between text-white">
+              <button onClick={togglePlay} className="p-1 hover:text-emerald-400 transition-colors">
+                {isPlaying ? <Pause className="w-5 h-5" fill="currentColor" /> : <Play className="w-5 h-5" fill="currentColor" />}
+              </button>
+              <button onClick={toggleFullScreen} className="p-1 hover:text-emerald-400 transition-colors">
+                <Maximize className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

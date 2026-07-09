@@ -7,138 +7,10 @@ import { formatTextWithAccent } from '../utils/formatText';
 import ComparisonSlider from '../components/ComparisonSlider';
 import { Magnetic } from '../components/Magnetic';
 import { ImageViewer } from '../components/ImageViewer';
+import { getEmbedInfo } from '../utils/embed';
+import { SocialThumbnail } from '../components/SocialThumbnail';
+import { VideoPlayer } from '../components/VideoPlayer';
 
-function VideoPlayer({ src, autoPlay }: { src: string, autoPlay?: boolean }) {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const progressRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (autoPlay && videoRef.current) {
-      videoRef.current.play().catch(() => {});
-    }
-  }, [autoPlay]);
-
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(document.fullscreenElement === containerRef.current);
-    };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, []);
-
-  const togglePlay = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    if (videoRef.current) {
-      if (videoRef.current.paused) {
-        videoRef.current.play().catch(() => {});
-      } else {
-        videoRef.current.pause();
-      }
-    }
-  };
-
-  const handleTimeUpdate = () => {
-    if (videoRef.current) {
-      const current = videoRef.current.currentTime;
-      const duration = videoRef.current.duration;
-      setProgress((current / duration) * 100);
-    }
-  };
-
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.stopPropagation();
-    if (progressRef.current && videoRef.current) {
-      const rect = progressRef.current.getBoundingClientRect();
-      const pos = (e.clientX - rect.left) / rect.width;
-      videoRef.current.currentTime = pos * videoRef.current.duration;
-    }
-  };
-
-  const toggleFullScreen = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!containerRef.current) return;
-
-    if (!document.fullscreenElement) {
-      try {
-        await containerRef.current.requestFullscreen();
-      } catch (err) {
-        console.error("Error attempting to enable full-screen mode:", err);
-      }
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      }
-    }
-  };
-
-  return (
-    <div 
-      ref={containerRef}
-      className={`relative w-full h-full group cursor-pointer bg-black/50 overflow-hidden flex items-center justify-center rounded-[2.5rem]`} 
-      onClick={togglePlay}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <video 
-        ref={videoRef}
-        src={src || undefined} 
-        loop 
-        playsInline 
-        controlsList="nodownload"
-        onContextMenu={(e) => e.preventDefault()}
-        onTimeUpdate={handleTimeUpdate}
-        onPlay={(e) => {
-          setIsPlaying(true);
-          const currentVideo = e.currentTarget;
-          const allVideos = document.querySelectorAll('video');
-          allVideos.forEach(video => {
-            if (video !== currentVideo && !video.paused) {
-              video.pause();
-            }
-          });
-        }}
-        onPause={() => setIsPlaying(false)}
-        className={`w-full h-full object-contain transition-transform duration-700`}
-      />
-      
-      <div className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-all duration-300 ${isPlaying ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
-        <div className="w-20 h-20 glass rounded-full flex items-center justify-center text-white border border-white/10 shadow-2xl transition-colors duration-300">
-          <Play className="w-8 h-8 ml-1" fill="currentColor" />
-        </div>
-      </div>
-
-      <div 
-        className={`absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent transition-opacity duration-300 flex flex-col gap-3 ${(isHovered || !isPlaying) ? 'opacity-100' : 'opacity-0'}`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div 
-          ref={progressRef}
-          className="w-full h-1.5 bg-white/20 rounded-full cursor-pointer overflow-hidden relative"
-          onClick={handleProgressClick}
-        >
-          <motion.div 
-            className="absolute top-0 left-0 bottom-0 bg-white"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-        
-        <div className="flex items-center justify-between text-white">
-          <button onClick={togglePlay} className="p-1 hover:scale-110 transition-transform" aria-label={isPlaying ? "Pause" : "Play"}>
-            {isPlaying ? <Pause className="w-5 h-5" fill="currentColor" /> : <Play className="w-5 h-5" fill="currentColor" />}
-          </button>
-          <button onClick={toggleFullScreen} className="p-1 hover:scale-110 transition-transform" aria-label="Toggle Fullscreen">
-            <Maximize className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function MediaModal({ media, onClose }: { media: any, onClose: () => void }) {
   useEffect(() => {
@@ -207,12 +79,8 @@ function Carousel3D({ items, onMediaClick }: { items: any[], onMediaClick: (medi
   const isDraggingRef = useRef(false);
   const animationRef = useRef<any>(null);
 
-  // Minimum 10 items to show 5 on the front side
-  let displayItems = [...items];
-  while (displayItems.length < 10) {
-    const needed = 10 - displayItems.length;
-    displayItems = [...displayItems, ...items.slice(0, needed)];
-  }
+  // Only use the provided items
+  const displayItems = items;
 
   const handlePanStart = () => {
     if (animationRef.current) {
@@ -223,14 +91,16 @@ function Carousel3D({ items, onMediaClick }: { items: any[], onMediaClick: (medi
   };
 
   const handlePan = (e: any, info: any) => {
-    rotation.set(rotation.get() - info.delta.x * 0.2);
+    const factor = typeof window !== 'undefined' && window.innerWidth < 768 ? 0.6 : 0.2;
+    rotation.set(rotation.get() - info.delta.x * factor);
   };
 
   const handlePanEnd = (e: any, info: any) => {
-    animationRef.current = animate(rotation, rotation.get() - info.velocity.x * 0.08, {
+    const factor = typeof window !== 'undefined' && window.innerWidth < 768 ? 0.2 : 0.08;
+    animationRef.current = animate(rotation, rotation.get() - info.velocity.x * factor, {
       type: "spring",
-      stiffness: 50,
-      damping: 20,
+      stiffness: 40,
+      damping: 25,
       mass: 1
     });
     setTimeout(() => {
@@ -245,7 +115,18 @@ function Carousel3D({ items, onMediaClick }: { items: any[], onMediaClick: (medi
   const itemWidth = isMobile ? 240 : 360;
   const itemHeight = isMobile ? 360 : 540;
   // Increase distance between containers
-  const radius = Math.round((itemWidth / 2) / Math.tan(Math.PI / numItems)) + 40;
+  let radius = 0;
+  if (numItems === 1) {
+    radius = 0;
+  } else if (numItems === 2) {
+    radius = itemWidth / 2 + 50;
+  } else {
+    radius = Math.round((itemWidth / 2) / Math.tan(Math.PI / numItems)) + 40;
+    // For small number of items, ensure a minimum radius so they aren't cramped
+    if (radius < itemWidth) {
+      radius = itemWidth;
+    }
+  }
 
   return (
     <div 
@@ -303,13 +184,17 @@ function Carousel3D({ items, onMediaClick }: { items: any[], onMediaClick: (medi
               }}
             >
               {item.type === 'video' ? (
-                <video 
-                  src={`${item.url}#t=1`} 
-                  preload="metadata"
-                  muted playsInline 
-                  draggable={false}
-                  className="w-full h-full object-cover pointer-events-none select-none" 
-                />
+                getEmbedInfo(item.url).type !== 'native' ? (
+                  <SocialThumbnail url={item.url} className="w-full h-full object-cover pointer-events-none select-none" />
+                ) : (
+                  <video 
+                    src={`${item.url}#t=1`} 
+                    preload="metadata"
+                    muted playsInline 
+                    draggable={false}
+                    className="w-full h-full object-cover pointer-events-none select-none" 
+                  />
+                )
               ) : item.type === 'comparison' ? (
                 <>
                   <img loading="lazy" src={item.url} alt="Comparison" draggable={false} className="w-full h-full object-cover pointer-events-none select-none" />

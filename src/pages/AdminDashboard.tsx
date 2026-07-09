@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { useAppData, ProjectData, MediaItem } from "../context/AppDataContext";
 import { storage } from "../firebase";
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
+import { isSocialVideo } from "../utils/embed";
+import { SocialThumbnail } from "../components/SocialThumbnail";
 import {
   Shield,
   Eye,
@@ -235,7 +237,7 @@ export default function AdminDashboard() {
     updateData({ [section]: processedData });
     
     // Also update the local state so the UI reflects the new order
-    if (section === 'about') setAboutData(processedData);
+    
     if (section === 'process') setProcessData(processedData);
     if (section === 'reviews') setReviewsData(processedData);
     if (section === 'contact') setContactData(processedData);
@@ -1087,7 +1089,11 @@ export default function AdminDashboard() {
                           {media.type === "image" ? (
                             media.url ? <img loading="lazy" src={media.url} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" /> : <ImageIcon className="w-8 h-8 text-zinc-700" />
                           ) : media.url ? (
-                            <video src={media.url} autoPlay muted loop playsInline className="w-full h-full object-contain" />
+                            isSocialVideo(media.url) ? (
+                              <SocialThumbnail url={media.url} className="w-full h-full object-cover" />
+                            ) : (
+                              <video src={media.url} autoPlay muted loop playsInline className="w-full h-full object-contain" />
+                            )
                           ) : (
                             <Video className="w-8 h-8 text-zinc-700" />
                           )}
@@ -1438,7 +1444,11 @@ export default function AdminDashboard() {
                         {step.media?.url && (
                             <div className="w-full max-w-[200px] aspect-video rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800 mt-2">
                                 {step.media.type === 'video' ? (
-                                    <video src={step.media.url} className="w-full h-full object-cover opacity-60" controls muted />
+                                    isSocialVideo(step.media.url) ? (
+                                        <SocialThumbnail url={step.media.url} className="w-full h-full object-cover opacity-60" />
+                                    ) : (
+                                        <video src={step.media.url} className="w-full h-full object-cover opacity-60" controls muted />
+                                    )
                                 ) : (
                                     <img loading="lazy" src={step.media.url} alt="Step preview" className="w-full h-full object-cover opacity-60" referrerPolicy="no-referrer" />
                                 )}
@@ -2074,7 +2084,11 @@ export default function AdminDashboard() {
                     {stepModal.data.media?.url && (
                         <div className="w-full max-w-[200px] aspect-video rounded-xl overflow-hidden bg-zinc-950 border border-zinc-800 mt-2">
                             {stepModal.data.media.type === 'video' ? (
-                                <video src={stepModal.data.media.url} className="w-full h-full object-cover opacity-60" controls muted />
+                                isSocialVideo(stepModal.data.media.url) ? (
+                                    <SocialThumbnail url={stepModal.data.media.url} className="w-full h-full object-cover opacity-60" />
+                                ) : (
+                                    <video src={stepModal.data.media.url} className="w-full h-full object-cover opacity-60" controls muted />
+                                )
                             ) : (
                                 <img loading="lazy" src={stepModal.data.media.url} alt="Step preview" className="w-full h-full object-cover opacity-60" referrerPolicy="no-referrer" />
                             )}

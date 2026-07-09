@@ -114,7 +114,14 @@ export const ProcessParallax: React.FC<ProcessParallaxProps> = ({ steps, primary
                index={i} 
                phase={phase} 
                primaryColor={primaryColor} 
-               onClick={() => scrollToPhase(i)}
+               onClick={() => {
+                 const currentPhase = Math.round(phase.get());
+                 if (currentPhase === i && i < numPhases - 1) {
+                   scrollToPhase(i + 1);
+                 } else {
+                   scrollToPhase(i);
+                 }
+               }}
              />
           ))}
         </div>

@@ -4,6 +4,7 @@ import { Mail, ArrowRight, Github, Linkedin, Twitter, Instagram, Youtube, Facebo
 import { useAppData } from '../context/AppDataContext';
 import { formatTextWithAccent } from '../utils/formatText';
 import { Magnetic } from '../components/Magnetic';
+import { isSocialVideo, getEmbedInfo } from '../utils/embed';
 
 export default function Contact() {
   const { data } = useAppData();
@@ -234,7 +235,23 @@ export default function Contact() {
               className="rounded-[2.5rem] overflow-hidden bg-zinc-900 border border-zinc-800/50 relative group shadow-2xl"
             >
               {m.type === 'video' ? (
-                <video src={m.url || undefined} autoPlay loop muted playsInline className="w-full h-full object-cover aspect-video" />
+                isSocialVideo(m.url || '') ? (
+                  <div className="w-full h-full aspect-video relative pointer-events-none grayscale-hover transition-all duration-700">
+                    <iframe
+                      src={(() => {
+                        const info = getEmbedInfo(m.url || '');
+                        if (info.type === 'youtube') return `${info.embedUrl}?autoplay=1&mute=1&controls=0&loop=1&playlist=${info.id}&rel=0&modestbranding=1&playsinline=1`;
+                        return info.embedUrl;
+                      })()}
+                      className="absolute inset-0 w-full h-full object-cover scale-150"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      title="Contact media video"
+                    />
+                  </div>
+                ) : (
+                  <video src={m.url || undefined} autoPlay loop muted playsInline className="w-full h-full object-cover aspect-video" />
+                )
               ) : (
                 <>
                   <img loading="lazy" 

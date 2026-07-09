@@ -69,6 +69,31 @@ async function startServer() {
     return res.status(404).json({ error: 'File not found' });
   });
 
+  // Oembed Proxy endpoint
+  app.get('/api/oembed', async (req, res) => {
+    const { url } = req.query;
+    if (!url || typeof url !== 'string') {
+      return res.status(400).json({ error: 'Missing URL' });
+    }
+    
+    try {
+      const fetchUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`;
+      const response = await fetch(fetchUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+      });
+      if (!response.ok) {
+        throw new Error(`Failed with status: ${response.status}`);
+      }
+      const data = await response.json();
+      res.json(data);
+    } catch (err: any) {
+      console.error('Oembed proxy error:', err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // Upload endpoint
   app.all(['/api/upload', '/api/upload/'], (req, res, next) => {
     console.log(`Received ${req.method} request to /api/upload`);
