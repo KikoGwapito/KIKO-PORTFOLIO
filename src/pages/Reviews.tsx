@@ -21,9 +21,6 @@ export default function Reviews() {
     rating: 5
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const constraintsRef = useRef(null);
-  const dragControls = useAnimation();
-  const [isDragging, setIsDragging] = useState(false);
 
   const filteredReviews = useMemo(() => {
     return data.reviews.list.filter(review => {
@@ -78,8 +75,8 @@ export default function Reviews() {
     }, 1500);
   };
 
-  const renderFormContent = () => (
-    <div className={`p-10 rounded-[2.5rem] glass border border-zinc-800/50 shadow-2xl relative overflow-hidden ${!data.reviews.enabled ? 'opacity-75 cursor-not-allowed' : ''}`}>
+  const renderFormContent = (isMobile: boolean = false) => (
+    <div className={`p-6 sm:p-10 rounded-[2.5rem] glass border border-zinc-800/50 shadow-2xl relative ${isMobile ? 'overflow-y-auto max-h-[calc(100vh-14rem)]' : 'overflow-hidden'} ${!data.reviews.enabled ? 'opacity-75 cursor-not-allowed' : ''}`}>
       {/* Form Background Accent */}
       <div className="absolute -top-24 -right-24 w-48 h-48 bg-[var(--color-primary)] opacity-[0.05] blur-[60px] pointer-events-none" style={{ '--color-primary': data.theme.primaryColor } as any} />
       
@@ -457,42 +454,58 @@ export default function Reviews() {
       </div>
 
       {/* Mobile Floating Button */}
-      <div className="lg:hidden fixed top-32 bottom-6 left-6 right-6 pointer-events-none z-[110]" ref={constraintsRef}>
-        <motion.div
-          drag
-          dragConstraints={constraintsRef}
-          dragMomentum={false}
-          animate={dragControls}
-          onDragStart={() => setIsDragging(true)}
-          onDragEnd={(e, info) => {
-            setTimeout(() => setIsDragging(false), 100); // Small delay to prevent click after drag
-            const screenWidth = window.innerWidth;
-            if (info.point.x < screenWidth / 2) {
-              dragControls.start({ x: -(screenWidth - 112), transition: { type: "spring", stiffness: 300, damping: 20 } });
-            } else {
-              dragControls.start({ x: 0, transition: { type: "spring", stiffness: 300, damping: 20 } });
-            }
-          }}
-          className="absolute top-0 right-0 pointer-events-auto"
+      <div className="lg:hidden fixed bottom-24 right-6 z-[110] flex items-center justify-end pointer-events-none">
+        <motion.div 
+          className="relative group pointer-events-auto flex items-center justify-end"
+          initial="initial"
+          whileHover="hover"
         >
-          <motion.div 
-            className="absolute inset-0 rounded-full blur-md"
-            style={{ backgroundColor: data.theme.primaryColor }}
-            animate={isDragging ? { opacity: 0, scale: 0.9 } : { scale: [1, 1.25, 1], opacity: [0.3, 0.6, 0.3] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-          />
-          <motion.button
-            animate={{ scale: isDragging ? 0.9 : 1 }}
-            whileHover={!isDragging ? { scale: 1.1, opacity: 1 } : undefined}
-            whileTap={!isDragging ? { scale: 0.9, opacity: 1 } : undefined}
-            onClick={() => {
-              if (!isDragging) setIsModalOpen(!isModalOpen);
-            }}
-            className="w-16 h-16 rounded-full shadow-2xl flex items-center justify-center text-zinc-950 relative z-10"
-            style={{ backgroundColor: data.theme.primaryColor }}
+          {/* Sliding Text Wrapper */}
+          <div 
+            className="absolute right-8 top-1/2 -translate-y-1/2 w-48 h-16 pointer-events-none z-0"
+            style={{ clipPath: 'inset(-30px 0 -30px -30px)' }}
           >
-            <Star className="w-8 h-8 fill-current" />
-          </motion.button>
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-auto">
+              <motion.div
+                variants={{
+                  initial: { x: '100%' },
+                  hover: { x: 0 }
+                }}
+                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                className="h-12 pr-10 pl-6 flex items-center whitespace-nowrap cursor-pointer rounded-l-2xl"
+                onClick={() => setIsModalOpen(!isModalOpen)}
+                style={{ 
+                  backgroundColor: data.theme.primaryColor, 
+                  color: '#09090b', 
+                  boxShadow: `0 0 20px ${data.theme.primaryColor}80`
+                }}
+              >
+                <span className="text-sm font-bold">Rate and Review</span>
+              </motion.div>
+            </div>
+          </div>
+          
+          <div className="relative z-10">
+            <motion.div 
+              className="absolute inset-0 rounded-full blur-md"
+              style={{ backgroundColor: data.theme.primaryColor }}
+              animate={{ scale: [1, 1.25, 1], opacity: [0.3, 0.6, 0.3] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.button
+              variants={{
+                initial: { rotate: 0, scale: 1 },
+                hover: { rotate: -180, scale: 1.1 }
+              }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setIsModalOpen(!isModalOpen)}
+              className="w-16 h-16 rounded-full shadow-2xl flex items-center justify-center text-zinc-950 relative z-10"
+              style={{ backgroundColor: data.theme.primaryColor, boxShadow: `0 0 20px ${data.theme.primaryColor}80` }}
+            >
+              <Star className="w-8 h-8 fill-current" />
+            </motion.button>
+          </div>
         </motion.div>
       </div>
 
@@ -503,7 +516,7 @@ export default function Reviews() {
             initial={{ opacity: 0, filter: "blur(10px)" }}
             animate={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" } }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-sm lg:hidden"
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 pt-[104px] pb-24 bg-zinc-950/80 backdrop-blur-sm lg:hidden"
           >
             <motion.div
               initial={{ clipPath: 'circle(0% at 100% 100%)', opacity: 0 }}
@@ -518,7 +531,7 @@ export default function Reviews() {
               >
                 <X className="w-5 h-5" />
               </button>
-              {renderFormContent()}
+              {renderFormContent(true)}
             </motion.div>
           </motion.div>
         )}

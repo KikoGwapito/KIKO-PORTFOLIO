@@ -31,9 +31,10 @@ interface ProcessParallaxProps {
   title: string;
   subtitle: string;
   label: string;
+  autoScrollOnLoad?: boolean;
 }
 
-export const ProcessParallax: React.FC<ProcessParallaxProps> = ({ steps, primaryColor, title, subtitle, label }) => {
+export const ProcessParallax: React.FC<ProcessParallaxProps> = ({ steps, primaryColor, title, subtitle, label, autoScrollOnLoad }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   
   const allCards = [
@@ -44,13 +45,50 @@ export const ProcessParallax: React.FC<ProcessParallaxProps> = ({ steps, primary
   const totalCards = allCards.length;
   const numPhases = totalCards;
 
+  const scrollToPhase = (phaseTarget: number) => {
+    if (!containerRef.current) return;
+    
+    const rect = containerRef.current.getBoundingClientRect();
+    const absoluteTop = rect.top + window.scrollY;
+    
+    // progress adjusted for the -2 to (numPhases-1) mapping
+    const progress = (phaseTarget + 2) / (numPhases + 1);
+    const totalScroll = window.innerHeight * ((numPhases + 2) * 1.0 - 1);
+    const targetY = absoluteTop + Math.max(0, progress * totalScroll);
+    
+    // Custom smooth scroll with duration and easing
+    const startY = window.scrollY;
+    const distance = targetY - startY;
+    const duration = 1800; // 1.8 seconds for smooth ramp effect
+    let startTime: number | null = null;
+    
+    // easeInOutQuart for a pronounced speed ramp
+    const easeInOutQuart = (t: number) => t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2;
+    
+    const step = (currentTime: number) => {
+      if (!startTime) startTime = currentTime;
+      const progress = (currentTime - startTime) / duration;
+      
+      if (progress < 1) {
+        window.scrollTo(0, startY + distance * easeInOutQuart(progress));
+        requestAnimationFrame(step);
+      } else {
+        window.scrollTo(0, targetY);
+      }
+    };
+    
+    requestAnimationFrame(step);
+  };
+
   useGSAP(() => {
     if (!containerRef.current || totalCards <= 1) return;
 
-    // Sticky pinning and parallax effects are handled by Framer Motion's useScroll.
-    // We remove the ScrollTrigger snap behavior to stop scroll "magnets".
-
-  }, { scope: containerRef, dependencies: [numPhases] });
+    if (autoScrollOnLoad) {
+      setTimeout(() => {
+        scrollToPhase(0);
+      }, 500);
+    }
+  }, { scope: containerRef, dependencies: [numPhases, autoScrollOnLoad] });
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -79,20 +117,6 @@ export const ProcessParallax: React.FC<ProcessParallaxProps> = ({ steps, primary
     return p;
   });
 
-  const scrollToPhase = (phaseTarget: number) => {
-    if (!containerRef.current) return;
-    
-    const rect = containerRef.current.getBoundingClientRect();
-    const absoluteTop = rect.top + window.scrollY;
-    
-    // progress adjusted for the -2 to (numPhases-1) mapping
-    const progress = (phaseTarget + 2) / (numPhases + 1);
-    const totalScroll = window.innerHeight * ((numPhases + 2) * 1.0 - 1);
-    const targetY = absoluteTop + Math.max(0, progress * totalScroll);
-    
-    window.scrollTo({ top: targetY, behavior: 'smooth' });
-  };
-
   return (
     <section 
       ref={containerRef} 
@@ -114,10 +138,34 @@ export const ProcessParallax: React.FC<ProcessParallaxProps> = ({ steps, primary
                index={i} 
                phase={phase} 
                primaryColor={primaryColor} 
+               isLast={i === numPhases - 1}
                onClick={() => {
                  const currentPhase = Math.round(phase.get());
                  if (currentPhase === i && i < numPhases - 1) {
                    scrollToPhase(i + 1);
+                 } else if (currentPhase === i && i === numPhases - 1) {
+                   const workSection = document.getElementById('work');
+                   if (workSection) {
+                     const rect = workSection.getBoundingClientRect();
+                     const targetY = rect.top + window.scrollY;
+                     const startY = window.scrollY;
+                     const distance = targetY - startY;
+                     const duration = 1800;
+                     let startTime: number | null = null;
+                     const easeInOutQuart = (t: number) => t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2;
+                     
+                     const step = (currentTime: number) => {
+                       if (!startTime) startTime = currentTime;
+                       const progress = (currentTime - startTime) / duration;
+                       if (progress < 1) {
+                         window.scrollTo(0, startY + distance * easeInOutQuart(progress));
+                         requestAnimationFrame(step);
+                       } else {
+                         window.scrollTo(0, targetY);
+                       }
+                     };
+                     requestAnimationFrame(step);
+                   }
                  } else {
                    scrollToPhase(i);
                  }
@@ -135,12 +183,14 @@ function CarouselCard({
   index, 
   phase, 
   primaryColor,
+  isLast,
   onClick
 }: { 
   card: any;
   index: number;
   phase: MotionValue<number>;
   primaryColor: string;
+  isLast?: boolean;
   onClick: () => void;
   key?: React.Key;
 }) {
@@ -325,7 +375,7 @@ function CarouselCard({
             {isTitle ? (
               <TitleCard card={card} primaryColor={primaryColor} imageIndex={imageIndex} />
             ) : (
-              <StepCard3D card={card} index={index} primaryColor={primaryColor} imageIndex={imageIndex} />
+              <StepCard3D card={card} index={index} primaryColor={primaryColor} imageIndex={imageIndex} isLast={isLast} />
             )}
             
             <motion.div className="absolute inset-0 bg-black pointer-events-none rounded-[2rem] z-40" style={{ opacity: darknessOpacity, transform: 'translateZ(1px)' }} />
@@ -393,7 +443,7 @@ function TitleCard({ card, primaryColor, imageIndex }: { card: any, primaryColor
   );
 }
 
-function StepCard3D({ card, index, primaryColor, imageIndex }: { card: any, index: number, primaryColor: string, imageIndex: string }) {
+function StepCard3D({ card, index, primaryColor, imageIndex, isLast }: { card: any, index: number, primaryColor: string, imageIndex: string, isLast?: boolean }) {
   return (
     <div 
         className="group w-full h-full relative rounded-[2rem] bg-zinc-900 border border-zinc-800/50 flex flex-col justify-end p-6 md:p-8 shadow-2xl overflow-hidden transition-colors"
@@ -440,7 +490,7 @@ function StepCard3D({ card, index, primaryColor, imageIndex }: { card: any, inde
               className="w-10 h-10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 backdrop-blur-md border border-white/10"
               style={{ backgroundColor: `${primaryColor}40` }}
             >
-               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={isLast ? "rotate-90 transition-transform" : ""}>
                   <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                </svg>
             </div>

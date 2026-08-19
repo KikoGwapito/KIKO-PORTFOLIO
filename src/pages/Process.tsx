@@ -58,6 +58,7 @@ export default function Process() {
           title={data.process.title}
           subtitle={data.process.subtitle}
           label={data.process.label || 'How I Work'}
+          autoScrollOnLoad={true}
         />
       </motion.div>
     </div>
