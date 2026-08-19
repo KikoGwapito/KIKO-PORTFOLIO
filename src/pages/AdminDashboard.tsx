@@ -34,7 +34,13 @@ import {
   AlertCircle,
   ExternalLink,
   RefreshCw,
-  Sparkles
+  Sparkles,
+  ArrowUp,
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  Play,
+  Check
 } from "lucide-react";
 
 type Tab = 'hero' | 'trust' | 'featured' | 'about' | 'process' | 'contact' | 'pageTitle' | 'reviews' | 'theme' | 'navigation' | 'security';
@@ -168,6 +174,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('hero');
   const [showCloudinaryConfig, setShowCloudinaryConfig] = useState(false);
   const [draggedProjectIndex, setDraggedProjectIndex] = useState<number | null>(null);
+  const [draggedMediaIndex, setDraggedMediaIndex] = useState<number | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [editingProject, setEditingProject] = useState<ProjectData | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
@@ -345,7 +352,7 @@ export default function AdminDashboard() {
   const [contactData, setContactData] = useState(data.contact);
   const [pageTitleData, setPageTitleData] = useState(data.pageTitle);
   const [themeData, setThemeData] = useState(data.theme);
-  const [navigationData, setNavigationData] = useState(data.navigation || { about: true, process: true, reviews: true, particles: true });
+  const [navigationData, setNavigationData] = useState(data.navigation || { about: true, process: true, reviews: true, particles: true, loadingScreen: true, loadingGreetings: true });
   const [reviewsData, setReviewsData] = useState(data.reviews);
   const [reviewsSearchQuery, setReviewsSearchQuery] = useState('');
   const [reviewsSearchFilter, setReviewsSearchFilter] = useState<'all' | 'name' | 'role'>('all');
@@ -573,6 +580,23 @@ export default function AdminDashboard() {
         });
       }
     );
+  };
+
+  const handleReorderMedia = (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex || !editingProject) return;
+    setEditingProject((prev) => {
+      if (!prev) return prev;
+      const newImages = [...prev.images];
+      const [draggedItem] = newImages.splice(fromIndex, 1);
+      newImages.splice(toIndex, 0, draggedItem);
+      return { ...prev, images: newImages };
+    });
+  };
+
+  const handleSetAsFirstMedia = (index: number) => {
+    if (index === 0 || !editingProject) return;
+    handleReorderMedia(index, 0);
+    showNotification("Moved to 1st position (Project Page Initial Video/Cover)", 'success');
   };
 
   const handleUploadClick = (target: { section: 'project' | 'hero' | 'trust' | 'about' | 'process' | 'contact' | 'pageTitle' | 'process_modal', index?: number, isSecond?: boolean }) => {
@@ -1584,111 +1608,276 @@ export default function AdminDashboard() {
 
                 <div className="pt-8 border-t border-zinc-800">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-                    <h3 className="text-xl font-bold">Media Files</h3>
+                    <div>
+                      <h3 className="text-xl font-bold">Media Files & Sequence</h3>
+                      <p className="text-xs text-zinc-400 mt-1">
+                        The <strong className="text-[var(--color-primary)] font-semibold">1st item (#1)</strong> is the initial video/media shown on the project page and 3D carousel.
+                      </p>
+                    </div>
                     <button onClick={addMedia} className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors text-sm">
                       <Plus className="w-4 h-4" /> Add Media
                     </button>
                   </div>
 
-                  <div className="space-y-6">
-                    {editingProject.images.map((media, index) => (
-                      <div key={index} className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 flex flex-col md:flex-row gap-4 items-start">
-                        <div className="w-full md:w-32 h-32 bg-zinc-900 rounded-lg overflow-hidden flex-shrink-0 border border-zinc-800 flex items-center justify-center">
-                          {media.type === "image" ? (
-                            media.url ? <img loading="lazy" src={media.url} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" /> : <ImageIcon className="w-8 h-8 text-zinc-700" />
-                          ) : media.url ? (
-                            isSocialVideo(media.url) ? (
-                              <SocialThumbnail url={media.url} customThumbnail={media.thumbnailUrl || (media as any).poster} className="w-full h-full object-cover" />
-                            ) : (
-                              <video src={media.url} poster={media.thumbnailUrl || (media as any).poster} autoPlay muted loop playsInline className="w-full h-full object-contain" />
-                            )
-                          ) : (
-                            <Video className="w-8 h-8 text-zinc-700" />
-                          )}
+                  {/* Draggable Media Sequence Strip */}
+                  {editingProject.images.length > 0 && (
+                    <div className="mb-6 p-4 bg-zinc-950/80 border border-zinc-800/80 rounded-2xl">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-3">
+                        <div className="flex items-center gap-2">
+                          <GripVertical className="w-4 h-4 text-[var(--color-primary)]" />
+                          <h4 className="text-sm font-bold text-zinc-100">
+                            Draggable Carousel Order
+                          </h4>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold bg-[var(--color-primary)]/10 text-[var(--color-primary)] border border-[var(--color-primary)]/20">
+                            Live Connected
+                          </span>
                         </div>
+                        <p className="text-[11px] text-zinc-400">
+                          Drag cards horizontally to reorder what video displays first.
+                        </p>
+                      </div>
 
-                        <div className="flex-1 space-y-4 w-full">
-                          <div className="flex flex-col sm:flex-row gap-4">
-                            <div className="flex-1">
-                              <label className="block text-xs font-medium text-zinc-500 mb-1">Type</label>
-                              <select 
-                                value={media.type} 
-                                onChange={(e) => updateMedia(index, "type", e.target.value)} 
-                                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]"
-                              >
-                                <option value="image">Image</option>
-                                <option value="video">Video</option>
-                                <option value="comparison">Before/After Comparison</option>
-                              </select>
-                            </div>
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-medium text-zinc-500 mb-1">
-                              {media.type === 'comparison' ? 'First Image (Before)' : 'Media Source'}
-                            </label>
-                            <DropZone onDropFile={(file) => handleDirectDrop(file, { section: 'project', index })}>
-                              <div className="flex flex-col sm:flex-row gap-3">
-                                <button onClick={() => handleUploadClick({ section: 'project', index })} disabled={uploadTarget?.section === 'project' && uploadTarget?.index === index && !uploadTarget?.isSecond} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors flex items-center justify-center gap-2 border border-zinc-700 disabled:opacity-50 whitespace-nowrap font-medium">
-                                {uploadTarget?.section === 'project' && uploadTarget?.index === index && !uploadTarget?.isSecond ? (
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-5 h-5 border-2 border-zinc-400 border-t-emerald-400 rounded-full animate-spin" />
-                                    <span className="text-xs font-mono">{uploadProgress}%</span>
-                                  </div>
-                                ) : <Upload className="w-5 h-5" />}
-                                Upload File
-                              </button>
-                              <div className="flex items-center text-zinc-500 text-xs font-medium">OR</div>
-                              <input type="text" value={media.url} onChange={(e) => {
-                                const url = e.target.value;
-                                updateMedia(index, "url", url);
-                                if (media.type !== 'comparison') {
-                                  const isVideo = url.match(/\.(mp4|webm|ogg|mov|mkv|avi|m4v)$/i) || url.includes('video') || isSocialVideo(url);
-                                  updateMedia(index, "type", isVideo ? "video" : "image");
-                                }
-                              }} className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" placeholder="Paste external URL..." />
-                              {media.type !== 'comparison' && (
-                                <button onClick={() => removeMedia(index)} className="p-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors border border-red-500/20" title="Remove media">
-                                  <Trash2 className="w-5 h-5" />
-                                </button>
-                              )}
-                            </div>
-                            </DropZone>
-                          </div>
-
-                          {media.type === 'video' && (
-                            <div>
-                              <div className="flex items-center justify-between mb-1">
-                                <label className="block text-xs font-medium text-zinc-400">
-                                  Video Thumbnail / Poster <span className="text-zinc-500 text-[11px]">(Auto-detected for Google Drive & YouTube, or custom)</span>
-                                </label>
-                                {media.thumbnailUrl && (
-                                  <button 
-                                    type="button" 
-                                    onClick={() => updateMedia(index, "thumbnailUrl", "")} 
-                                    className="text-[10px] text-zinc-500 hover:text-red-400"
+                      <div className="flex gap-3 overflow-x-auto pb-2 pt-1 scrollbar-thin">
+                        {editingProject.images.map((media, index) => (
+                          <div
+                            key={index}
+                            draggable
+                            onDragStart={(e) => {
+                              setDraggedMediaIndex(index);
+                              e.dataTransfer.effectAllowed = 'move';
+                            }}
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                              e.dataTransfer.dropEffect = 'move';
+                            }}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              if (draggedMediaIndex !== null && draggedMediaIndex !== index) {
+                                handleReorderMedia(draggedMediaIndex, index);
+                                setDraggedMediaIndex(null);
+                              }
+                            }}
+                            onDragEnd={() => setDraggedMediaIndex(null)}
+                            className={`flex-shrink-0 w-36 sm:w-44 bg-zinc-900/90 border rounded-xl p-2.5 transition-all duration-200 flex flex-col group cursor-grab active:cursor-grabbing select-none relative ${
+                              draggedMediaIndex === index
+                                ? 'opacity-40 scale-95 border-dashed border-[var(--color-primary)]'
+                                : index === 0
+                                ? 'border-[var(--color-primary)] shadow-lg shadow-[var(--color-primary)]/10 ring-1 ring-[var(--color-primary)]/30'
+                                : 'border-zinc-800 hover:border-zinc-700'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                                index === 0
+                                  ? 'bg-[var(--color-primary)] text-zinc-950 font-extrabold'
+                                  : 'bg-zinc-800 text-zinc-400'
+                              }`}>
+                                #{index + 1} {index === 0 && '★ 1st Video'}
+                              </span>
+                              <div className="flex items-center gap-0.5">
+                                {index > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleReorderMedia(index, index - 1);
+                                    }}
+                                    title="Move left"
+                                    className="p-1 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors cursor-pointer"
                                   >
-                                    Reset to Auto
+                                    <ArrowLeft className="w-3 h-3" />
+                                  </button>
+                                )}
+                                {index < editingProject.images.length - 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleReorderMedia(index, index + 1);
+                                    }}
+                                    title="Move right"
+                                    className="p-1 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors cursor-pointer"
+                                  >
+                                    <ArrowRight className="w-3 h-3" />
                                   </button>
                                 )}
                               </div>
-                              <input 
-                                type="text" 
-                                value={media.thumbnailUrl || ''} 
-                                onChange={(e) => updateMedia(index, "thumbnailUrl", e.target.value)} 
-                                placeholder={media.url?.includes('drive.google.com') ? "Auto: Google Drive HD Thumbnail" : "Optional custom thumbnail URL..."} 
-                                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-50 focus:outline-none focus:border-[var(--color-primary)] placeholder:text-zinc-600" 
-                              />
                             </div>
-                          )}
 
-                          {media.type === 'comparison' && (
+                            <div className="w-full h-24 bg-zinc-950 rounded-lg overflow-hidden border border-zinc-800 flex items-center justify-center relative mb-2">
+                              {media.type === "image" ? (
+                                media.url ? (
+                                  <img loading="lazy" src={media.url} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover pointer-events-none" />
+                                ) : (
+                                  <ImageIcon className="w-6 h-6 text-zinc-700" />
+                                )
+                              ) : media.url ? (
+                                isSocialVideo(media.url) ? (
+                                  <SocialThumbnail url={media.url} customThumbnail={media.thumbnailUrl || (media as any).poster} className="w-full h-full object-cover pointer-events-none" autoPlay={false} />
+                                ) : (
+                                  <video src={media.url} poster={media.thumbnailUrl || (media as any).poster} muted playsInline className="w-full h-full object-cover pointer-events-none" />
+                                )
+                              ) : (
+                                <Video className="w-6 h-6 text-zinc-700" />
+                              )}
+                              {media.type === 'video' && (
+                                <div className="absolute top-1 right-1 bg-black/60 backdrop-blur-xs px-1.5 py-0.5 rounded text-[9px] font-bold text-white flex items-center gap-1 pointer-events-none">
+                                  <Play className="w-2.5 h-2.5 fill-current" /> Video
+                                </div>
+                              )}
+                            </div>
+
+                            {index !== 0 ? (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSetAsFirstMedia(index);
+                                }}
+                                className="w-full mt-auto py-1 px-2 text-[10px] font-medium bg-zinc-800 hover:bg-[var(--color-primary)] hover:text-zinc-950 text-zinc-300 rounded transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                              >
+                                <Star className="w-3 h-3" /> Set as 1st Video
+                              </button>
+                            ) : (
+                              <div className="w-full mt-auto py-1 px-2 text-[10px] font-bold text-center text-[var(--color-primary)] bg-[var(--color-primary)]/10 rounded border border-[var(--color-primary)]/20">
+                                ✓ Active 1st Video
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-6">
+                    {editingProject.images.map((media, index) => (
+                      <div 
+                        key={index} 
+                        draggable
+                        onDragStart={(e) => {
+                          if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'SELECT' || (e.target as HTMLElement).tagName === 'TEXTAREA' || (e.target as HTMLElement).closest('button')) {
+                            e.preventDefault();
+                            return;
+                          }
+                          setDraggedMediaIndex(index);
+                          e.dataTransfer.effectAllowed = 'move';
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = 'move';
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (draggedMediaIndex !== null && draggedMediaIndex !== index) {
+                            handleReorderMedia(draggedMediaIndex, index);
+                            setDraggedMediaIndex(null);
+                          }
+                        }}
+                        onDragEnd={() => setDraggedMediaIndex(null)}
+                        className={`bg-zinc-950 border rounded-xl p-4 transition-all duration-200 ${
+                          draggedMediaIndex === index
+                            ? 'opacity-40 border-dashed border-[var(--color-primary)]'
+                            : index === 0
+                            ? 'border-[var(--color-primary)]/70 ring-1 ring-[var(--color-primary)]/20 shadow-lg'
+                            : 'border-zinc-800'
+                        }`}
+                      >
+                        {/* Reorder Header Bar */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 border-b border-zinc-900">
+                          <div className="flex items-center gap-2">
+                            <div className="cursor-grab active:cursor-grabbing p-1.5 text-zinc-500 hover:text-zinc-300 rounded hover:bg-zinc-900 transition-colors" title="Drag card to reorder">
+                              <GripVertical className="w-4 h-4" />
+                            </div>
+                            <span className={`text-xs font-bold font-mono px-2 py-0.5 rounded ${
+                              index === 0 
+                                ? 'bg-[var(--color-primary)] text-zinc-950 font-extrabold'
+                                : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
+                            }`}>
+                              {index === 0 ? '★ 1st Video (Initial View on Project Page)' : `Media #${index + 1}`}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            {index > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => handleSetAsFirstMedia(index)}
+                                className="px-2 py-1 text-xs font-medium text-zinc-300 hover:text-zinc-950 bg-zinc-900 hover:bg-[var(--color-primary)] border border-zinc-800 rounded transition-colors flex items-center gap-1 cursor-pointer"
+                                title="Move this video to the first position"
+                              >
+                                <Star className="w-3 h-3" /> Set as 1st Video
+                              </button>
+                            )}
+                            {index > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => handleReorderMedia(index, index - 1)}
+                                className="p-1.5 text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded transition-colors cursor-pointer"
+                                title="Move Up"
+                              >
+                                <ArrowUp className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            {index < editingProject.images.length - 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleReorderMedia(index, index + 1)}
+                                className="p-1.5 text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded transition-colors cursor-pointer"
+                                title="Move Down"
+                              >
+                                <ArrowDown className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            <button 
+                              type="button"
+                              onClick={() => removeMedia(index)} 
+                              className="p-1.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded transition-colors border border-red-500/20 ml-1 cursor-pointer" 
+                              title="Delete media"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col md:flex-row gap-4 items-start">
+                          <div className="w-full md:w-32 h-32 bg-zinc-900 rounded-lg overflow-hidden flex-shrink-0 border border-zinc-800 flex items-center justify-center">
+                            {media.type === "image" ? (
+                              media.url ? <img loading="lazy" src={media.url} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" /> : <ImageIcon className="w-8 h-8 text-zinc-700" />
+                            ) : media.url ? (
+                              isSocialVideo(media.url) ? (
+                                <SocialThumbnail url={media.url} customThumbnail={media.thumbnailUrl || (media as any).poster} className="w-full h-full object-cover" />
+                              ) : (
+                                <video src={media.url} poster={media.thumbnailUrl || (media as any).poster} autoPlay muted loop playsInline className="w-full h-full object-contain" />
+                              )
+                            ) : (
+                              <Video className="w-8 h-8 text-zinc-700" />
+                            )}
+                          </div>
+
+                          <div className="flex-1 space-y-4 w-full">
+                            <div className="flex flex-col sm:flex-row gap-4">
+                              <div className="flex-1">
+                                <label className="block text-xs font-medium text-zinc-500 mb-1">Type</label>
+                                <select 
+                                  value={media.type} 
+                                  onChange={(e) => updateMedia(index, "type", e.target.value)} 
+                                  className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]"
+                                >
+                                  <option value="image">Image</option>
+                                  <option value="video">Video</option>
+                                  <option value="comparison">Before/After Comparison</option>
+                                </select>
+                              </div>
+                            </div>
+
                             <div>
-                              <label className="block text-xs font-medium text-zinc-500 mb-1">Second Image (After)</label>
-                              <DropZone onDropFile={(file) => handleDirectDrop(file, { section: 'project', index, isSecond: true })}>
+                              <label className="block text-xs font-medium text-zinc-500 mb-1">
+                                {media.type === 'comparison' ? 'First Image (Before)' : 'Media Source'}
+                              </label>
+                              <DropZone onDropFile={(file) => handleDirectDrop(file, { section: 'project', index })}>
                                 <div className="flex flex-col sm:flex-row gap-3">
-                                  <button onClick={() => handleUploadClick({ section: 'project', index, isSecond: true })} disabled={uploadTarget?.section === 'project' && uploadTarget?.index === index && uploadTarget?.isSecond} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors flex items-center justify-center gap-2 border border-zinc-700 disabled:opacity-50 whitespace-nowrap font-medium">
-                                  {uploadTarget?.section === 'project' && uploadTarget?.index === index && uploadTarget?.isSecond ? (
+                                  <button onClick={() => handleUploadClick({ section: 'project', index })} disabled={uploadTarget?.section === 'project' && uploadTarget?.index === index && !uploadTarget?.isSecond} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors flex items-center justify-center gap-2 border border-zinc-700 disabled:opacity-50 whitespace-nowrap font-medium">
+                                  {uploadTarget?.section === 'project' && uploadTarget?.index === index && !uploadTarget?.isSecond ? (
                                     <div className="flex items-center gap-2">
                                       <div className="w-5 h-5 border-2 border-zinc-400 border-t-emerald-400 rounded-full animate-spin" />
                                       <span className="text-xs font-mono">{uploadProgress}%</span>
@@ -1697,14 +1886,65 @@ export default function AdminDashboard() {
                                   Upload File
                                 </button>
                                 <div className="flex items-center text-zinc-500 text-xs font-medium">OR</div>
-                                <input type="text" value={media.secondUrl || ''} onChange={(e) => updateMedia(index, "secondUrl", e.target.value)} className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" placeholder="Paste external URL..." />
-                                <button onClick={() => removeMedia(index)} className="p-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors border border-red-500/20" title="Remove media">
-                                  <Trash2 className="w-5 h-5" />
-                                </button>
+                                <input type="text" value={media.url} onChange={(e) => {
+                                  const url = e.target.value;
+                                  updateMedia(index, "url", url);
+                                  if (media.type !== 'comparison') {
+                                    const isVideo = url.match(/\.(mp4|webm|ogg|mov|mkv|avi|m4v)$/i) || url.includes('video') || isSocialVideo(url);
+                                    updateMedia(index, "type", isVideo ? "video" : "image");
+                                  }
+                                }} className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" placeholder="Paste external URL..." />
                               </div>
                               </DropZone>
                             </div>
-                          )}
+
+                            {media.type === 'video' && (
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <label className="block text-xs font-medium text-zinc-400">
+                                    Video Thumbnail / Poster <span className="text-zinc-500 text-[11px]">(Auto-detected for Google Drive & YouTube, or custom)</span>
+                                  </label>
+                                  {media.thumbnailUrl && (
+                                    <button 
+                                      type="button" 
+                                      onClick={() => updateMedia(index, "thumbnailUrl", "")} 
+                                      className="text-[10px] text-zinc-500 hover:text-red-400"
+                                    >
+                                      Reset to Auto
+                                    </button>
+                                  )}
+                                </div>
+                                <input 
+                                  type="text" 
+                                  value={media.thumbnailUrl || ''} 
+                                  onChange={(e) => updateMedia(index, "thumbnailUrl", e.target.value)} 
+                                  placeholder={media.url?.includes('drive.google.com') ? "Auto: Google Drive HD Thumbnail" : "Optional custom thumbnail URL..."} 
+                                  className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-50 focus:outline-none focus:border-[var(--color-primary)] placeholder:text-zinc-600" 
+                                />
+                              </div>
+                            )}
+
+                            {media.type === 'comparison' && (
+                              <div>
+                                <label className="block text-xs font-medium text-zinc-500 mb-1">Second Image (After)</label>
+                                <DropZone onDropFile={(file) => handleDirectDrop(file, { section: 'project', index, isSecond: true })}>
+                                  <div className="flex flex-col sm:flex-row gap-3">
+                                    <button onClick={() => handleUploadClick({ section: 'project', index, isSecond: true })} disabled={uploadTarget?.section === 'project' && uploadTarget?.index === index && uploadTarget?.isSecond} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors flex items-center justify-center gap-2 border border-zinc-700 disabled:opacity-50 whitespace-nowrap font-medium">
+                                    {uploadTarget?.section === 'project' && uploadTarget?.index === index && uploadTarget?.isSecond ? (
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-5 h-5 border-2 border-zinc-400 border-t-emerald-400 rounded-full animate-spin" />
+                                        <span className="text-xs font-mono">{uploadProgress}%</span>
+                                      </div>
+                                    ) : <Upload className="w-5 h-5" />}
+                                    Upload File
+                                  </button>
+                                  <div className="flex items-center text-zinc-500 text-xs font-medium">OR</div>
+                                  <input type="text" value={media.secondUrl || ''} onChange={(e) => updateMedia(index, "secondUrl", e.target.value)} className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" placeholder="Paste external URL..." />
+                                </div>
+                                </DropZone>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -2602,6 +2842,52 @@ export default function AdminDashboard() {
                   aria-label="Toggle background particles"
                 >
                   <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${(navigationData.particles ?? true) ? 'left-7' : 'left-1'}`} />
+                </button>
+              </div>
+              <div className="flex items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-xl">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-zinc-100">Loading Screen (When Reload)</h3>
+                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${
+                      (navigationData.loadingScreen ?? true) 
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                        : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                    }`}>
+                      {(navigationData.loadingScreen ?? true) ? 'Visible' : 'Hidden'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-500">Hide or unhide the initial animated loading screen when the website loads or reloads</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNavigationData({ ...navigationData, loadingScreen: !(navigationData.loadingScreen ?? true) })}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${(navigationData.loadingScreen ?? true) ? 'bg-emerald-500' : 'bg-zinc-700'}`}
+                  aria-label="Toggle loading screen on reload"
+                >
+                  <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${(navigationData.loadingScreen ?? true) ? 'left-7' : 'left-1'}`} />
+                </button>
+              </div>
+              <div className="flex items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-xl">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-zinc-100">Loading Screen Greetings</h3>
+                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${
+                      (navigationData.loadingGreetings ?? true) 
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                        : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                    }`}>
+                      {(navigationData.loadingGreetings ?? true) ? 'Visible' : 'Hidden'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-500">Hide or unhide the greeting text (e.g. "{themeData.loadingText || 'ENJOY!'}") after loading reaches 100%</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNavigationData({ ...navigationData, loadingGreetings: !(navigationData.loadingGreetings ?? true) })}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${(navigationData.loadingGreetings ?? true) ? 'bg-emerald-500' : 'bg-zinc-700'}`}
+                  aria-label="Toggle loading screen greetings"
+                >
+                  <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${(navigationData.loadingGreetings ?? true) ? 'left-7' : 'left-1'}`} />
                 </button>
               </div>
             </div>

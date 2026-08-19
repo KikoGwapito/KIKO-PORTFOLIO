@@ -5,11 +5,13 @@ interface SocialThumbnailProps {
   url: string;
   customThumbnail?: string;
   className?: string;
+  autoPlay?: boolean;
 }
 
-export function SocialThumbnail({ url, customThumbnail, className = "" }: SocialThumbnailProps) {
+export function SocialThumbnail({ url, customThumbnail, className = "", autoPlay = true }: SocialThumbnailProps) {
   const [thumbUrl, setThumbUrl] = useState<string | null>(customThumbnail || null);
   const [attemptIndex, setAttemptIndex] = useState<number>(0);
+  const [streamError, setStreamError] = useState<boolean>(false);
   const info = getEmbedInfo(url);
 
   // Generate candidate list for thumbnails
@@ -35,6 +37,7 @@ export function SocialThumbnail({ url, customThumbnail, className = "" }: Social
   };
 
   useEffect(() => {
+    setStreamError(false);
     if (customThumbnail) {
       setThumbUrl(customThumbnail);
       return;
@@ -78,6 +81,48 @@ export function SocialThumbnail({ url, customThumbnail, className = "" }: Social
     }
   };
 
+  // Google Drive video autoplay stream
+  if (autoPlay && info.type === 'gdrive' && info.id && !streamError) {
+    return (
+      <div className={`relative overflow-hidden ${className}`}>
+        <video 
+          src={`/api/gdrive-stream?id=${info.id}`}
+          poster={thumbUrl || undefined}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          onError={() => setStreamError(true)}
+          className="w-full h-full object-cover"
+        />
+      </div>
+    );
+  }
+
+  // YouTube video autoplay preview
+  if (autoPlay && info.type === 'youtube' && info.id) {
+    return (
+      <div className={`relative overflow-hidden pointer-events-none ${className}`}>
+        <iframe
+          src={`https://www.youtube-nocookie.com/embed/${info.id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${info.id}&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&iv_load_policy=3&disablekb=1&fs=0`}
+          className="absolute inset-0 w-[160%] h-[160%] -top-[30%] -left-[30%] object-cover pointer-events-none"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          title="YouTube thumbnail preview"
+          tabIndex={-1}
+        />
+        {thumbUrl && (
+          <img 
+            src={thumbUrl} 
+            alt="YouTube thumbnail fallback" 
+            className="absolute inset-0 w-full h-full object-cover -z-10" 
+            loading="lazy" 
+          />
+        )}
+      </div>
+    );
+  }
+
   if (thumbUrl) {
     return (
       <img 
@@ -97,13 +142,12 @@ export function SocialThumbnail({ url, customThumbnail, className = "" }: Social
     return (
       <div className={`relative pointer-events-none overflow-hidden ${className}`}>
         <iframe
-          src={info.type === 'youtube' ? `${info.embedUrl}?autoplay=0&controls=0` : info.embedUrl}
+          src={info.type === 'youtube' ? `${info.embedUrl}?autoplay=1&mute=1&controls=0` : info.embedUrl}
           className="absolute inset-0 w-full h-full object-cover scale-150 pointer-events-none"
           title={`${info.type} thumbnail fallback`}
           loading="lazy"
           allow="autoplay; fullscreen"
         />
-        {/* Subtle overlay to prevent interaction in thumbnail mode */}
         <div className="absolute inset-0 bg-black/10" />
       </div>
     );

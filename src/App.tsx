@@ -387,17 +387,19 @@ export default function App() {
     return <div className="fixed inset-0" style={{ backgroundColor: '#09090b' }} />;
   }
 
+  const isShowLoadingScreen = (data.navigation?.loadingScreen ?? true) && isLoadingScreen;
+
   return (
     <LenisProvider>
       <div className="min-h-screen text-zinc-50 font-sans cursor-none relative" style={{ '--color-primary': data.theme.primaryColor } as React.CSSProperties}>
-        {(data.navigation?.particles ?? true) && <LiquidBackground speedState={backgroundSpeed} />}
+        {(data.navigation?.particles ?? true) && <LiquidBackground speedState={isShowLoadingScreen ? backgroundSpeed : 'normal'} />}
 
         <FirebaseConfigBanner />
       <SecurityOverlay />
       <CustomCursor />
       
       <AnimatePresence mode="wait">
-        {isLoadingScreen ? (
+        {isShowLoadingScreen ? (
           <LoadingScreen 
             key="loading" 
             onComplete={() => {

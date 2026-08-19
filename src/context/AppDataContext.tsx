@@ -141,6 +141,8 @@ export type NavigationSettings = {
   process: boolean;
   reviews: boolean;
   particles?: boolean;
+  loadingScreen?: boolean;
+  loadingGreetings?: boolean;
 };
 
 export type AppData = {
@@ -290,7 +292,9 @@ const defaultData: AppData = {
     about: true,
     process: true,
     reviews: true,
-    particles: true
+    particles: true,
+    loadingScreen: true,
+    loadingGreetings: true
   },
   projects: defaultProjects,
   projectOrder: ['fintech', 'ecommerce', 'saas', 'healthtech'],

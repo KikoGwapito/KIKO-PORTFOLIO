@@ -191,7 +191,9 @@ function Carousel3D({ items, onMediaClick }: { items: any[], onMediaClick: (medi
                 ) : (
                   <video 
                     src={`${item.url}#t=1`} 
-                    preload="metadata"
+                    preload="auto"
+                    autoPlay
+                    loop
                     muted playsInline 
                     draggable={false}
                     className="w-full h-full object-cover pointer-events-none select-none" 

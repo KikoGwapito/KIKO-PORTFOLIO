@@ -304,19 +304,29 @@ export default function Home() {
               <div className="w-full h-full">
                 {data.hero.media.type === 'video' ? (
                   isSocialVideo(data.hero.media.url) ? (
-                    <div className="w-full h-full relative pointer-events-none grayscale-hover transition-all duration-1000 overflow-hidden">
-                      <iframe
-                        src={(() => {
-                          const info = getEmbedInfo(data.hero.media.url);
-                          if (info.type === 'youtube') return `${info.embedUrl}?autoplay=1&mute=1&controls=0&loop=1&playlist=${info.id}&rel=0&modestbranding=1&playsinline=1`;
-                          return info.embedUrl;
-                        })()}
-                        className="absolute inset-0 w-full h-full object-cover scale-150"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                        title="Hero background video"
-                      />
-                    </div>
+                    (() => {
+                      const info = getEmbedInfo(data.hero.media.url);
+                      if (info.type === 'gdrive' && info.id) {
+                        return (
+                          <video 
+                            src={`/api/gdrive-stream?id=${info.id}`} 
+                            autoPlay loop muted playsInline 
+                            className="w-full h-full object-cover grayscale-hover transition-transform duration-1000"
+                          />
+                        );
+                      }
+                      return (
+                        <div className="w-full h-full relative pointer-events-none grayscale-hover transition-all duration-1000 overflow-hidden">
+                          <iframe
+                            src={info.type === 'youtube' ? `${info.embedUrl}?autoplay=1&mute=1&controls=0&loop=1&playlist=${info.id}&rel=0&modestbranding=1&playsinline=1` : info.embedUrl}
+                            className="absolute inset-0 w-full h-full object-cover scale-150"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            title="Hero background video"
+                          />
+                        </div>
+                      );
+                    })()
                   ) : (
                     <video 
                       src={data.hero.media.url || undefined} 

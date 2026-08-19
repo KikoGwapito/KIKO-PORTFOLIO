@@ -13,6 +13,7 @@ export function LoadingScreen({ onComplete, onGreetingShow }: LoadingScreenProps
   const [showGreeting, setShowGreeting] = useState(false);
   const { data } = useAppData();
   const primaryColor = data.theme.primaryColor || '#10b981';
+  const showGreetings = data.navigation?.loadingGreetings ?? true;
 
   useEffect(() => {
     let startTime = performance.now();
@@ -24,13 +25,20 @@ export function LoadingScreen({ onComplete, onGreetingShow }: LoadingScreenProps
       
       if (p >= 100) {
         setProgress(100);
-        setTimeout(() => {
-          setShowGreeting(true);
-          if (onGreetingShow) onGreetingShow();
+        if (showGreetings) {
+          setTimeout(() => {
+            setShowGreeting(true);
+            if (onGreetingShow) onGreetingShow();
+            setTimeout(() => {
+              onComplete();
+            }, 3000); // Hold for 3 seconds to show greeting
+          }, 1000); // Hold at 100% for 1 second before showing greeting
+        } else {
+          // Greetings disabled: complete after short pause at 100%
           setTimeout(() => {
             onComplete();
-          }, 3000); // Hold for 3 seconds to show greeting
-        }, 1000); // Hold at 100% for 1 second before showing greeting
+          }, 400);
+        }
       } else {
         // Easing function for smoother graph effect
         const easeOutExpo = p === 100 ? 1 : 1 - Math.pow(2, -10 * p / 100);
@@ -40,7 +48,7 @@ export function LoadingScreen({ onComplete, onGreetingShow }: LoadingScreenProps
     };
 
     requestAnimationFrame(updateProgress);
-  }, [onComplete]);
+  }, [onComplete, onGreetingShow, showGreetings]);
 
   // Generate some fake graph points that animate over time relative to progress
   const numPoints = 20;
