@@ -16,7 +16,12 @@ const storage = multer.diskStorage({
     cb(null, uniqueSuffix + path.extname(file.originalname));
   }
 });
-const upload = multer({ storage });
+const upload = multer({ 
+  storage,
+  limits: {
+    fileSize: 500 * 1024 * 1024 // 500 MB max for videos
+  }
+});
 
 async function startServer() {
   const app = express();
@@ -91,6 +96,56 @@ async function startServer() {
     } catch (err: any) {
       console.error('Oembed proxy error:', err);
       res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Cloudinary Proxy Upload endpoint (bypasses browser CORS & size restrictions)
+  app.post('/api/upload/cloudinary', upload.single('file'), async (req, res) => {
+    console.log('Received Cloudinary proxy upload request:', req.file?.originalname);
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const cloudName = (req.body.cloudName || process.env.VITE_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME || '').trim();
+    const uploadPreset = (req.body.uploadPreset || process.env.VITE_CLOUDINARY_UPLOAD_PRESET || process.env.CLOUDINARY_UPLOAD_PRESET || '').trim();
+    const resourceType = req.body.resourceType === 'video' ? 'video' : 'auto';
+
+    if (!cloudName || !uploadPreset) {
+      return res.status(400).json({ error: 'Cloud Name and Upload Preset are required for Cloudinary upload.' });
+    }
+
+    try {
+      const fileBuffer = fs.readFileSync(req.file.path);
+      const blob = new Blob([fileBuffer], { type: req.file.mimetype || (resourceType === 'video' ? 'video/mp4' : 'application/octet-stream') });
+      const formData = new FormData();
+      formData.append('file', blob, req.file.originalname);
+      formData.append('upload_preset', uploadPreset);
+      formData.append('resource_type', resourceType);
+
+      const endpoint = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
+      console.log(`Forwarding to Cloudinary endpoint: ${endpoint}`);
+
+      const cloudRes = await fetch(endpoint, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await cloudRes.json();
+      if (!cloudRes.ok) {
+        console.error('Cloudinary upstream API error:', data);
+        const errMsg = data.error?.message || `Cloudinary returned HTTP status ${cloudRes.status}`;
+        return res.status(cloudRes.status).json({ error: errMsg });
+      }
+
+      console.log('Cloudinary server proxy upload success:', data.secure_url || data.url);
+      
+      // Clean up temp file
+      fs.unlink(req.file.path, () => {});
+
+      return res.json({ url: data.secure_url || data.url });
+    } catch (err: any) {
+      console.error('Error in Cloudinary server upload proxy:', err);
+      return res.status(500).json({ error: err.message || 'Server error proxying to Cloudinary' });
     }
   });
 

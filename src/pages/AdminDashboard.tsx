@@ -29,7 +29,11 @@ import {
   Search,
   Filter,
   Cloud,
-  Navigation
+  Navigation,
+  CheckCircle2,
+  AlertCircle,
+  ExternalLink,
+  RefreshCw
 } from "lucide-react";
 
 type Tab = 'hero' | 'trust' | 'featured' | 'about' | 'process' | 'contact' | 'pageTitle' | 'reviews' | 'theme' | 'navigation' | 'security';
@@ -168,6 +172,115 @@ export default function AdminDashboard() {
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [isTestingCloudinary, setIsTestingCloudinary] = useState(false);
+  const [cloudinaryForm, setCloudinaryForm] = useState({
+    cloudName: data.cloudinary?.cloudName || '',
+    uploadPreset: data.cloudinary?.uploadPreset || ''
+  });
+  const [cloudinaryTestResult, setCloudinaryTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  // Sync with data changes
+  useEffect(() => {
+    if (data.cloudinary) {
+      setCloudinaryForm({
+        cloudName: data.cloudinary.cloudName || '',
+        uploadPreset: data.cloudinary.uploadPreset || ''
+      });
+    }
+  }, [data.cloudinary]);
+
+  const testCloudinary = async () => {
+    const cloudName = (cloudinaryForm.cloudName || import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '').trim();
+    const uploadPreset = (cloudinaryForm.uploadPreset || import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || '').trim();
+
+    if (!cloudName || !uploadPreset) {
+      setCloudinaryTestResult({
+        success: false,
+        message: 'Please enter both Cloud Name and Upload Preset first.'
+      });
+      return;
+    }
+
+    setIsTestingCloudinary(true);
+    setCloudinaryTestResult(null);
+
+    try {
+      // Create a minimal 1x1 test image blob
+      const base64Pixel = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+      const res = await fetch(base64Pixel);
+      const blob = await res.blob();
+      const testFile = new File([blob], 'cloudinary-test.png', { type: 'image/png' });
+
+      let testSuccess = false;
+      let note = '';
+
+      try {
+        const formData = new FormData();
+        formData.append('file', testFile);
+        formData.append('upload_preset', uploadPreset);
+        formData.append('resource_type', 'auto');
+
+        const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
+          method: 'POST',
+          body: formData
+        });
+
+        const cloudData = await cloudRes.json();
+        if (cloudRes.ok && (cloudData.secure_url || cloudData.url)) {
+          testSuccess = true;
+          note = 'Direct browser upload to Cloudinary verified successfully!';
+        } else {
+          throw new Error(cloudData.error?.message || `HTTP ${cloudRes.status}`);
+        }
+      } catch (directErr: any) {
+        // Try server-side proxy
+        const formData = new FormData();
+        formData.append('file', testFile);
+        formData.append('cloudName', cloudName);
+        formData.append('uploadPreset', uploadPreset);
+        formData.append('resourceType', 'auto');
+
+        const proxyRes = await fetch('/api/upload/cloudinary', {
+          method: 'POST',
+          body: formData
+        });
+
+        const proxyData = await proxyRes.json();
+        if (proxyRes.ok && proxyData.url) {
+          testSuccess = true;
+          note = 'Verified via server proxy (bypasses browser CORS & chunking limits)!';
+        } else {
+          throw new Error(proxyData.error || directErr.message || 'Verification failed');
+        }
+      }
+
+      if (testSuccess) {
+        setCloudinaryTestResult({
+          success: true,
+          message: `Connection successful! ${note}`
+        });
+        showNotification('Cloudinary connection verified!', 'success');
+      }
+    } catch (err: any) {
+      setCloudinaryTestResult({
+        success: false,
+        message: `Connection failed: ${err.message || 'Invalid Cloud Name or Upload Preset. Make sure your preset is set to "Unsigned" in Cloudinary settings.'}`
+      });
+      showNotification(`Cloudinary test failed: ${err.message}`, 'error');
+    } finally {
+      setIsTestingCloudinary(false);
+    }
+  };
+
+  const saveCloudinarySettings = () => {
+    updateData({
+      cloudinary: {
+        cloudName: cloudinaryForm.cloudName.trim(),
+        uploadPreset: cloudinaryForm.uploadPreset.trim()
+      }
+    });
+    setShowCloudinaryConfig(false);
+    showNotification('Cloudinary settings saved!', 'success');
+  };
   const [uploadTarget, setUploadTargetState] = useState<{
     section: 'project' | 'hero' | 'trust' | 'about' | 'process' | 'contact' | 'pageTitle' | 'process_modal';
     index?: number;
@@ -519,49 +632,16 @@ export default function AdminDashboard() {
       let url = "";
       const mediaType = isVideo ? "video" : "image";
 
-      const cloudName = data.cloudinary.cloudName || import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-      const uploadPreset = data.cloudinary.uploadPreset || import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+      const cloudName = (data.cloudinary?.cloudName || import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || "").trim();
+      const uploadPreset = (data.cloudinary?.uploadPreset || import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || "").trim();
 
-      if (cloudName && uploadPreset) {
-        // Upload to Cloudinary using XMLHttpRequest for progress tracking
-        url = await new Promise((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          const formData = new FormData();
-          formData.append('file', fileToUpload);
-          formData.append('upload_preset', uploadPreset);
-
-          const resourceType = isVideo ? 'video' : 'auto';
-          xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`);
-
-          xhr.upload.onprogress = (event) => {
-            if (event.lengthComputable) {
-              const percentComplete = Math.round((event.loaded / event.total) * 100);
-              setUploadProgress(percentComplete);
-            }
-          };
-
-          xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              const response = JSON.parse(xhr.responseText);
-              resolve(response.secure_url);
-            } else {
-              const error = JSON.parse(xhr.responseText);
-              reject(new Error(error.error?.message || 'Cloudinary upload failed'));
-            }
-          };
-
-          xhr.onerror = () => reject(new Error('Network error during Cloudinary upload'));
-          xhr.send(formData);
-        });
-      } else {
-        // Fallback to local server upload
-        url = await new Promise((resolve, reject) => {
+      const uploadLocal = async (): Promise<string> => {
+        return new Promise((resolve, reject) => {
           const xhr = new XMLHttpRequest();
           const formData = new FormData();
           formData.append('file', fileToUpload);
 
           xhr.open('POST', '/api/upload');
-
           xhr.upload.onprogress = (event) => {
             if (event.lengthComputable) {
               const percentComplete = Math.round((event.loaded / event.total) * 100);
@@ -571,16 +651,120 @@ export default function AdminDashboard() {
 
           xhr.onload = () => {
             if (xhr.status >= 200 && xhr.status < 300) {
-              const response = JSON.parse(xhr.responseText);
-              resolve(response.url);
+              try {
+                const response = JSON.parse(xhr.responseText);
+                resolve(response.url);
+              } catch {
+                reject(new Error('Invalid response from local upload server'));
+              }
             } else {
-              reject(new Error('Local upload failed'));
+              reject(new Error(`Local upload failed (status ${xhr.status})`));
             }
           };
 
           xhr.onerror = () => reject(new Error('Network error during local upload'));
           xhr.send(formData);
         });
+      };
+
+      const uploadCloudinaryServerProxy = async (resourceType: string): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          const formData = new FormData();
+          formData.append('file', fileToUpload);
+          formData.append('cloudName', cloudName);
+          formData.append('uploadPreset', uploadPreset);
+          formData.append('resourceType', resourceType);
+
+          xhr.open('POST', '/api/upload/cloudinary');
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const percentComplete = Math.round((event.loaded / event.total) * 100);
+              setUploadProgress(percentComplete);
+            }
+          };
+
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              try {
+                const response = JSON.parse(xhr.responseText);
+                resolve(response.url);
+              } catch {
+                reject(new Error('Invalid server proxy response'));
+              }
+            } else {
+              try {
+                const errorData = JSON.parse(xhr.responseText);
+                reject(new Error(errorData.error || `Server proxy returned HTTP ${xhr.status}`));
+              } catch {
+                reject(new Error(`Server proxy failed with HTTP ${xhr.status}`));
+              }
+            }
+          };
+
+          xhr.onerror = () => reject(new Error('Network error during server proxy upload'));
+          xhr.send(formData);
+        });
+      };
+
+      if (cloudName && uploadPreset) {
+        const resourceType = isVideo ? 'video' : 'auto';
+        try {
+          // Attempt 1: Direct browser upload to Cloudinary
+          url = await new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            const formData = new FormData();
+            formData.append('file', fileToUpload);
+            formData.append('upload_preset', uploadPreset);
+            formData.append('resource_type', resourceType);
+
+            xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`);
+            xhr.timeout = 180000; // 3 min timeout
+
+            xhr.upload.onprogress = (event) => {
+              if (event.lengthComputable) {
+                const percentComplete = Math.round((event.loaded / event.total) * 100);
+                setUploadProgress(percentComplete);
+              }
+            };
+
+            xhr.onload = () => {
+              if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                  const response = JSON.parse(xhr.responseText);
+                  resolve(response.secure_url || response.url);
+                } catch {
+                  reject(new Error('Invalid Cloudinary response'));
+                }
+              } else {
+                try {
+                  const error = JSON.parse(xhr.responseText);
+                  reject(new Error(error.error?.message || `Cloudinary rejected upload (HTTP ${xhr.status})`));
+                } catch {
+                  reject(new Error(`Cloudinary upload failed with HTTP ${xhr.status}`));
+                }
+              }
+            };
+
+            xhr.onerror = () => reject(new Error('Direct browser network/CORS error'));
+            xhr.ontimeout = () => reject(new Error('Direct upload timed out'));
+            xhr.send(formData);
+          });
+        } catch (directError: any) {
+          console.warn("Direct Cloudinary upload failed, attempting backend server proxy...", directError);
+          try {
+            // Attempt 2: Server-side proxy (bypasses browser CORS, timeout & chunking constraints)
+            url = await uploadCloudinaryServerProxy(resourceType);
+          } catch (proxyError: any) {
+            console.warn("Server Cloudinary upload also failed, falling back to local storage...", proxyError);
+            // Attempt 3: Local storage fallback to guarantee zero lost user uploads
+            url = await uploadLocal();
+            showNotification(`Saved to local media storage (Cloudinary note: ${proxyError.message || directError.message})`, "info");
+          }
+        }
+      } else {
+        // Fallback to local server upload
+        url = await uploadLocal();
       }
 
       switch (target.section) {
@@ -2040,24 +2224,40 @@ export default function AdminDashboard() {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 border-b border-zinc-800 pb-6 gap-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-          {isCloudinaryConfigured ? (
-            <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-xs font-medium flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
-              Cloudinary Active
-            </span>
-          ) : (
-            <span className="px-3 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full text-xs font-medium flex items-center gap-1.5" title="Uploads are temporary and will be lost on server restart. Configure Cloudinary for permanent storage.">
-              <div className="w-1.5 h-1.5 rounded-full bg-amber-400"></div>
-              Temporary Local Storage
-            </span>
-          )}
+          <button
+            onClick={() => setShowCloudinaryConfig(true)}
+            className="group cursor-pointer transition-transform hover:scale-105"
+            title="Click to configure Cloudinary Storage"
+          >
+            {isCloudinaryConfigured ? (
+              <span className="px-3 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                Cloudinary Active
+                <Settings className="w-3 h-3 ml-0.5 opacity-60 group-hover:opacity-100" />
+              </span>
+            ) : (
+              <span className="px-3 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors" title="Configure Cloudinary for permanent cloud media storage.">
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-400"></div>
+                Temporary Local Storage
+                <Settings className="w-3 h-3 ml-0.5 opacity-60 group-hover:opacity-100" />
+              </span>
+            )}
+          </button>
         </div>
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-2 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition-colors text-zinc-400 hover:text-red-400"
-        >
-          <LogOut className="w-4 h-4" /> Logout
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowCloudinaryConfig(true)}
+            className="flex items-center gap-2 px-3.5 py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition-colors text-zinc-300 hover:text-white text-sm font-medium"
+          >
+            <Cloud className="w-4 h-4 text-emerald-400" /> Storage Settings
+          </button>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition-colors text-zinc-400 hover:text-red-400 text-sm font-medium"
+          >
+            <LogOut className="w-4 h-4" /> Logout
+          </button>
+        </div>
       </div>
 
       {/* Global Note about Accent Color */}
@@ -2283,6 +2483,136 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+      {/* Cloudinary Storage Configuration Modal */}
+      {showCloudinaryConfig && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[70] backdrop-blur-sm">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 md:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-zinc-800">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  <Cloud className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">Media Storage Settings</h3>
+                  <p className="text-xs text-zinc-400">Configure Cloudinary for permanent cloud video & image storage</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => {
+                  setShowCloudinaryConfig(false);
+                  setCloudinaryTestResult(null);
+                }}
+                className="text-zinc-500 hover:text-zinc-200 transition-colors text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="p-3.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-xs text-blue-300 flex flex-col gap-1.5 leading-relaxed">
+                <span className="font-semibold text-blue-200 flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5" /> High-Performance Video Uploads
+                </span>
+                <span>
+                  Videos and images are uploaded directly or proxied through our backend server with automatic fallback to local storage so uploads never fail.
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
+                  Cloudinary Cloud Name
+                </label>
+                <input
+                  type="text"
+                  value={cloudinaryForm.cloudName}
+                  onChange={(e) => {
+                    setCloudinaryForm(prev => ({ ...prev, cloudName: e.target.value }));
+                    setCloudinaryTestResult(null);
+                  }}
+                  placeholder="e.g. your-cloud-name"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)] font-mono text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
+                  Unsigned Upload Preset
+                </label>
+                <input
+                  type="text"
+                  value={cloudinaryForm.uploadPreset}
+                  onChange={(e) => {
+                    setCloudinaryForm(prev => ({ ...prev, uploadPreset: e.target.value }));
+                    setCloudinaryTestResult(null);
+                  }}
+                  placeholder="e.g. ml_default or your unsigned preset name"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)] font-mono text-sm"
+                />
+                <p className="text-[11px] text-zinc-500 mt-1">
+                  In Cloudinary Console &gt; Settings &gt; Upload, make sure your preset Signing Mode is set to <strong>Unsigned</strong>.
+                </p>
+              </div>
+
+              {cloudinaryTestResult && (
+                <div className={`p-3.5 rounded-xl border text-xs leading-relaxed flex items-start gap-2.5 ${
+                  cloudinaryTestResult.success 
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' 
+                    : 'bg-red-500/10 border-red-500/30 text-red-300'
+                }`}>
+                  {cloudinaryTestResult.success ? (
+                    <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-400" />
+                  )}
+                  <span>{cloudinaryTestResult.message}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-6 pt-4 border-t border-zinc-800">
+              <button
+                type="button"
+                onClick={testCloudinary}
+                disabled={isTestingCloudinary}
+                className="w-full sm:w-auto px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 border border-zinc-700 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                {isTestingCloudinary ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    Testing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    Test Connection
+                  </>
+                )}
+              </button>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCloudinaryConfig(false);
+                    setCloudinaryTestResult(null);
+                  }}
+                  className="px-4 py-2 text-zinc-400 hover:text-white transition-colors text-xs font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={saveCloudinarySettings}
+                  className="px-5 py-2 bg-[var(--color-primary)] text-zinc-950 font-bold rounded-xl text-xs hover:opacity-90 transition-opacity"
+                >
+                  Save Settings
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Floating Save Action */}
       <AnimatePresence>
         {hasUnsavedChanges && activeTab !== 'security' && (
