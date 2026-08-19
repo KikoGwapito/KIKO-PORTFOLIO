@@ -3,6 +3,7 @@ import { createServer as createViteServer } from 'vite';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { Readable } from 'stream';
 
 const uploadDir = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadDir)) {
@@ -136,6 +137,73 @@ async function startServer() {
     }
 
     return res.status(404).json({ error: 'Thumbnail not available' });
+  });
+
+  // Google Drive video stream proxy endpoint (supports HTTP Range for seeking & native mobile streaming)
+  app.get('/api/gdrive-stream', async (req, res) => {
+    const { id } = req.query;
+    if (!id || typeof id !== 'string') {
+      return res.status(400).json({ error: 'Missing id parameter' });
+    }
+
+    const candidateUrls = [
+      `https://drive.usercontent.google.com/download?id=${id}&export=download&authuser=0`,
+      `https://drive.google.com/uc?export=download&id=${id}&confirm=t`,
+      `https://docs.google.com/uc?export=download&id=${id}`
+    ];
+
+    const rangeHeader = req.headers.range;
+
+    for (const streamUrl of candidateUrls) {
+      try {
+        const fetchHeaders: Record<string, string> = {
+          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+          'Accept': '*/*'
+        };
+        if (rangeHeader) {
+          fetchHeaders['Range'] = rangeHeader;
+        }
+
+        const response = await fetch(streamUrl, {
+          headers: fetchHeaders,
+          redirect: 'follow'
+        });
+
+        if (response.ok || response.status === 206) {
+          const contentType = response.headers.get('content-type') || '';
+          
+          // Avoid tiny html responses that are error messages or virus scan walls
+          const len = parseInt(response.headers.get('content-length') || '0', 10);
+          if (contentType.includes('text/html') && len < 50000) {
+            continue;
+          }
+
+          res.status(response.status);
+          res.setHeader('Content-Type', contentType.startsWith('video/') ? contentType : 'video/mp4');
+          res.setHeader('Accept-Ranges', 'bytes');
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          
+          const contentRange = response.headers.get('content-range');
+          if (contentRange) {
+            res.setHeader('Content-Range', contentRange);
+          }
+          
+          const contentLength = response.headers.get('content-length');
+          if (contentLength) {
+            res.setHeader('Content-Length', contentLength);
+          }
+
+          if (response.body) {
+            const nodeStream = Readable.fromWeb(response.body as any);
+            return nodeStream.pipe(res);
+          }
+        }
+      } catch (err) {
+        // try next candidate
+      }
+    }
+
+    return res.status(404).json({ error: 'Stream not available' });
   });
 
   // Cloudinary Proxy Upload endpoint (supports chunked streaming for 400MB+ videos)

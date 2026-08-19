@@ -31,44 +31,58 @@ function MediaModal({ media, onClose }: { media: any, onClose: () => void }) {
       initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
       animate={{ opacity: 1, backdropFilter: "blur(10px)" }}
       exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
-      className="fixed inset-0 z-[99999] w-screen h-screen flex flex-col items-center justify-center bg-zinc-950/95 overflow-hidden p-2 sm:p-6 md:p-12"
+      className="fixed inset-0 z-[99999] w-screen h-screen flex flex-col items-center justify-between bg-zinc-950/95 overflow-y-auto p-4 sm:p-6 md:p-8"
       onClick={onClose}
     >
-      <button
-        onClick={onClose}
-        className="absolute top-3 right-3 sm:top-6 sm:right-6 z-[100000] p-2.5 sm:p-3 bg-zinc-900/90 hover:bg-zinc-800 text-white rounded-full transition-colors border border-white/10 shadow-lg active:scale-95"
+      {/* Top Bar with Safe Close Button - completely separate from video */}
+      <div 
+        className="w-full max-w-5xl flex items-center justify-between z-[100000] flex-shrink-0 mb-3 sm:mb-4 pointer-events-auto"
+        onClick={(e) => e.stopPropagation()}
       >
-        <svg width="20" height="20" className="sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-      </button>
+        <div className="flex items-center gap-2 text-zinc-400 text-xs font-mono">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>{media.type === 'video' ? 'Video Player' : media.type === 'comparison' ? 'Comparison View' : 'Media Preview'}</span>
+        </div>
+        <button
+          onClick={onClose}
+          aria-label="Close modal"
+          className="p-2 sm:p-2.5 bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-full transition-colors border border-white/10 shadow-lg active:scale-95 flex items-center justify-center cursor-pointer"
+        >
+          <svg width="20" height="20" className="sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
 
       <motion.div 
-        initial={{ scale: 0.9, opacity: 0 }}
+        initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        className="relative w-full h-full max-w-6xl max-h-[92vh] sm:max-h-[88vh] flex items-center justify-center pointer-events-auto"
+        exit={{ scale: 0.95, opacity: 0 }}
+        className="w-full max-w-5xl my-auto flex items-center justify-center pointer-events-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {media.type === 'video' ? (
-          <VideoPlayer src={media.url} autoPlay className="w-full h-full" />
+          <VideoPlayer src={media.url} autoPlay className="w-full" />
         ) : media.type === 'comparison' ? (
-          <div className="w-full h-full flex items-center justify-center">
+          <div className="w-full flex items-center justify-center">
             <ComparisonSlider 
               beforeUrl={media.url || ''} 
               afterUrl={media.secondUrl || ''} 
               objectFit="contain"
-              className="w-full h-full object-contain rounded-[2.5rem] overflow-hidden shadow-2xl bg-black"
+              className="w-full object-contain rounded-2xl overflow-hidden shadow-2xl bg-black"
             />
           </div>
         ) : (
           <img loading="lazy"
             src={media.url}
             alt="fullscreen"
-            className="w-full h-full object-contain rounded-[2.5rem] shadow-2xl"
+            className="w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl"
             draggable={false}
             onContextMenu={(e) => e.preventDefault()}
           />
         )}
       </motion.div>
+
+      {/* Bottom spacer for balance */}
+      <div className="w-full max-w-5xl h-2 flex-shrink-0" />
     </motion.div>
   );
 }
