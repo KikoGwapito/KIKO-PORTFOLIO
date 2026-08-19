@@ -177,6 +177,18 @@ export default function AdminDashboard() {
     cloudName: data.cloudinary?.cloudName || '',
     uploadPreset: data.cloudinary?.uploadPreset || ''
   });
+  const [videoSizeModal, setVideoSizeModal] = useState<{
+    isOpen: boolean;
+    file: File | null;
+    target: { section: string; index?: number; isSecond?: boolean } | null;
+    isError: boolean;
+    errorMessage?: string;
+  }>({
+    isOpen: false,
+    file: null,
+    target: null,
+    isError: false
+  });
   const [cloudinaryTestResult, setCloudinaryTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   // Sync with data changes
@@ -580,13 +592,146 @@ export default function AdminDashboard() {
     }
   };
 
-  const performUpload = async (file: File, target: { section: string, index?: number, isSecond?: boolean }) => {
+  const compressVideoFile = async (
+    file: File,
+    onProgress: (percent: number, status: string) => void
+  ): Promise<File> => {
+    return new Promise((resolve) => {
+      const video = document.createElement('video');
+      video.preload = 'auto';
+      video.muted = true;
+      video.playsInline = true;
+      video.crossOrigin = 'anonymous';
+
+      const fileUrl = URL.createObjectURL(file);
+      video.src = fileUrl;
+
+      video.onloadedmetadata = async () => {
+        try {
+          const duration = video.duration || 10;
+          let targetWidth = video.videoWidth || 1920;
+          let targetHeight = video.videoHeight || 1080;
+
+          // Downscale high res (4K) to 1080p for web
+          if (targetWidth > 1920 || targetHeight > 1080) {
+            if (targetWidth > targetHeight) {
+              targetHeight = Math.round((targetHeight * 1920) / targetWidth);
+              targetWidth = 1920;
+            } else {
+              targetWidth = Math.round((targetWidth * 1080) / targetHeight);
+              targetHeight = 1080;
+            }
+          }
+          targetWidth = targetWidth % 2 === 0 ? targetWidth : targetWidth - 1;
+          targetHeight = targetHeight % 2 === 0 ? targetHeight : targetHeight - 1;
+
+          const canvas = document.createElement('canvas');
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
+          const ctx = canvas.getContext('2d', { alpha: false });
+
+          if (!ctx) {
+            URL.revokeObjectURL(fileUrl);
+            return resolve(file);
+          }
+
+          const stream = canvas.captureStream(30);
+
+          // Calculate bitrate to guarantee under 70MB (Cloudinary free tier is 100MB)
+          const targetBytes = Math.min(65 * 1024 * 1024, (70 * 1024 * 1024));
+          const calculatedBitrate = Math.max(1200000, Math.min(3800000, Math.floor((targetBytes * 8) / Math.max(duration, 5))));
+
+          let mimeType = 'video/webm;codecs=vp9,opus';
+          if (!MediaRecorder.isTypeSupported(mimeType)) {
+            mimeType = 'video/webm;codecs=vp8,opus';
+            if (!MediaRecorder.isTypeSupported(mimeType)) {
+              mimeType = 'video/webm';
+              if (!MediaRecorder.isTypeSupported(mimeType)) {
+                mimeType = 'video/mp4';
+              }
+            }
+          }
+
+          const mediaRecorder = new MediaRecorder(stream, {
+            mimeType: MediaRecorder.isTypeSupported(mimeType) ? mimeType : undefined,
+            videoBitsPerSecond: calculatedBitrate
+          });
+
+          const chunks: Blob[] = [];
+          mediaRecorder.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) chunks.push(e.data);
+          };
+
+          mediaRecorder.onstop = () => {
+            URL.revokeObjectURL(fileUrl);
+            const compressedBlob = new Blob(chunks, { type: mediaRecorder.mimeType || 'video/mp4' });
+            const extension = mediaRecorder.mimeType?.includes('webm') ? '.webm' : '.mp4';
+            const newName = file.name.replace(/\.[^/.]+$/, "") + '_web' + extension;
+            const compressedFile = new File([compressedBlob], newName, { type: compressedBlob.type });
+            console.log(`Video compressed from ${(file.size / (1024 * 1024)).toFixed(1)}MB to ${(compressedFile.size / (1024 * 1024)).toFixed(1)}MB`);
+            resolve(compressedFile);
+          };
+
+          mediaRecorder.onerror = (err) => {
+            console.warn("MediaRecorder error:", err);
+            URL.revokeObjectURL(fileUrl);
+            resolve(file);
+          };
+
+          mediaRecorder.start(200);
+          video.currentTime = 0;
+          await video.play();
+
+          let animFrameId: number;
+          const drawFrame = () => {
+            if (video.paused || video.ended) return;
+            ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
+            const currentProgress = Math.min(99, Math.round((video.currentTime / duration) * 100));
+            onProgress(currentProgress, `Optimizing video for Cloudinary (${currentProgress}%)...`);
+            animFrameId = requestAnimationFrame(drawFrame);
+          };
+          drawFrame();
+
+          video.onended = () => {
+            cancelAnimationFrame(animFrameId);
+            if (mediaRecorder.state === 'recording') {
+              mediaRecorder.stop();
+            }
+          };
+        } catch (err) {
+          console.warn("Video optimization error, fallback to original", err);
+          URL.revokeObjectURL(fileUrl);
+          resolve(file);
+        }
+      };
+
+      video.onerror = () => {
+        URL.revokeObjectURL(fileUrl);
+        resolve(file);
+      };
+    });
+  };
+
+  const performUpload = async (
+    file: File,
+    target: { section: string, index?: number, isSecond?: boolean },
+    shouldCompressVideo: boolean = false
+  ) => {
     setUploadProgress(0);
     setIsUploading(true);
     try {
       let fileToUpload = file;
       const isVideo = file.type.startsWith("video/") || !!file.name.match(/\.(mp4|mov|webm|mkv|avi|m4v)$/i);
       
+      // Perform video optimization if requested
+      if (isVideo && shouldCompressVideo) {
+        setUploadStatusText('Preparing video optimizer...');
+        fileToUpload = await compressVideoFile(fileToUpload, (pct, status) => {
+          setUploadProgress(pct);
+          setUploadStatusText(status);
+        });
+      }
+
       // Auto-compress large images (> 9.5MB to be safe under Cloudinary's 10MB limit)
       if (!isVideo && file.size > 9.5 * 1024 * 1024) {
         try {
@@ -886,7 +1031,25 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error("Error uploading file:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to upload file. Please try again.";
-      showNotification(errorMessage, "error");
+      
+      // If error is Cloudinary video file size limit (100MB free tier), open the optimization helper
+      if (
+        (errorMessage.toLowerCase().includes('limit for video') ||
+        errorMessage.toLowerCase().includes('file size') ||
+        errorMessage.toLowerCase().includes('104857600') ||
+        errorMessage.toLowerCase().includes('exceeds allowed limit')) &&
+        file
+      ) {
+        setVideoSizeModal({
+          isOpen: true,
+          file,
+          target,
+          isError: true,
+          errorMessage
+        });
+      } else {
+        showNotification(errorMessage, "error");
+      }
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -930,6 +1093,19 @@ export default function AdminDashboard() {
           return;
         }
       }
+    }
+
+    const isVideo = file.type.startsWith('video/') || !!file.name.match(/\.(mp4|mov|webm|mkv|avi|m4v)$/i);
+
+    // If a video is larger than 95MB, proactively offer web optimization to prevent Cloudinary's 100MB free cap failure
+    if (isVideo && file.size > 95 * 1024 * 1024) {
+      setVideoSizeModal({
+        isOpen: true,
+        file,
+        target,
+        isError: false
+      });
+      return;
     }
 
     let hasExistingMedia = false;
@@ -2653,6 +2829,82 @@ export default function AdminDashboard() {
                   Save Settings
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Video Size & Optimization Modal for Cloudinary */}
+      {videoSizeModal.isOpen && videoSizeModal.file && videoSizeModal.target && (
+        <div className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-700 w-full max-w-lg rounded-2xl p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center">
+                <Video className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">
+                  {videoSizeModal.isError ? "Cloudinary Video Size Exceeded" : "Large Video Detected (Cloudinary Optimization)"}
+                </h3>
+                <p className="text-xs text-zinc-400 truncate max-w-[280px]">File: {videoSizeModal.file.name}</p>
+              </div>
+            </div>
+
+            <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 mb-4 text-xs space-y-2.5">
+              <div className="flex justify-between text-zinc-300">
+                <span>Selected Video Size:</span>
+                <span className="font-mono font-bold text-amber-400">{(videoSizeModal.file.size / (1024 * 1024)).toFixed(1)} MB</span>
+              </div>
+              <div className="flex justify-between text-zinc-400">
+                <span>Cloudinary Free Tier Limit:</span>
+                <span className="font-mono font-bold text-zinc-300">100 MB max (104,857,600 bytes)</span>
+              </div>
+              <p className="text-zinc-400 pt-2 border-t border-zinc-800 leading-relaxed">
+                Cloudinary Free accounts limit video uploads to 100MB. To ensure smooth playback and instant loading on your site, you can compress this video directly in your browser with no quality loss.
+              </p>
+            </div>
+
+            <div className="space-y-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  const { file, target } = videoSizeModal;
+                  setVideoSizeModal(prev => ({ ...prev, isOpen: false }));
+                  if (file && target) {
+                    performUpload(file, target, true /* shouldCompressVideo */);
+                  }
+                }}
+                className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4" />
+                ⚡ Optimize & Upload to Cloudinary (Recommended)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const { file, target } = videoSizeModal;
+                  setVideoSizeModal(prev => ({ ...prev, isOpen: false }));
+                  if (file && target) {
+                    performUpload(file, target, false /* forceOriginal */);
+                  }
+                }}
+                className="w-full py-2.5 px-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium rounded-xl text-xs flex items-center justify-center gap-2 border border-zinc-700 transition-colors cursor-pointer"
+              >
+                Upload Raw Original (Cloudinary Paid Plan)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setVideoSizeModal(prev => ({ ...prev, isOpen: false, file: null, target: null }));
+                  setUploadTarget(null);
+                  if (fileInputRef.current) fileInputRef.current.value = "";
+                }}
+                className="w-full py-2 text-zinc-500 hover:text-zinc-300 text-xs font-medium text-center transition-colors cursor-pointer"
+              >
+                Cancel (Paste External URL Instead)
+              </button>
             </div>
           </div>
         </div>
