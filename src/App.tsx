@@ -470,9 +470,9 @@ export default function App() {
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-2 text-sm font-medium text-zinc-400">
             <Magnetic strength={0.1}><NavigationLink to="/#work">Work</NavigationLink></Magnetic>
-            <Magnetic strength={0.1}><NavigationLink to="/about">About</NavigationLink></Magnetic>
-            <Magnetic strength={0.1}><NavigationLink to="/process">Process</NavigationLink></Magnetic>
-            <Magnetic strength={0.1}><NavigationLink to="/reviews">Reviews</NavigationLink></Magnetic>
+            {(data.navigation?.about ?? true) && <Magnetic strength={0.1}><NavigationLink to="/about">About</NavigationLink></Magnetic>}
+            {(data.navigation?.process ?? true) && <Magnetic strength={0.1}><NavigationLink to="/process">Process</NavigationLink></Magnetic>}
+            {(data.navigation?.reviews ?? true) && <Magnetic strength={0.1}><NavigationLink to="/reviews">Reviews</NavigationLink></Magnetic>}
             <div className="w-[1px] h-6 bg-zinc-800 mx-2" />
             <Magnetic strength={0.3}>
               <Link to="/contact">
@@ -547,15 +547,21 @@ export default function App() {
                 <motion.div variants={{ closed: { opacity: 0, y: -20 }, open: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
                   <NavigationLink to="/#work" closeMenu={closeMenu} isMobile>Work</NavigationLink>
                 </motion.div>
-                <motion.div variants={{ closed: { opacity: 0, y: -20 }, open: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
-                  <NavigationLink to="/about" closeMenu={closeMenu} isMobile>About</NavigationLink>
-                </motion.div>
-                <motion.div variants={{ closed: { opacity: 0, y: -20 }, open: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
-                  <NavigationLink to="/process" closeMenu={closeMenu} isMobile>Process</NavigationLink>
-                </motion.div>
-                <motion.div variants={{ closed: { opacity: 0, y: -20 }, open: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
-                  <NavigationLink to="/reviews" closeMenu={closeMenu} isMobile>Reviews</NavigationLink>
-                </motion.div>
+                {(data.navigation?.about ?? true) && (
+                  <motion.div variants={{ closed: { opacity: 0, y: -20 }, open: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
+                    <NavigationLink to="/about" closeMenu={closeMenu} isMobile>About</NavigationLink>
+                  </motion.div>
+                )}
+                {(data.navigation?.process ?? true) && (
+                  <motion.div variants={{ closed: { opacity: 0, y: -20 }, open: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
+                    <NavigationLink to="/process" closeMenu={closeMenu} isMobile>Process</NavigationLink>
+                  </motion.div>
+                )}
+                {(data.navigation?.reviews ?? true) && (
+                  <motion.div variants={{ closed: { opacity: 0, y: -20 }, open: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
+                    <NavigationLink to="/reviews" closeMenu={closeMenu} isMobile>Reviews</NavigationLink>
+                  </motion.div>
+                )}
                 <motion.div variants={{ closed: { opacity: 0, y: -20 }, open: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }} className="flex justify-center mt-8">
                   <Magnetic strength={0.3}>
                     <Link to="/contact" onClick={closeMenu}>
@@ -625,27 +631,33 @@ export default function App() {
                   hoverColor={data.theme.primaryColor}
                   className="text-4xl md:text-5xl lg:text-4xl xl:text-5xl font-heading tracking-tighter"
                 />
-                <StaggeredLink 
-                  to="/about" 
-                  text="About"
-                  showArrow={true}
-                  hoverColor={data.theme.primaryColor}
-                  className="text-4xl md:text-5xl lg:text-4xl xl:text-5xl font-heading tracking-tighter"
-                />
-                <StaggeredLink 
-                  to="/process" 
-                  text="Process"
-                  showArrow={true}
-                  hoverColor={data.theme.primaryColor}
-                  className="text-4xl md:text-5xl lg:text-4xl xl:text-5xl font-heading tracking-tighter"
-                />
-                <StaggeredLink 
-                  to="/reviews" 
-                  text="Reviews"
-                  showArrow={true}
-                  hoverColor={data.theme.primaryColor}
-                  className="text-4xl md:text-5xl lg:text-4xl xl:text-5xl font-heading tracking-tighter"
-                />
+                {(data.navigation?.about ?? true) && (
+                  <StaggeredLink 
+                    to="/about" 
+                    text="About"
+                    showArrow={true}
+                    hoverColor={data.theme.primaryColor}
+                    className="text-4xl md:text-5xl lg:text-4xl xl:text-5xl font-heading tracking-tighter"
+                  />
+                )}
+                {(data.navigation?.process ?? true) && (
+                  <StaggeredLink 
+                    to="/process" 
+                    text="Process"
+                    showArrow={true}
+                    hoverColor={data.theme.primaryColor}
+                    className="text-4xl md:text-5xl lg:text-4xl xl:text-5xl font-heading tracking-tighter"
+                  />
+                )}
+                {(data.navigation?.reviews ?? true) && (
+                  <StaggeredLink 
+                    to="/reviews" 
+                    text="Reviews"
+                    showArrow={true}
+                    hoverColor={data.theme.primaryColor}
+                    className="text-4xl md:text-5xl lg:text-4xl xl:text-5xl font-heading tracking-tighter"
+                  />
+                )}
               </div>
 
               {/* Column 2: Let's work together */}

@@ -135,6 +135,12 @@ export type CloudinarySettings = {
   uploadPreset: string;
 };
 
+export type NavigationSettings = {
+  about: boolean;
+  process: boolean;
+  reviews: boolean;
+};
+
 export type AppData = {
   hero: HeroData;
   trust: TrustData;
@@ -145,6 +151,7 @@ export type AppData = {
   contact: ContactData;
   theme: ThemeSettings;
   reviews: ReviewsData;
+  navigation: NavigationSettings;
   projects: Record<string, ProjectData>;
   projectOrder: string[];
   cloudinary: CloudinarySettings;
@@ -276,6 +283,11 @@ const defaultData: AppData = {
   reviews: {
     enabled: true,
     list: []
+  },
+  navigation: {
+    about: true,
+    process: true,
+    reviews: true
   },
   projects: defaultProjects,
   projectOrder: ['fintech', 'ecommerce', 'saas', 'healthtech'],

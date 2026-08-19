@@ -28,10 +28,11 @@ import {
   GripVertical,
   Search,
   Filter,
-  Cloud
+  Cloud,
+  Navigation
 } from "lucide-react";
 
-type Tab = 'hero' | 'trust' | 'featured' | 'about' | 'process' | 'contact' | 'pageTitle' | 'reviews' | 'theme' | 'security';
+type Tab = 'hero' | 'trust' | 'featured' | 'about' | 'process' | 'contact' | 'pageTitle' | 'reviews' | 'theme' | 'navigation' | 'security';
 
 
 
@@ -133,6 +134,7 @@ export default function AdminDashboard() {
   const [contactData, setContactData] = useState(data.contact);
   const [pageTitleData, setPageTitleData] = useState(data.pageTitle);
   const [themeData, setThemeData] = useState(data.theme);
+  const [navigationData, setNavigationData] = useState(data.navigation || { about: true, process: true, reviews: true });
   const [reviewsData, setReviewsData] = useState(data.reviews);
   const [reviewsSearchQuery, setReviewsSearchQuery] = useState('');
   const [reviewsSearchFilter, setReviewsSearchFilter] = useState<'all' | 'name' | 'role'>('all');
@@ -165,12 +167,13 @@ export default function AdminDashboard() {
       if (activeTab === 'contact') return JSON.stringify(contactData) !== JSON.stringify(data.contact);
       if (activeTab === 'pageTitle') return JSON.stringify(pageTitleData) !== JSON.stringify(data.pageTitle);
       if (activeTab === 'theme') return JSON.stringify(themeData) !== JSON.stringify(data.theme);
+      if (activeTab === 'navigation') return JSON.stringify(navigationData) !== JSON.stringify(data.navigation);
       if (activeTab === 'reviews') return JSON.stringify(reviewsData) !== JSON.stringify(data.reviews);
       return false;
     } catch (e) {
       return false;
     }
-  }, [activeTab, heroData, trustData, featuredWorkData, aboutData, processData, contactData, pageTitleData, themeData, reviewsData, editingProject, selectedProjectId, data]);
+  }, [activeTab, heroData, trustData, featuredWorkData, aboutData, processData, contactData, pageTitleData, themeData, navigationData, reviewsData, editingProject, selectedProjectId, data]);
 
   if (!isAdmin) return null;
 
@@ -683,6 +686,7 @@ export default function AdminDashboard() {
       case 'contact': handleSaveSection('contact', contactData); break;
       case 'pageTitle': handleSaveSection('pageTitle', pageTitleData); break;
       case 'theme': handleSaveSection('theme', themeData); break;
+      case 'navigation': handleSaveSection('navigation', navigationData); break;
       case 'reviews': handleSaveSection('reviews', reviewsData); break;
     }
   };
@@ -698,6 +702,7 @@ export default function AdminDashboard() {
       { id: 'pageTitle', label: 'Page Title', icon: <Type className="w-4 h-4" /> },
       { id: 'reviews', label: 'Reviews', icon: <MessageSquare className="w-4 h-4" /> },
       { id: 'theme', label: 'Theme', icon: <Settings className="w-4 h-4" /> },
+      { id: 'navigation', label: 'Navigation', icon: <Navigation className="w-4 h-4" /> },
       { id: 'security', label: 'Security', icon: <Shield className="w-4 h-4" /> },
     ];
 
@@ -1983,6 +1988,53 @@ export default function AdminDashboard() {
         {activeTab === 'pageTitle' && renderPageTitleTab()}
         {activeTab === 'reviews' && renderReviewsTab()}
         {activeTab === 'theme' && renderThemeTab()}
+        {activeTab === 'navigation' && (
+          <div className="space-y-6 bg-zinc-900 border border-zinc-800 rounded-2xl p-6 md:p-8">
+            <h2 className="text-2xl font-bold mb-6">Navigation Visibility</h2>
+            <p className="text-zinc-400 mb-6">Toggle the visibility of sections in the main navigation and footer.</p>
+            <div className="space-y-4 max-w-md">
+              <div className="flex items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-xl">
+                <div>
+                  <h3 className="font-semibold text-zinc-100">About Section</h3>
+                  <p className="text-xs text-zinc-500">Show in header and footer</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNavigationData({ ...navigationData, about: !navigationData.about })}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${navigationData.about ? 'bg-emerald-500' : 'bg-zinc-700'}`}
+                >
+                  <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${navigationData.about ? 'left-7' : 'left-1'}`} />
+                </button>
+              </div>
+              <div className="flex items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-xl">
+                <div>
+                  <h3 className="font-semibold text-zinc-100">Process Section</h3>
+                  <p className="text-xs text-zinc-500">Show in header and footer</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNavigationData({ ...navigationData, process: !navigationData.process })}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${navigationData.process ? 'bg-emerald-500' : 'bg-zinc-700'}`}
+                >
+                  <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${navigationData.process ? 'left-7' : 'left-1'}`} />
+                </button>
+              </div>
+              <div className="flex items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-xl">
+                <div>
+                  <h3 className="font-semibold text-zinc-100">Reviews Section</h3>
+                  <p className="text-xs text-zinc-500">Show in header and footer</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNavigationData({ ...navigationData, reviews: !navigationData.reviews })}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${navigationData.reviews ? 'bg-emerald-500' : 'bg-zinc-700'}`}
+                >
+                  <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${navigationData.reviews ? 'left-7' : 'left-1'}`} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         {activeTab === 'security' && renderSecurityTab()}
       </div>
 

@@ -84,20 +84,60 @@ export function VideoPlayer({ src, className = "", autoPlay = false, muted = fal
   const renderSocialEmbed = () => {
     if (!src) return null;
     
+    if (embedInfo.type === 'youtube' && embedInfo.id) {
+      return (
+        <div 
+          className="w-full h-full flex items-center justify-center p-2 sm:p-4"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="relative w-full max-w-6xl aspect-video rounded-2xl overflow-hidden shadow-2xl bg-black border border-white/10 mx-auto">
+            <iframe
+              src={`https://www.youtube.com/embed/${embedInfo.id}?autoplay=${autoPlay ? 1 : 0}&mute=${muted ? 1 : 0}&rel=0&modestbranding=1`}
+              title="YouTube video player"
+              className="w-full h-full border-0 absolute inset-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          </div>
+        </div>
+      );
+    }
+
+    if (embedInfo.type === 'vimeo' && embedInfo.id) {
+      return (
+        <div 
+          className="w-full h-full flex items-center justify-center p-2 sm:p-4"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="relative w-full max-w-6xl aspect-video rounded-2xl overflow-hidden shadow-2xl bg-black border border-white/10 mx-auto">
+            <iframe
+              src={`https://player.vimeo.com/video/${embedInfo.id}?autoplay=${autoPlay ? 1 : 0}`}
+              title="Vimeo video player"
+              className="w-full h-full border-0 absolute inset-0"
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        </div>
+      );
+    }
+
     return (
-      <div className="w-full h-full flex items-center justify-center overflow-auto pointer-events-auto bg-black py-4">
-        {embedInfo.type === 'instagram' && (
-          <InstagramEmbed url={src} width={328} />
-        )}
-        {embedInfo.type === 'tiktok' && (
-          <TikTokEmbed url={src} width={328} />
-        )}
-        {embedInfo.type === 'facebook' && (
-          <FacebookEmbed url={src} width={328} />
-        )}
-        {embedInfo.type === 'youtube' && (
-          <YouTubeEmbed url={src} width="100%" height="100%" />
-        )}
+      <div 
+        className="w-full h-full flex flex-col items-center justify-center pointer-events-auto p-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-center max-w-full max-h-[85vh] overflow-y-auto rounded-2xl bg-zinc-900/50 border border-white/10 p-2 shadow-2xl">
+          {embedInfo.type === 'instagram' && (
+            <InstagramEmbed url={src} width={340} />
+          )}
+          {embedInfo.type === 'tiktok' && (
+            <TikTokEmbed url={src} width={340} />
+          )}
+          {embedInfo.type === 'facebook' && (
+            <FacebookEmbed url={src} width={340} />
+          )}
+        </div>
       </div>
     );
   };
@@ -105,8 +145,11 @@ export function VideoPlayer({ src, className = "", autoPlay = false, muted = fal
   return (
     <div 
       ref={containerRef}
-      className={`relative w-full h-full group cursor-pointer bg-black overflow-hidden flex items-center justify-center ${className}`} 
-      onClick={togglePlay}
+      className={`relative w-full h-full group cursor-pointer bg-black/40 flex flex-col items-center justify-center pointer-events-auto ${className}`} 
+      onClick={(e) => {
+        e.stopPropagation();
+        togglePlay(e);
+      }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -133,7 +176,7 @@ export function VideoPlayer({ src, className = "", autoPlay = false, muted = fal
               });
             }}
             onPause={() => setIsPlaying(false)}
-            className="w-full h-full object-contain transition-transform duration-700"
+            className="w-full h-full object-contain transition-transform duration-700 max-h-[85vh]"
           />
           
           {/* Center Play Button */}
@@ -145,7 +188,7 @@ export function VideoPlayer({ src, className = "", autoPlay = false, muted = fal
 
           {/* Bottom Controls */}
           <div 
-            className={`absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent transition-opacity duration-300 flex flex-col gap-2 ${(isHovered || !isPlaying) ? 'opacity-100' : 'opacity-0'}`}
+            className={`absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent transition-opacity duration-300 flex flex-col gap-2 z-10 ${(isHovered || !isPlaying) ? 'opacity-100' : 'opacity-0'}`}
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
           >
             {/* Progress Bar */}

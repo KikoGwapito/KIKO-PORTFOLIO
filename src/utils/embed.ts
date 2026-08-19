@@ -1,4 +1,4 @@
-export type EmbedType = 'youtube' | 'tiktok' | 'instagram' | 'facebook' | 'native';
+export type EmbedType = 'youtube' | 'vimeo' | 'tiktok' | 'instagram' | 'facebook' | 'native';
 
 export function getEmbedInfo(url: string | null | undefined): { type: EmbedType, embedUrl?: string, thumbnail?: string, id?: string } {
   if (!url) return { type: 'native' };
@@ -13,6 +13,18 @@ export function getEmbedInfo(url: string | null | undefined): { type: EmbedType,
         id,
         embedUrl: `https://www.youtube.com/embed/${id}`,
         thumbnail: `https://img.youtube.com/vi/${id}/maxresdefault.jpg`
+      };
+    }
+  }
+
+  if (url.includes('vimeo.com')) {
+    const match = url.match(/vimeo\.com\/(?:video\/)?([0-9]+)/);
+    const id = match ? match[1] : null;
+    if (id) {
+      return {
+        type: 'vimeo',
+        id,
+        embedUrl: `https://player.vimeo.com/video/${id}`
       };
     }
   }

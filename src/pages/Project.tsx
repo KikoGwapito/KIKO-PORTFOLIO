@@ -31,12 +31,12 @@ function MediaModal({ media, onClose }: { media: any, onClose: () => void }) {
       initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
       animate={{ opacity: 1, backdropFilter: "blur(10px)" }}
       exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
-      className="fixed inset-0 z-[10000] flex items-center justify-center bg-zinc-950/90 overflow-hidden"
+      className="fixed inset-0 z-[99999] w-screen h-screen flex flex-col items-center justify-center bg-zinc-950/95 overflow-hidden p-4 sm:p-6 md:p-12"
       onClick={onClose}
     >
       <button
         onClick={onClose}
-        className="absolute top-6 right-6 z-50 p-3 bg-zinc-900/80 hover:bg-zinc-800 text-white rounded-full transition-colors"
+        className="absolute top-4 right-4 md:top-6 md:right-6 z-[100000] p-3 bg-zinc-900/80 hover:bg-zinc-800 text-white rounded-full transition-colors border border-white/10 shadow-lg"
       >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
       </button>
@@ -45,11 +45,11 @@ function MediaModal({ media, onClose }: { media: any, onClose: () => void }) {
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="relative w-full h-full max-h-[100vh] flex items-center justify-center pointer-events-auto p-4 md:p-12"
+        className="relative w-full h-full max-w-6xl max-h-[88vh] flex items-center justify-center pointer-events-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {media.type === 'video' ? (
-          <VideoPlayer src={media.url} autoPlay />
+          <VideoPlayer src={media.url} autoPlay className="w-full h-full" />
         ) : media.type === 'comparison' ? (
           <div className="w-full h-full flex items-center justify-center">
             <ComparisonSlider 
@@ -74,46 +74,25 @@ function MediaModal({ media, onClose }: { media: any, onClose: () => void }) {
 }
 
 function Carousel3D({ items, onMediaClick }: { items: any[], onMediaClick: (media: any) => void }) {
-  const rotation = useMotionValue(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const isDraggingRef = useRef(false);
-  const animationRef = useRef<any>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   // Only use the provided items
   const displayItems = items;
-
-  const handlePanStart = () => {
-    if (animationRef.current) {
-      animationRef.current.stop();
-    }
-    setIsDragging(true);
-    isDraggingRef.current = true;
-  };
-
-  const handlePan = (e: any, info: any) => {
-    const factor = typeof window !== 'undefined' && window.innerWidth < 768 ? 0.6 : 0.2;
-    rotation.set(rotation.get() - info.delta.x * factor);
-  };
-
-  const handlePanEnd = (e: any, info: any) => {
-    const factor = typeof window !== 'undefined' && window.innerWidth < 768 ? 0.2 : 0.08;
-    animationRef.current = animate(rotation, rotation.get() - info.velocity.x * factor, {
-      type: "spring",
-      stiffness: 40,
-      damping: 25,
-      mass: 1
-    });
-    setTimeout(() => {
-      setIsDragging(false);
-      isDraggingRef.current = false;
-    }, 50);
-  };
-
   const numItems = displayItems.length;
+
+  const handleNext = () => {
+    setCurrentIndex(prev => prev + 1);
+  };
+
+  const handlePrev = () => {
+    setCurrentIndex(prev => prev - 1);
+  };
+
   // 2:3 ratio
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
   const itemWidth = isMobile ? 240 : 360;
   const itemHeight = isMobile ? 360 : 540;
+  
   // Increase distance between containers
   let radius = 0;
   if (numItems === 1) {
@@ -128,35 +107,34 @@ function Carousel3D({ items, onMediaClick }: { items: any[], onMediaClick: (medi
     }
   }
 
+  const angleStep = 360 / numItems;
+
   return (
     <div 
-      className="relative w-full max-w-full overflow-hidden my-32 flex items-center justify-center pointer-events-none" 
+      className="relative w-full max-w-full overflow-hidden my-32 flex flex-col items-center justify-center pointer-events-none" 
       style={{ perspective: '2000px', height: itemHeight + 100 }}
     >
-      {/* Floating Drag Instruction */}
-      <motion.div 
-        className="absolute top-4 left-1/2 -translate-x-1/2 z-20 glass px-6 py-3 rounded-full flex gap-3 items-center pointer-events-none"
-        animate={{ 
-          opacity: isDragging ? 0 : 1, 
-          y: isDragging ? -20 : [0, -5, 0],
-          scale: isDragging ? 0.9 : 1
-        }}
-        transition={{ 
-          opacity: { duration: 0.2 },
-          scale: { duration: 0.2 },
-          y: { duration: 2, repeat: Infinity, ease: "easeInOut" }
-        }}
-      >
-        <div className="w-6 h-6 flex items-center justify-center">
-          <MousePointer2 className="w-5 h-5 text-zinc-400" />
-        </div>
-        <span className="text-sm font-bold uppercase tracking-widest text-zinc-300">Drag to move</span>
-      </motion.div>
+      {/* Controls */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 z-20 flex gap-4 pointer-events-auto">
+        <button 
+          onClick={handlePrev}
+          className="p-4 rounded-full glass hover:bg-white/10 transition-colors text-white border border-white/10"
+        >
+          <ArrowLeft className="w-6 h-6" />
+        </button>
+        <button 
+          onClick={handleNext}
+          className="p-4 rounded-full glass hover:bg-white/10 transition-colors text-white border border-white/10"
+        >
+          <ArrowRight className="w-6 h-6" />
+        </button>
+      </div>
 
       <motion.div 
-        className="relative flex items-center justify-center pointer-events-none mt-10"
+        className="relative flex items-center justify-center pointer-events-none mt-20"
+        animate={{ rotateY: currentIndex * angleStep }}
+        transition={{ type: "spring", stiffness: 50, damping: 20 }}
         style={{ 
-          rotateY: rotation, 
           transformStyle: "preserve-3d",
           width: itemWidth,
           height: itemHeight
@@ -167,20 +145,14 @@ function Carousel3D({ items, onMediaClick }: { items: any[], onMediaClick: (medi
           return (
             <motion.div 
               key={i} 
-              className="absolute w-full h-full rounded-[2rem] overflow-hidden border border-zinc-800/50 shadow-2xl glass transition-transform cursor-grab active:cursor-grabbing pointer-events-auto"
+              className="group absolute w-full h-full rounded-[2rem] overflow-hidden border border-zinc-800/50 shadow-2xl glass transition-transform cursor-pointer pointer-events-auto"
               style={{ 
                 transform: `rotateY(${angle}deg) translateZ(-${radius}px)`,
                 backfaceVisibility: 'hidden',
-                touchAction: 'pan-y'
               }}
-              onPanStart={handlePanStart}
-              onPan={handlePan}
-              onPanEnd={handlePanEnd}
               onClick={(e) => {
                 e.stopPropagation();
-                if (!isDraggingRef.current) {
-                  onMediaClick(item);
-                }
+                onMediaClick(item);
               }}
             >
               {item.type === 'video' ? (
@@ -208,10 +180,11 @@ function Carousel3D({ items, onMediaClick }: { items: any[], onMediaClick: (medi
               )}
               
               {/* Overlay Play/View Icon */}
-              <div className="absolute inset-0 bg-zinc-950/20 opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
-                <div className="w-16 h-16 glass rounded-full flex items-center justify-center text-white scale-90 transition-transform duration-300">
+              <div className="absolute inset-0 bg-zinc-950/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center pointer-events-none">
+                <div className="w-16 h-16 glass rounded-full flex items-center justify-center text-white scale-75 group-hover:scale-100 transition-transform duration-300 mb-3 border border-white/10 shadow-xl">
                   {item.type === 'video' ? <Play className="w-6 h-6 ml-1" fill="currentColor" /> : <Maximize className="w-6 h-6" />}
                 </div>
+                <span className="text-white font-bold uppercase tracking-widest text-[10px] transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">Click to view</span>
               </div>
             </motion.div>
           );

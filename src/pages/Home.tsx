@@ -5,7 +5,6 @@ import { Link } from 'react-router-dom';
 import { useAppData } from '../context/AppDataContext';
 import { formatTextWithAccent } from '../utils/formatText';
 import { ProjectStacking } from '../components/ProjectStacking';
-import { ProcessParallax } from '../components/ProcessParallax';
 import { Magnetic } from '../components/Magnetic';
 import { isSocialVideo, getEmbedInfo } from '../utils/embed';
 import gsap from 'gsap';
@@ -369,22 +368,6 @@ export default function Home() {
         <div ref={contentRef} className="relative z-10 w-full">
           {/* Trust Section */}
           <TrustSectionScroll data={data} speed={speed} />
-
-      {/* Process Section */}
-      <motion.div
-        initial={{ opacity: 0, filter: "blur(15px)" }}
-        whileInView={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" } }}
-        viewport={{ once: true, margin: "-50px" }}
-        transition={{ duration: 1.5, ease: [0.22, 1, 0.36, 1] }}
-      >
-        <ProcessParallax 
-          steps={data.process.steps} 
-          primaryColor={data.theme.primaryColor}
-          title={data.process.title}
-          subtitle={data.process.subtitle}
-          label={data.process.label || 'How I Work'}
-        />
-      </motion.div>
 
       {/* Featured Work Header */}
       <section id="work" className="py-24 relative z-20">
