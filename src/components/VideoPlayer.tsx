@@ -42,7 +42,9 @@ export function VideoPlayer({ src, className = "", autoPlay = false, muted = fal
     if (videoRef.current) {
       const current = videoRef.current.currentTime;
       const duration = videoRef.current.duration;
-      setProgress((current / duration) * 100);
+      if (Number.isFinite(current) && Number.isFinite(duration) && duration > 0) {
+        setProgress(Math.max(0, Math.min(100, (current / duration) * 100)));
+      }
     }
   };
 
@@ -51,9 +53,19 @@ export function VideoPlayer({ src, className = "", autoPlay = false, muted = fal
     e.stopPropagation();
     if (isSocial) return;
     if (progressRef.current && videoRef.current) {
+      const duration = videoRef.current.duration;
+      if (!Number.isFinite(duration) || duration <= 0) return;
       const rect = progressRef.current.getBoundingClientRect();
-      const pos = (e.clientX - rect.left) / rect.width;
-      videoRef.current.currentTime = pos * videoRef.current.duration;
+      if (!rect.width || rect.width <= 0) return;
+      const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      const targetTime = pos * duration;
+      if (Number.isFinite(targetTime) && targetTime >= 0 && targetTime <= duration) {
+        try {
+          videoRef.current.currentTime = targetTime;
+        } catch (err) {
+          console.warn("Could not set currentTime on video", err);
+        }
+      }
     }
   };
 
@@ -122,6 +134,25 @@ export function VideoPlayer({ src, className = "", autoPlay = false, muted = fal
       );
     }
 
+    if (embedInfo.type === 'gdrive' && embedInfo.id) {
+      return (
+        <div 
+          className="w-full h-full flex items-center justify-center p-2 sm:p-4"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="relative w-full max-w-6xl aspect-video rounded-2xl overflow-hidden shadow-2xl bg-black border border-white/10 mx-auto">
+            <iframe
+              src={embedInfo.embedUrl || `https://drive.google.com/file/d/${embedInfo.id}/preview`}
+              title="Google Drive video player"
+              className="w-full h-full border-0 absolute inset-0"
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div 
         className="w-full h-full flex flex-col items-center justify-center pointer-events-auto p-4"
@@ -157,7 +188,7 @@ export function VideoPlayer({ src, className = "", autoPlay = false, muted = fal
         <>
           <video 
             ref={videoRef}
-            src={src ? (src.includes('#t=') ? src : `${src}#t=10.001`) : undefined} 
+            src={src ? (src.includes('#t=') ? src : `${src}#t=0.001`) : undefined} 
             loop 
             playsInline
             autoPlay={autoPlay}

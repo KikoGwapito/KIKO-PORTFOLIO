@@ -2,6 +2,8 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { formatTextWithAccent } from '../utils/formatText';
+import { isSocialVideo } from '../utils/embed';
+import { SocialThumbnail } from './SocialThumbnail';
 
 interface ProjectStackingProps {
   projects: any[];
@@ -27,11 +29,15 @@ export const ProjectStacking: React.FC<ProjectStackingProps> = ({ projects, them
                 {/* Background Media */}
                 <div className="absolute inset-0 w-full h-full">
                   {project.images?.[0]?.type === 'video' ? (
-                    <video 
-                      src={project.images[0].url || undefined} 
-                      autoPlay loop muted playsInline 
-                      className="w-full h-full object-cover opacity-60" 
-                    />
+                    isSocialVideo(project.images[0].url) ? (
+                      <SocialThumbnail url={project.images[0].url} customThumbnail={project.images[0].thumbnailUrl || (project.images[0] as any).poster} className="w-full h-full object-cover opacity-60 pointer-events-none select-none" />
+                    ) : (
+                      <video 
+                        src={project.images[0].url || undefined} 
+                        autoPlay loop muted playsInline 
+                        className="w-full h-full object-cover opacity-60" 
+                      />
+                    )
                   ) : (
                     <img loading="lazy" 
                       src={project.images?.[0]?.url || undefined} 

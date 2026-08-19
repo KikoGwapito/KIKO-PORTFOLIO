@@ -1,7 +1,28 @@
-export type EmbedType = 'youtube' | 'vimeo' | 'tiktok' | 'instagram' | 'facebook' | 'native';
+export type EmbedType = 'youtube' | 'vimeo' | 'tiktok' | 'instagram' | 'facebook' | 'gdrive' | 'native';
+
+export function extractGoogleDriveId(url: string): string | null {
+  if (!url) return null;
+  // Match /file/d/{id}, /d/{id}, or id={id}
+  const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || 
+                url.match(/[?&]id=([a-zA-Z0-9_-]+)/) ||
+                url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  return match ? match[1] : null;
+}
 
 export function getEmbedInfo(url: string | null | undefined): { type: EmbedType, embedUrl?: string, thumbnail?: string, id?: string } {
   if (!url) return { type: 'native' };
+
+  if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
+    const id = extractGoogleDriveId(url);
+    if (id) {
+      return {
+        type: 'gdrive',
+        id,
+        embedUrl: `https://drive.google.com/file/d/${id}/preview`,
+        thumbnail: `https://lh3.googleusercontent.com/d/${id}`
+      };
+    }
+  }
 
   if (url.includes('youtube.com') || url.includes('youtu.be')) {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;

@@ -7,7 +7,7 @@ import { formatTextWithAccent } from '../utils/formatText';
 import ComparisonSlider from '../components/ComparisonSlider';
 import { Magnetic } from '../components/Magnetic';
 import { ImageViewer } from '../components/ImageViewer';
-import { getEmbedInfo } from '../utils/embed';
+import { getEmbedInfo, isSocialVideo } from '../utils/embed';
 import { SocialThumbnail } from '../components/SocialThumbnail';
 import { VideoPlayer } from '../components/VideoPlayer';
 
@@ -173,7 +173,7 @@ function Carousel3D({ items, onMediaClick }: { items: any[], onMediaClick: (medi
             >
               {item.type === 'video' ? (
                 getEmbedInfo(item.url).type !== 'native' ? (
-                  <SocialThumbnail url={item.url} className="w-full h-full object-cover pointer-events-none select-none" />
+                  <SocialThumbnail url={item.url} customThumbnail={item.thumbnailUrl || (item as any).poster} className="w-full h-full object-cover pointer-events-none select-none" />
                 ) : (
                   <video 
                     src={`${item.url}#t=1`} 
@@ -261,14 +261,18 @@ export default function Project() {
       <div className="h-[90vh] relative overflow-hidden flex items-end pb-24 px-6">
         <motion.div style={{ y: heroY, opacity: heroOpacity }} className="absolute inset-0 z-0">
           {project.images[0]?.type === 'video' ? (
-            <video 
-              src={project.images[0].url} 
-              autoPlay 
-              loop 
-              muted 
-              playsInline 
-              className="w-full h-full object-cover scale-110"
-            />
+            isSocialVideo(project.images[0].url) ? (
+              <SocialThumbnail url={project.images[0].url} customThumbnail={project.images[0].thumbnailUrl || (project.images[0] as any).poster} className="w-full h-full object-cover scale-110 pointer-events-none select-none" />
+            ) : (
+              <video 
+                src={project.images[0].url} 
+                autoPlay 
+                loop 
+                muted 
+                playsInline 
+                className="w-full h-full object-cover scale-110"
+              />
+            )
           ) : (
             <img loading="lazy" 
               src={project.images[0]?.url || "https://picsum.photos/seed/project/1920/1080"} 

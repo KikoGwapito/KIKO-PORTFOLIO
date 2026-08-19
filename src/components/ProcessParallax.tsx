@@ -4,6 +4,8 @@ import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { formatTextWithAccent } from '../utils/formatText';
+import { isSocialVideo } from '../utils/embed';
+import { SocialThumbnail } from './SocialThumbnail';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -452,14 +454,18 @@ function StepCard3D({ card, index, primaryColor, imageIndex, isLast }: { card: a
       <div className="absolute inset-0 z-0 overflow-hidden">
         {card.media?.url ? (
            card.media.type === 'video' ? (
-             <video 
-               src={card.media.url}
-               autoPlay
-               loop
-               muted
-               playsInline
-               className="w-full h-full object-cover opacity-60 pointer-events-none"
-             />
+             isSocialVideo(card.media.url) ? (
+               <SocialThumbnail url={card.media.url} className="w-full h-full object-cover opacity-60 pointer-events-none select-none" />
+             ) : (
+               <video 
+                 src={card.media.url}
+                 autoPlay
+                 loop
+                 muted
+                 playsInline
+                 className="w-full h-full object-cover opacity-60 pointer-events-none"
+               />
+             )
            ) : (
              <img loading="lazy" 
                src={card.media.url}

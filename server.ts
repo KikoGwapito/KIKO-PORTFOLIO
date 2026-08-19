@@ -99,6 +99,45 @@ async function startServer() {
     }
   });
 
+  // Google Drive thumbnail proxy endpoint
+  app.get('/api/gdrive-thumbnail', async (req, res) => {
+    const { id } = req.query;
+    if (!id || typeof id !== 'string') {
+      return res.status(400).json({ error: 'Missing id parameter' });
+    }
+
+    const candidateUrls = [
+      `https://lh3.googleusercontent.com/d/${id}=w1920`,
+      `https://lh3.googleusercontent.com/d/${id}`,
+      `https://drive.google.com/thumbnail?id=${id}&sz=w1000`
+    ];
+
+    for (const fetchUrl of candidateUrls) {
+      try {
+        const response = await fetch(fetchUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
+          }
+        });
+
+        if (response.ok) {
+          const contentType = response.headers.get('content-type') || 'image/jpeg';
+          if (contentType.startsWith('image/')) {
+            res.setHeader('Content-Type', contentType);
+            res.setHeader('Cache-Control', 'public, max-age=86400');
+            const arrayBuffer = await response.arrayBuffer();
+            return res.send(Buffer.from(arrayBuffer));
+          }
+        }
+      } catch (err) {
+        // try next candidate
+      }
+    }
+
+    return res.status(404).json({ error: 'Thumbnail not available' });
+  });
+
   // Cloudinary Proxy Upload endpoint (supports chunked streaming for 400MB+ videos)
   app.post('/api/upload/cloudinary', upload.single('file'), async (req, res) => {
     console.log('Received Cloudinary proxy upload request:', req.file?.originalname);

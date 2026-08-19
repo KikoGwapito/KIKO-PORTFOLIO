@@ -33,7 +33,8 @@ import {
   CheckCircle2,
   AlertCircle,
   ExternalLink,
-  RefreshCw
+  RefreshCw,
+  Sparkles
 } from "lucide-react";
 
 type Tab = 'hero' | 'trust' | 'featured' | 'about' | 'process' | 'contact' | 'pageTitle' | 'reviews' | 'theme' | 'navigation' | 'security';
@@ -679,14 +680,23 @@ export default function AdminDashboard() {
           };
 
           mediaRecorder.start(200);
-          video.currentTime = 0;
+          try {
+            if (Number.isFinite(video.duration) && video.duration > 0) {
+              video.currentTime = 0;
+            }
+          } catch (seekErr) {
+            console.warn("Could not seek video to 0:", seekErr);
+          }
           await video.play();
 
           let animFrameId: number;
           const drawFrame = () => {
             if (video.paused || video.ended) return;
             ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
-            const currentProgress = Math.min(99, Math.round((video.currentTime / duration) * 100));
+            const current = video.currentTime;
+            const currentProgress = (Number.isFinite(current) && Number.isFinite(duration) && duration > 0)
+              ? Math.min(99, Math.round((current / duration) * 100))
+              : 50;
             onProgress(currentProgress, `Optimizing video for Cloudinary (${currentProgress}%)...`);
             animFrameId = requestAnimationFrame(drawFrame);
           };
@@ -1588,9 +1598,9 @@ export default function AdminDashboard() {
                             media.url ? <img loading="lazy" src={media.url} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" /> : <ImageIcon className="w-8 h-8 text-zinc-700" />
                           ) : media.url ? (
                             isSocialVideo(media.url) ? (
-                              <SocialThumbnail url={media.url} className="w-full h-full object-cover" />
+                              <SocialThumbnail url={media.url} customThumbnail={media.thumbnailUrl || (media as any).poster} className="w-full h-full object-cover" />
                             ) : (
-                              <video src={media.url} autoPlay muted loop playsInline className="w-full h-full object-contain" />
+                              <video src={media.url} poster={media.thumbnailUrl || (media as any).poster} autoPlay muted loop playsInline className="w-full h-full object-contain" />
                             )
                           ) : (
                             <Video className="w-8 h-8 text-zinc-700" />
@@ -1633,7 +1643,7 @@ export default function AdminDashboard() {
                                 const url = e.target.value;
                                 updateMedia(index, "url", url);
                                 if (media.type !== 'comparison') {
-                                  const isVideo = url.match(/\.(mp4|webm|ogg|mov|mkv|avi|m4v)$/i) || url.includes('video') || url.includes('youtube') || url.includes('vimeo');
+                                  const isVideo = url.match(/\.(mp4|webm|ogg|mov|mkv|avi|m4v)$/i) || url.includes('video') || isSocialVideo(url);
                                   updateMedia(index, "type", isVideo ? "video" : "image");
                                 }
                               }} className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" placeholder="Paste external URL..." />
@@ -1645,6 +1655,32 @@ export default function AdminDashboard() {
                             </div>
                             </DropZone>
                           </div>
+
+                          {media.type === 'video' && (
+                            <div>
+                              <div className="flex items-center justify-between mb-1">
+                                <label className="block text-xs font-medium text-zinc-400">
+                                  Video Thumbnail / Poster <span className="text-zinc-500 text-[11px]">(Auto-detected for Google Drive & YouTube, or custom)</span>
+                                </label>
+                                {media.thumbnailUrl && (
+                                  <button 
+                                    type="button" 
+                                    onClick={() => updateMedia(index, "thumbnailUrl", "")} 
+                                    className="text-[10px] text-zinc-500 hover:text-red-400"
+                                  >
+                                    Reset to Auto
+                                  </button>
+                                )}
+                              </div>
+                              <input 
+                                type="text" 
+                                value={media.thumbnailUrl || ''} 
+                                onChange={(e) => updateMedia(index, "thumbnailUrl", e.target.value)} 
+                                placeholder={media.url?.includes('drive.google.com') ? "Auto: Google Drive HD Thumbnail" : "Optional custom thumbnail URL..."} 
+                                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-50 focus:outline-none focus:border-[var(--color-primary)] placeholder:text-zinc-600" 
+                              />
+                            </div>
+                          )}
 
                           {media.type === 'comparison' && (
                             <div>
@@ -2649,7 +2685,7 @@ export default function AdminDashboard() {
                             ...prev,
                             data: {
                               ...prev.data,
-                              media: { url, type: url.match(/\.(mp4|webm|ogg|mov|mkv|avi|m4v)$/i) ? 'video' : 'image' }
+                              media: { url, type: (url.match(/\.(mp4|webm|ogg|mov|mkv|avi|m4v)$/i) || isSocialVideo(url)) ? 'video' : 'image' }
                             }
                           }));
                         }} className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)] text-sm" placeholder="Paste external URL..." />

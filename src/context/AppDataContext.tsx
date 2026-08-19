@@ -19,6 +19,7 @@ export type MediaItem = {
   url: string;
   secondUrl?: string;
   className: string;
+  thumbnailUrl?: string;
 };
 
 export type ProjectData = {
