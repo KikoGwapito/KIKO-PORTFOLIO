@@ -99,7 +99,7 @@ async function startServer() {
     }
   });
 
-  // Cloudinary Proxy Upload endpoint (bypasses browser CORS & size restrictions)
+  // Cloudinary Proxy Upload endpoint (supports chunked streaming for 400MB+ videos)
   app.post('/api/upload/cloudinary', upload.single('file'), async (req, res) => {
     console.log('Received Cloudinary proxy upload request:', req.file?.originalname);
     if (!req.file) {
@@ -111,41 +111,97 @@ async function startServer() {
     const resourceType = req.body.resourceType === 'video' ? 'video' : 'auto';
 
     if (!cloudName || !uploadPreset) {
+      if (req.file?.path) fs.unlink(req.file.path, () => {});
       return res.status(400).json({ error: 'Cloud Name and Upload Preset are required for Cloudinary upload.' });
     }
 
+    const filePath = req.file.path;
+    const originalName = req.file.originalname;
+    const mimetype = req.file.mimetype;
+
     try {
-      const fileBuffer = fs.readFileSync(req.file.path);
-      const blob = new Blob([fileBuffer], { type: req.file.mimetype || (resourceType === 'video' ? 'video/mp4' : 'application/octet-stream') });
-      const formData = new FormData();
-      formData.append('file', blob, req.file.originalname);
-      formData.append('upload_preset', uploadPreset);
-      formData.append('resource_type', resourceType);
-
+      const stats = fs.statSync(filePath);
+      const fileSize = stats.size;
+      const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB chunks
+      const totalChunks = Math.ceil(fileSize / CHUNK_SIZE);
+      const uniqueId = `srv_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
       const endpoint = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
-      console.log(`Forwarding to Cloudinary endpoint: ${endpoint}`);
 
-      const cloudRes = await fetch(endpoint, {
-        method: 'POST',
-        body: formData,
-      });
+      console.log(`Forwarding to Cloudinary chunked endpoint: ${endpoint} (${(fileSize / (1024 * 1024)).toFixed(2)} MB in ${totalChunks} chunks)`);
 
-      const data = await cloudRes.json();
-      if (!cloudRes.ok) {
-        console.error('Cloudinary upstream API error:', data);
-        const errMsg = data.error?.message || `Cloudinary returned HTTP status ${cloudRes.status}`;
-        return res.status(cloudRes.status).json({ error: errMsg });
+      let lastResponseData: any = null;
+
+      for (let i = 0; i < totalChunks; i++) {
+        const start = i * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE - 1, fileSize - 1);
+        const chunkLength = end - start + 1;
+
+        const buffer = Buffer.alloc(chunkLength);
+        const fd = fs.openSync(filePath, 'r');
+        fs.readSync(fd, buffer, 0, chunkLength, start);
+        fs.closeSync(fd);
+
+        const blob = new Blob([buffer], { type: mimetype || (resourceType === 'video' ? 'video/mp4' : 'application/octet-stream') });
+        const formData = new FormData();
+        formData.append('file', blob, originalName);
+        formData.append('upload_preset', uploadPreset);
+        formData.append('resource_type', resourceType);
+
+        const headers: Record<string, string> = {
+          'X-Unique-Upload-Id': uniqueId,
+          'Content-Range': `bytes ${start}-${end}/${fileSize}`
+        };
+
+        let chunkSuccess = false;
+        let attempt = 0;
+        let lastErr: any = null;
+
+        while (attempt < 3 && !chunkSuccess) {
+          attempt++;
+          try {
+            const cloudRes = await fetch(endpoint, {
+              method: 'POST',
+              headers,
+              body: formData
+            });
+
+            const data = await cloudRes.json();
+            if (!cloudRes.ok) {
+              const errMsg = data.error?.message || `Cloudinary returned HTTP status ${cloudRes.status}`;
+              throw new Error(errMsg);
+            }
+
+            lastResponseData = data;
+            chunkSuccess = true;
+          } catch (err: any) {
+            lastErr = err;
+            console.warn(`Chunk ${i + 1}/${totalChunks} attempt ${attempt} failed: ${err.message}`);
+            if (attempt < 3) {
+              await new Promise(r => setTimeout(r, 1500 * attempt));
+            }
+          }
+        }
+
+        if (!chunkSuccess) {
+          throw new Error(`Failed to upload chunk ${i + 1}/${totalChunks} to Cloudinary: ${lastErr?.message || 'Network error'}`);
+        }
       }
 
-      console.log('Cloudinary server proxy upload success:', data.secure_url || data.url);
-      
       // Clean up temp file
-      fs.unlink(req.file.path, () => {});
+      fs.unlink(filePath, () => {});
 
-      return res.json({ url: data.secure_url || data.url });
+      if (lastResponseData && (lastResponseData.secure_url || lastResponseData.url)) {
+        console.log('Cloudinary chunked upload success:', lastResponseData.secure_url || lastResponseData.url);
+        return res.json({ url: lastResponseData.secure_url || lastResponseData.url });
+      }
+
+      return res.status(500).json({ error: 'Cloudinary processed all chunks but returned no media URL' });
     } catch (err: any) {
-      console.error('Error in Cloudinary server upload proxy:', err);
-      return res.status(500).json({ error: err.message || 'Server error proxying to Cloudinary' });
+      if (fs.existsSync(filePath)) {
+        fs.unlink(filePath, () => {});
+      }
+      console.error('Error in Cloudinary server chunked upload:', err);
+      return res.status(500).json({ error: err.message || 'Server error uploading to Cloudinary' });
     }
   });
 

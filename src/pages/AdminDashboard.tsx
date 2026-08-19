@@ -170,6 +170,7 @@ export default function AdminDashboard() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [editingProject, setEditingProject] = useState<ProjectData | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [uploadStatusText, setUploadStatusText] = useState<string>('');
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [isTestingCloudinary, setIsTestingCloudinary] = useState(false);
   const [cloudinaryForm, setCloudinaryForm] = useState({
@@ -635,40 +636,118 @@ export default function AdminDashboard() {
       const cloudName = (data.cloudinary?.cloudName || import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || "").trim();
       const uploadPreset = (data.cloudinary?.uploadPreset || import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || "").trim();
 
-      const uploadLocal = async (): Promise<string> => {
-        return new Promise((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          const formData = new FormData();
-          formData.append('file', fileToUpload);
+      if (!cloudName || !uploadPreset) {
+        showNotification("Cloudinary credentials required. Please configure your Cloud Name and Unsigned Upload Preset in Storage Settings.", "error");
+        setShowCloudinaryConfig(true);
+        setIsUploading(false);
+        setUploadProgress(0);
+        setUploadStatusText('');
+        return;
+      }
 
-          xhr.open('POST', '/api/upload');
-          xhr.upload.onprogress = (event) => {
-            if (event.lengthComputable) {
-              const percentComplete = Math.round((event.loaded / event.total) * 100);
-              setUploadProgress(percentComplete);
-            }
-          };
+      const resourceType = isVideo ? 'video' : 'auto';
 
-          xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              try {
-                const response = JSON.parse(xhr.responseText);
-                resolve(response.url);
-              } catch {
-                reject(new Error('Invalid response from local upload server'));
+      // Direct client-to-Cloudinary chunked uploader (handles 400MB+ videos easily)
+      const uploadDirectChunked = async (): Promise<string> => {
+        const fileSize = fileToUpload.size;
+        const CHUNK_SIZE = 10 * 1024 * 1024; // 10 MB per chunk
+        const totalChunks = Math.ceil(fileSize / CHUNK_SIZE);
+        const uniqueId = `cl_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        const endpoint = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
+
+        console.log(`Starting direct Cloudinary chunked upload (${(fileSize / (1024 * 1024)).toFixed(1)} MB in ${totalChunks} chunks)`);
+
+        let lastResult: any = null;
+
+        for (let i = 0; i < totalChunks; i++) {
+          const start = i * CHUNK_SIZE;
+          const end = Math.min(start + CHUNK_SIZE - 1, fileSize - 1);
+          const chunkBlob = fileToUpload.slice(start, end + 1);
+
+          let chunkSuccess = false;
+          let attempt = 0;
+          let lastErr: any = null;
+
+          while (attempt < 3 && !chunkSuccess) {
+            attempt++;
+            try {
+              const result = await new Promise<any>((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                const formData = new FormData();
+                formData.append('file', chunkBlob, fileToUpload.name);
+                formData.append('upload_preset', uploadPreset);
+                formData.append('resource_type', resourceType);
+
+                xhr.open('POST', endpoint);
+                xhr.setRequestHeader('X-Unique-Upload-Id', uniqueId);
+                xhr.setRequestHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
+                xhr.timeout = 180000; // 3 min timeout per chunk
+
+                xhr.upload.onprogress = (e) => {
+                  if (e.lengthComputable) {
+                    const currentLoaded = start + e.loaded;
+                    const percent = Math.min(99, Math.round((currentLoaded / fileSize) * 100));
+                    const mbLoaded = (currentLoaded / (1024 * 1024)).toFixed(1);
+                    const mbTotal = (fileSize / (1024 * 1024)).toFixed(1);
+                    setUploadProgress(percent);
+                    setUploadStatusText(`Uploading chunk ${i + 1}/${totalChunks} (${mbLoaded}MB / ${mbTotal}MB)`);
+                  }
+                };
+
+                xhr.onload = () => {
+                  if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                      const json = JSON.parse(xhr.responseText);
+                      resolve(json);
+                    } catch {
+                      resolve({ done: false });
+                    }
+                  } else {
+                    try {
+                      const errJson = JSON.parse(xhr.responseText);
+                      reject(new Error(errJson.error?.message || `Cloudinary rejected with HTTP ${xhr.status}`));
+                    } catch {
+                      reject(new Error(`Cloudinary returned HTTP status ${xhr.status}`));
+                    }
+                  }
+                };
+
+                xhr.onerror = () => reject(new Error(`Network error uploading chunk ${i + 1}`));
+                xhr.ontimeout = () => reject(new Error(`Timeout uploading chunk ${i + 1}`));
+                xhr.send(formData);
+              });
+
+              lastResult = result;
+              chunkSuccess = true;
+            } catch (err: any) {
+              lastErr = err;
+              console.warn(`Chunk ${i + 1}/${totalChunks} attempt ${attempt} failed:`, err);
+              if (attempt < 3) {
+                setUploadStatusText(`Retrying chunk ${i + 1}/${totalChunks} (attempt ${attempt + 1})...`);
+                await new Promise((r) => setTimeout(r, 1500 * attempt));
               }
-            } else {
-              reject(new Error(`Local upload failed (status ${xhr.status})`));
             }
-          };
+          }
 
-          xhr.onerror = () => reject(new Error('Network error during local upload'));
-          xhr.send(formData);
-        });
+          if (!chunkSuccess) {
+            throw new Error(lastErr?.message || `Failed to upload chunk ${i + 1}/${totalChunks} to Cloudinary`);
+          }
+        }
+
+        setUploadProgress(100);
+        setUploadStatusText('Processing media in Cloudinary...');
+
+        if (lastResult && (lastResult.secure_url || lastResult.url)) {
+          return lastResult.secure_url || lastResult.url;
+        }
+
+        throw new Error('Cloudinary processed chunks but did not return a secure URL.');
       };
 
-      const uploadCloudinaryServerProxy = async (resourceType: string): Promise<string> => {
+      // Server proxy chunked fallback (in case browser has CORS or strict firewall)
+      const uploadProxyChunked = async (): Promise<string> => {
         return new Promise((resolve, reject) => {
+          setUploadStatusText('Streaming via server proxy to Cloudinary...');
           const xhr = new XMLHttpRequest();
           const formData = new FormData();
           formData.append('file', fileToUpload);
@@ -677,10 +756,15 @@ export default function AdminDashboard() {
           formData.append('resourceType', resourceType);
 
           xhr.open('POST', '/api/upload/cloudinary');
+          xhr.timeout = 300000; // 5 min timeout for entire file transfer
+
           xhr.upload.onprogress = (event) => {
             if (event.lengthComputable) {
               const percentComplete = Math.round((event.loaded / event.total) * 100);
               setUploadProgress(percentComplete);
+              const mbLoaded = (event.loaded / (1024 * 1024)).toFixed(1);
+              const mbTotal = (event.total / (1024 * 1024)).toFixed(1);
+              setUploadStatusText(`Streaming to Cloudinary (${mbLoaded}MB / ${mbTotal}MB)`);
             }
           };
 
@@ -688,9 +772,13 @@ export default function AdminDashboard() {
             if (xhr.status >= 200 && xhr.status < 300) {
               try {
                 const response = JSON.parse(xhr.responseText);
-                resolve(response.url);
+                if (response.url) {
+                  resolve(response.url);
+                } else {
+                  reject(new Error('No media URL in server proxy response'));
+                }
               } catch {
-                reject(new Error('Invalid server proxy response'));
+                reject(new Error('Invalid response from Cloudinary server proxy'));
               }
             } else {
               try {
@@ -702,69 +790,24 @@ export default function AdminDashboard() {
             }
           };
 
-          xhr.onerror = () => reject(new Error('Network error during server proxy upload'));
+          xhr.onerror = () => reject(new Error('Network error during Cloudinary proxy upload'));
+          xhr.ontimeout = () => reject(new Error('Upload timed out during Cloudinary proxy upload'));
           xhr.send(formData);
         });
       };
 
-      if (cloudName && uploadPreset) {
-        const resourceType = isVideo ? 'video' : 'auto';
+      try {
+        // Attempt direct chunked upload first (fastest, direct streaming)
+        url = await uploadDirectChunked();
+      } catch (directErr: any) {
+        console.warn("Direct Cloudinary chunked upload failed, trying server-side chunked proxy...", directErr);
         try {
-          // Attempt 1: Direct browser upload to Cloudinary
-          url = await new Promise((resolve, reject) => {
-            const xhr = new XMLHttpRequest();
-            const formData = new FormData();
-            formData.append('file', fileToUpload);
-            formData.append('upload_preset', uploadPreset);
-            formData.append('resource_type', resourceType);
-
-            xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`);
-            xhr.timeout = 180000; // 3 min timeout
-
-            xhr.upload.onprogress = (event) => {
-              if (event.lengthComputable) {
-                const percentComplete = Math.round((event.loaded / event.total) * 100);
-                setUploadProgress(percentComplete);
-              }
-            };
-
-            xhr.onload = () => {
-              if (xhr.status >= 200 && xhr.status < 300) {
-                try {
-                  const response = JSON.parse(xhr.responseText);
-                  resolve(response.secure_url || response.url);
-                } catch {
-                  reject(new Error('Invalid Cloudinary response'));
-                }
-              } else {
-                try {
-                  const error = JSON.parse(xhr.responseText);
-                  reject(new Error(error.error?.message || `Cloudinary rejected upload (HTTP ${xhr.status})`));
-                } catch {
-                  reject(new Error(`Cloudinary upload failed with HTTP ${xhr.status}`));
-                }
-              }
-            };
-
-            xhr.onerror = () => reject(new Error('Direct browser network/CORS error'));
-            xhr.ontimeout = () => reject(new Error('Direct upload timed out'));
-            xhr.send(formData);
-          });
-        } catch (directError: any) {
-          console.warn("Direct Cloudinary upload failed, attempting backend server proxy...", directError);
-          try {
-            // Attempt 2: Server-side proxy (bypasses browser CORS, timeout & chunking constraints)
-            url = await uploadCloudinaryServerProxy(resourceType);
-          } catch (proxyError: any) {
-            console.warn("Server Cloudinary upload also failed, falling back to local storage...", proxyError);
-            // Attempt 3: Local storage fallback to guarantee zero lost user uploads
-            url = await uploadLocal();
-            showNotification(`Saved to local media storage (Cloudinary note: ${proxyError.message || directError.message})`, "info");
-          }
+          // Attempt server-side chunked upload proxy
+          url = await uploadProxyChunked();
+        } catch (proxyErr: any) {
+          console.error("Both direct and server-side Cloudinary uploads failed:", proxyErr);
+          throw new Error(`Cloudinary upload failed: ${directErr.message || proxyErr.message}`);
         }
-      } else {
-        // Fallback to local server upload
-        url = await uploadLocal();
       }
 
       switch (target.section) {
@@ -846,6 +889,8 @@ export default function AdminDashboard() {
       showNotification(errorMessage, "error");
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
+      setUploadStatusText('');
       setUploadTarget(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
@@ -2612,6 +2657,38 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+      {/* Active Uploading Floating Overlay */}
+      <AnimatePresence>
+        {isUploading && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.95 }}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[110] w-[92%] max-w-md bg-zinc-900 border border-emerald-500/40 rounded-2xl p-4 shadow-[0_10px_40px_rgba(0,0,0,0.8)] backdrop-blur-md"
+          >
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm font-semibold text-white">Uploading to Cloudinary</span>
+              </div>
+              <span className="text-sm font-bold font-mono text-emerald-400">{uploadProgress}%</span>
+            </div>
+
+            {/* Progress bar */}
+            <div className="w-full bg-zinc-950 rounded-full h-2 overflow-hidden border border-zinc-800 mb-2">
+              <div
+                className="bg-emerald-500 h-full rounded-full transition-all duration-300 ease-out"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+
+            <p className="text-xs text-zinc-400 truncate font-mono">
+              {uploadStatusText || 'Preparing chunks...'}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Floating Save Action */}
       <AnimatePresence>
