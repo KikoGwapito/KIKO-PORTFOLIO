@@ -31,21 +31,21 @@ function MediaModal({ media, onClose }: { media: any, onClose: () => void }) {
       initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
       animate={{ opacity: 1, backdropFilter: "blur(10px)" }}
       exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
-      className="fixed inset-0 z-[99999] w-screen h-screen flex flex-col items-center justify-center bg-zinc-950/95 overflow-hidden p-4 sm:p-6 md:p-12"
+      className="fixed inset-0 z-[99999] w-screen h-screen flex flex-col items-center justify-center bg-zinc-950/95 overflow-hidden p-2 sm:p-6 md:p-12"
       onClick={onClose}
     >
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 md:top-6 md:right-6 z-[100000] p-3 bg-zinc-900/80 hover:bg-zinc-800 text-white rounded-full transition-colors border border-white/10 shadow-lg"
+        className="absolute top-3 right-3 sm:top-6 sm:right-6 z-[100000] p-2.5 sm:p-3 bg-zinc-900/90 hover:bg-zinc-800 text-white rounded-full transition-colors border border-white/10 shadow-lg active:scale-95"
       >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        <svg width="20" height="20" className="sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
       </button>
 
       <motion.div 
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="relative w-full h-full max-w-6xl max-h-[88vh] flex items-center justify-center pointer-events-auto"
+        className="relative w-full h-full max-w-6xl max-h-[92vh] sm:max-h-[88vh] flex items-center justify-center pointer-events-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {media.type === 'video' ? (

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Maximize } from 'lucide-react';
+import { Play, Pause, Maximize, ExternalLink } from 'lucide-react';
 import { getEmbedInfo } from '../utils/embed';
 import { InstagramEmbed, TikTokEmbed, FacebookEmbed, YouTubeEmbed } from 'react-social-media-embed';
 
@@ -135,19 +135,36 @@ export function VideoPlayer({ src, className = "", autoPlay = false, muted = fal
     }
 
     if (embedInfo.type === 'gdrive' && embedInfo.id) {
+      const gdriveUrl = embedInfo.embedUrl || `https://drive.google.com/file/d/${embedInfo.id}/preview`;
+      const directViewUrl = `https://drive.google.com/file/d/${embedInfo.id}/view`;
+
       return (
         <div 
-          className="w-full h-full flex items-center justify-center p-2 sm:p-4"
+          className="w-full h-full flex flex-col items-center justify-center p-1 sm:p-4 max-h-[88vh]"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="relative w-full max-w-6xl aspect-video rounded-2xl overflow-hidden shadow-2xl bg-black border border-white/10 mx-auto">
+          <div className="relative w-full max-w-5xl aspect-video h-[55vh] sm:h-[68vh] md:h-auto rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl bg-black border border-white/10 mx-auto touch-auto">
             <iframe
-              src={embedInfo.embedUrl || `https://drive.google.com/file/d/${embedInfo.id}/preview`}
+              src={gdriveUrl}
               title="Google Drive video player"
-              className="w-full h-full border-0 absolute inset-0"
-              allow="autoplay; fullscreen; picture-in-picture"
+              className="w-full h-full border-0 absolute inset-0 touch-auto"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
               allowFullScreen
+              loading="eager"
             />
+          </div>
+
+          <div className="flex items-center justify-between w-full max-w-5xl px-1 pt-2.5 text-xs text-zinc-400">
+            <span className="truncate max-w-[160px] sm:max-w-xs text-zinc-400 font-mono text-[11px] sm:text-xs">Google Drive Stream</span>
+            <a 
+              href={directViewUrl} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 hover:text-white rounded-lg transition-colors border border-white/10 text-xs font-medium shadow-md active:scale-95"
+            >
+              <span>Open in Drive</span>
+              <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />
+            </a>
           </div>
         </div>
       );
