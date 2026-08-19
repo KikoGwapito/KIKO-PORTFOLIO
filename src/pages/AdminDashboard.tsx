@@ -34,7 +34,91 @@ import {
 
 type Tab = 'hero' | 'trust' | 'featured' | 'about' | 'process' | 'contact' | 'pageTitle' | 'reviews' | 'theme' | 'navigation' | 'security';
 
+function TechnologiesInput({
+  value,
+  onChange,
+  className
+}: {
+  value: string[];
+  onChange: (tech: string[]) => void;
+  className?: string;
+}) {
+  const [text, setText] = useState(() => (value || []).join(', '));
 
+  useEffect(() => {
+    const currentParsed = text.split(',').map(t => t.trim()).filter(Boolean);
+    const incoming = value || [];
+    if (JSON.stringify(currentParsed) !== JSON.stringify(incoming)) {
+      setText(incoming.join(', '));
+    }
+  }, [value]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newText = e.target.value;
+    setText(newText);
+    const parsed = newText.split(',').map(t => t.trim()).filter(Boolean);
+    onChange(parsed);
+  };
+
+  const parsedTags = text.split(',').map(t => t.trim()).filter(Boolean);
+
+  return (
+    <div className="space-y-2">
+      <input
+        type="text"
+        value={text}
+        onChange={handleChange}
+        placeholder="e.g. React, Tailwind CSS, TypeScript, Next.js"
+        className={className}
+      />
+      {parsedTags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          {parsedTags.map((tag, i) => (
+            <span key={i} className="px-2.5 py-1 bg-zinc-900 text-zinc-300 text-xs rounded-md border border-zinc-800 font-mono flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)] opacity-80" />
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ParagraphsInput({
+  value,
+  onChange,
+  className
+}: {
+  value: string[];
+  onChange: (content: string[]) => void;
+  className?: string;
+}) {
+  const [text, setText] = useState(() => (value || []).join('\n\n'));
+
+  useEffect(() => {
+    const currentParsed = text.split('\n\n').filter(Boolean);
+    const incoming = value || [];
+    if (JSON.stringify(currentParsed) !== JSON.stringify(incoming)) {
+      setText(incoming.join('\n\n'));
+    }
+  }, [value]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newText = e.target.value;
+    setText(newText);
+    const parsed = newText.split('\n\n').filter(Boolean);
+    onChange(parsed);
+  };
+
+  return (
+    <textarea
+      value={text}
+      onChange={handleChange}
+      className={className}
+    />
+  );
+}
 
 function DropZone({ 
   onDropFile, 
@@ -134,7 +218,7 @@ export default function AdminDashboard() {
   const [contactData, setContactData] = useState(data.contact);
   const [pageTitleData, setPageTitleData] = useState(data.pageTitle);
   const [themeData, setThemeData] = useState(data.theme);
-  const [navigationData, setNavigationData] = useState(data.navigation || { about: true, process: true, reviews: true });
+  const [navigationData, setNavigationData] = useState(data.navigation || { about: true, process: true, reviews: true, particles: true });
   const [reviewsData, setReviewsData] = useState(data.reviews);
   const [reviewsSearchQuery, setReviewsSearchQuery] = useState('');
   const [reviewsSearchFilter, setReviewsSearchFilter] = useState<'all' | 'name' | 'role'>('all');
@@ -1076,7 +1160,11 @@ export default function AdminDashboard() {
 
                 <div>
                   <label className="block text-sm font-medium text-zinc-400 mb-2">Technologies (comma separated)</label>
-                  <input type="text" value={editingProject.tech.join(', ')} onChange={(e) => setEditingProject({ ...editingProject, tech: e.target.value.split(',').map(t => t.trim()).filter(Boolean) })} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" />
+                  <TechnologiesInput 
+                    value={editingProject.tech || []} 
+                    onChange={(newTech) => setEditingProject({ ...editingProject, tech: newTech })} 
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)]" 
+                  />
                 </div>
 
                 <div className="pt-8 border-t border-zinc-800">
@@ -1218,7 +1306,11 @@ export default function AdminDashboard() {
         </div>
         <div>
           <label className="block text-sm font-medium text-zinc-400 mb-2">Content (Paragraphs separated by newlines) (use `accent` for accent color)</label>
-          <textarea value={aboutData.content.join('\n\n')} onChange={e => setAboutData({...aboutData, content: e.target.value.split('\n\n').filter(Boolean)})} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)] min-h-[200px]" />
+          <ParagraphsInput 
+            value={aboutData.content || []} 
+            onChange={newContent => setAboutData({ ...aboutData, content: newContent })} 
+            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-zinc-50 focus:outline-none focus:border-[var(--color-primary)] min-h-[200px]" 
+          />
         </div>
         <div>
           <label className="block text-sm font-medium text-zinc-400 mb-2">Image</label>
@@ -2030,6 +2122,29 @@ export default function AdminDashboard() {
                   className={`w-12 h-6 rounded-full transition-colors relative ${navigationData.reviews ? 'bg-emerald-500' : 'bg-zinc-700'}`}
                 >
                   <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${navigationData.reviews ? 'left-7' : 'left-1'}`} />
+                </button>
+              </div>
+              <div className="flex items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-xl">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-zinc-100">Background Moving Particles</h3>
+                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${
+                      (navigationData.particles ?? true) 
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                        : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                    }`}>
+                      {(navigationData.particles ?? true) ? 'Visible' : 'Hidden'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-500">Hide or unhide the animated floating particles in the background</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNavigationData({ ...navigationData, particles: !(navigationData.particles ?? true) })}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${(navigationData.particles ?? true) ? 'bg-emerald-500' : 'bg-zinc-700'}`}
+                  aria-label="Toggle background particles"
+                >
+                  <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${(navigationData.particles ?? true) ? 'left-7' : 'left-1'}`} />
                 </button>
               </div>
             </div>

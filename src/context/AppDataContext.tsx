@@ -139,6 +139,7 @@ export type NavigationSettings = {
   about: boolean;
   process: boolean;
   reviews: boolean;
+  particles?: boolean;
 };
 
 export type AppData = {
@@ -287,7 +288,8 @@ const defaultData: AppData = {
   navigation: {
     about: true,
     process: true,
-    reviews: true
+    reviews: true,
+    particles: true
   },
   projects: defaultProjects,
   projectOrder: ['fintech', 'ecommerce', 'saas', 'healthtech'],

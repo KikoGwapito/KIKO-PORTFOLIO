@@ -390,7 +390,7 @@ export default function App() {
   return (
     <LenisProvider>
       <div className="min-h-screen text-zinc-50 font-sans cursor-none relative" style={{ '--color-primary': data.theme.primaryColor } as React.CSSProperties}>
-        <LiquidBackground speedState={backgroundSpeed} />
+        {(data.navigation?.particles ?? true) && <LiquidBackground speedState={backgroundSpeed} />}
 
         <FirebaseConfigBanner />
       <SecurityOverlay />
