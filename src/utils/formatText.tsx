@@ -22,7 +22,7 @@ const FlareLetter: React.FC<{ char: string, color: string, interval?: number }> 
         {char === ' ' ? '\u00A0' : char}
       </span>
       {char !== ' ' && hasFlare && (
-        <motion.div
+        <motion.span
            initial={{ opacity: 0, scale: 0, rotate: 0 }}
            animate={{ 
              opacity: [0, 1, 1, 0],
@@ -47,21 +47,21 @@ const FlareLetter: React.FC<{ char: string, color: string, interval?: number }> 
            }}
         >
           {/* Main long streak */}
-          <div className="absolute w-[100%] h-[2px] rounded-full" style={{ background: `linear-gradient(90deg, transparent 15%, ${color} 45%, white 50%, ${color} 55%, transparent 85%)`, filter: 'blur(0.5px)' }} />
+          <span className="absolute w-[100%] h-[2px] rounded-full block" style={{ background: `linear-gradient(90deg, transparent 15%, ${color} 45%, white 50%, ${color} 55%, transparent 85%)`, filter: 'blur(0.5px)' }} />
           
           {/* Faint long streak glow */}
-          <div className="absolute w-[100%] h-[12px] rounded-full opacity-60" style={{ background: `linear-gradient(90deg, transparent 15%, ${color} 45%, white 50%, ${color} 55%, transparent 85%)`, filter: 'blur(4px)' }} />
+          <span className="absolute w-[100%] h-[12px] rounded-full opacity-60 block" style={{ background: `linear-gradient(90deg, transparent 15%, ${color} 45%, white 50%, ${color} 55%, transparent 85%)`, filter: 'blur(4px)' }} />
           
           {/* Cross short streak to make rotation visible */}
-          <div className="absolute h-[30%] w-[2px] rounded-full" style={{ background: `linear-gradient(180deg, transparent 15%, ${color} 45%, white 50%, ${color} 55%, transparent 85%)`, filter: 'blur(0.5px)' }} />
+          <span className="absolute h-[30%] w-[2px] rounded-full block" style={{ background: `linear-gradient(180deg, transparent 15%, ${color} 45%, white 50%, ${color} 55%, transparent 85%)`, filter: 'blur(0.5px)' }} />
           
           {/* Large soft circle core */}
-          <div className="absolute w-[20%] h-[20%] max-w-[24px] max-h-[24px] rounded-full opacity-90" style={{ background: color, filter: 'blur(6px)' }} />
-          <div className="absolute w-[10%] h-[10%] max-w-[12px] max-h-[12px] rounded-full opacity-100" style={{ background: 'white', filter: 'blur(2px)' }} />
+          <span className="absolute w-[20%] h-[20%] max-w-[24px] max-h-[24px] rounded-full opacity-90 block" style={{ background: color, filter: 'blur(6px)' }} />
+          <span className="absolute w-[10%] h-[10%] max-w-[12px] max-h-[12px] rounded-full opacity-100 block" style={{ background: 'white', filter: 'blur(2px)' }} />
           
           {/* Bright center core (sharp) */}
-          <div className="absolute w-[3px] h-[3px] bg-white rounded-full" style={{ filter: 'blur(0.5px)' }} />
-        </motion.div>
+          <span className="absolute w-[3px] h-[3px] bg-white rounded-full block" style={{ filter: 'blur(0.5px)' }} />
+        </motion.span>
       )}
     </span>
   );

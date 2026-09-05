@@ -202,7 +202,7 @@ export default function About() {
             
             <div className="space-y-12 text-zinc-400">
               {data.about.content.map((paragraph, i) => (
-                <motion.p 
+                <motion.div 
                   key={i} 
                   initial={{ opacity: 0, filter: "blur(10px)", y: 20 }}
                   whileInView={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" }, y: 0 }}
@@ -211,7 +211,7 @@ export default function About() {
                   className={i === 0 ? "text-3xl md:text-4xl text-zinc-100 font-medium leading-tight tracking-tight mb-12" : "text-xl leading-relaxed max-w-2xl"}
                 >
                   {formatTextWithAccent(paragraph, data.theme.primaryColor)}
-                </motion.p>
+                </motion.div>
               ))}
             </div>
 

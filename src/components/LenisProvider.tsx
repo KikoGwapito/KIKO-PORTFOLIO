@@ -41,13 +41,21 @@ export function LenisProvider({ children }: { children: React.ReactNode }) {
       const anchor = target.closest('a');
       if (anchor) {
         const href = anchor.getAttribute('href');
-        // Handle both local #anchor and /#anchor links
-        if (href && (href.startsWith('#') || href.startsWith('/#'))) {
-          const targetId = href.startsWith('/#') ? href.substring(1) : href;
+        // Handle local #anchor, /#anchor, and /homeport#anchor links
+        if (href && (href.startsWith('#') || href.startsWith('/#') || href.startsWith('/homeport#'))) {
+          const isHome = window.location.pathname === '/' || window.location.pathname === '/homeport';
+          // If navigating to home hash from a different page, allow react router to perform page navigation first
+          if (!href.startsWith('#') && !isHome) {
+            return;
+          }
+          const hashIdx = href.indexOf('#');
+          const targetId = hashIdx !== -1 ? href.substring(hashIdx) : null;
           if (targetId && targetId !== '#') {
             const targetEl = document.querySelector(targetId);
             if (targetEl) {
               e.preventDefault();
+              const targetUrl = href.startsWith('/homeport') ? href : `/homeport${targetId}`;
+              window.history.pushState(null, '', targetUrl);
               lenis.scrollTo(targetEl as HTMLElement, { 
                 duration: 1.2,
                 onComplete: () => {

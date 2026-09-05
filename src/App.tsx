@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { Menu, X, Lock, CheckCircle2, AlertCircle, Info, ArrowRight, Sun, Moon, Twitter, Instagram, Linkedin, Github, Facebook, Youtube, Dribbble, Figma, Globe, Music2 } from 'lucide-react';
 import { AnimatePresence, motion, useScroll, useTransform, useSpring, useMotionValue, useMotionValueEvent } from 'motion/react';
 import { LenisProvider } from './components/LenisProvider';
@@ -245,6 +245,11 @@ function ScrollProgress() {
   );
 }
 
+function NavigateToHomeport() {
+  const location = useLocation();
+  return <Navigate to={{ pathname: '/homeport', search: location.search, hash: location.hash }} replace />;
+}
+
 function NavigationLink({ to, children, closeMenu, isMobile }: { to: string, children: React.ReactNode, closeMenu?: () => void, isMobile?: boolean }) {
   const location = useLocation();
   const { data } = useAppData();
@@ -252,11 +257,16 @@ function NavigationLink({ to, children, closeMenu, isMobile }: { to: string, chi
   const isActive = React.useMemo(() => {
     if (to.includes('#')) {
       const hash = to.split('#')[1];
-      return location.pathname === '/' && location.hash === `#${hash}`;
+      const targetPath = to.split('#')[0] || '/homeport';
+      const isCurrentPage = location.pathname === targetPath || 
+        ((targetPath === '/' || targetPath === '/homeport' || targetPath === '') && (location.pathname === '/' || location.pathname === '/homeport'));
+      
+      return isCurrentPage && location.hash === `#${hash}`;
     }
-    // If we're at home, and hash is empty, then "work" might be active if there's no hash?
-    // Let's assume exact match.
-    if (location.pathname === '/' && !location.hash && to === '/#work') return true; // fallback
+    // If we're at home/homeport, and hash is empty, then "work" is active by default
+    if ((location.pathname === '/' || location.pathname === '/homeport') && !location.hash && (to === '/homeport#work' || to === '/#work')) {
+      return true; // fallback
+    }
     return location.pathname === to;
   }, [location.pathname, location.hash, to]);
 
@@ -265,7 +275,24 @@ function NavigationLink({ to, children, closeMenu, isMobile }: { to: string, chi
   return (
     <Link 
       to={to} 
-      onClick={closeMenu} 
+      onClick={() => {
+        closeMenu?.();
+        if (to.includes('#')) {
+          const [path, hash] = to.split('#');
+          const isCurrentPage = location.pathname === path || 
+            ((path === '/' || path === '/homeport' || path === '') && (location.pathname === '/' || location.pathname === '/homeport'));
+          if (isCurrentPage && hash) {
+            const el = document.getElementById(hash);
+            if (el) {
+              if ((window as any).lenis) {
+                (window as any).lenis.scrollTo(el, { offset: 0 });
+              } else {
+                el.scrollIntoView({ behavior: 'smooth' });
+              }
+            }
+          }
+        }
+      }} 
       className={`relative group transition-all duration-300 flex items-center justify-between ${
         isMobile ? "py-4 px-6 rounded-xl" : "px-4 py-2 rounded-lg"
       } ${isActive ? '' : 'hover:text-zinc-50 hover:bg-white/5'}`}
@@ -455,7 +482,7 @@ export default function App() {
             </div>
           ) : (
             <Link 
-              to="/" 
+              to="/homeport" 
               onClick={() => {
                 closeMenu();
                 if ((window as any).lenis) {
@@ -486,7 +513,7 @@ export default function App() {
           <nav className="hidden md:flex items-center gap-2 text-sm font-medium text-zinc-400">
             {!isForClient && (
               <>
-                <Magnetic strength={0.1}><NavigationLink to="/#work">Work</NavigationLink></Magnetic>
+                <Magnetic strength={0.1}><NavigationLink to="/homeport#work">Work</NavigationLink></Magnetic>
                 {(data.navigation?.about ?? true) && <Magnetic strength={0.1}><NavigationLink to="/about">About</NavigationLink></Magnetic>}
                 {(data.navigation?.process ?? true) && <Magnetic strength={0.1}><NavigationLink to="/process">Process</NavigationLink></Magnetic>}
                 {(data.navigation?.reviews ?? true) && <Magnetic strength={0.1}><NavigationLink to="/reviews">Reviews</NavigationLink></Magnetic>}
@@ -575,7 +602,7 @@ export default function App() {
                 {!isForClient && (
                   <>
                     <motion.div variants={{ closed: { opacity: 0, y: -20 }, open: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
-                      <NavigationLink to="/#work" closeMenu={closeMenu} isMobile>Work</NavigationLink>
+                      <NavigationLink to="/homeport#work" closeMenu={closeMenu} isMobile>Work</NavigationLink>
                     </motion.div>
                     {(data.navigation?.about ?? true) && (
                       <motion.div variants={{ closed: { opacity: 0, y: -20 }, open: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
@@ -622,7 +649,8 @@ export default function App() {
         <AnimatePresence mode="wait">
           {/* @ts-ignore */}
           <Routes location={location} key={location.pathname}>
-            <Route path="/" element={<PageTransition><Home /></PageTransition>} />
+            <Route path="/" element={<NavigateToHomeport />} />
+            <Route path="/homeport" element={<PageTransition><Home /></PageTransition>} />
             <Route path="/about" element={<PageTransition><About /></PageTransition>} />
             <Route path="/process" element={<PageTransition><Process /></PageTransition>} />
             <Route path="/reviews" element={<PageTransition><Reviews /></PageTransition>} />
@@ -661,7 +689,7 @@ export default function App() {
               {!isForClient && (
                 <div className="flex flex-col items-start gap-4 lg:col-span-4 w-full">
                   <StaggeredLink 
-                    to="/#work" 
+                    to="/homeport#work" 
                     text="Work"
                     showArrow={true}
                     hoverColor={data.theme.primaryColor}
@@ -755,7 +783,7 @@ export default function App() {
                 </div>
               ) : (
                 <Link 
-                  to="/" 
+                  to="/homeport" 
                   className="shrink-0"
                   onClick={() => {
                     if ((window as any).lenis) {
