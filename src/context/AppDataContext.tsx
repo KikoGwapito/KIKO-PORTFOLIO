@@ -127,7 +127,7 @@ export type Review = {
 };
 
 export type ReviewsData = {
-  enabled: boolean;
+  submissionLimit: number;
   list: Review[];
 };
 
@@ -285,7 +285,7 @@ const defaultData: AppData = {
     loadingText: 'ENJOY!'
   },
   reviews: {
-    enabled: true,
+    submissionLimit: 10,
     list: []
   },
   navigation: {
@@ -554,9 +554,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     const settingsRef = doc(db, 'settings', 'main');
     const { projects, reviews, ...settingsToSave } = { ...data, ...newData };
     
-    // If reviews.enabled is being updated, include it in settingsToSave
-    if (newData.reviews && typeof newData.reviews.enabled === 'boolean') {
-      (settingsToSave as any).reviews = { enabled: newData.reviews.enabled };
+    // If reviews.submissionLimit is being updated, include it in settingsToSave
+    if (newData.reviews && typeof newData.reviews.submissionLimit === 'number') {
+      (settingsToSave as any).reviews = { submissionLimit: newData.reviews.submissionLimit };
     }
     
     batch.set(settingsRef, settingsToSave, { merge: true });
@@ -648,7 +648,15 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     const reviewRef = doc(db, 'reviews', id);
     
     try {
-      await setDoc(reviewRef, { ...review, id, date });
+      const batch = writeBatch(db);
+      batch.set(reviewRef, { ...review, id, date });
+      
+      if (data.reviews.submissionLimit > 0) {
+        const settingsRef = doc(db, 'settings', 'main');
+        batch.set(settingsRef, { reviews: { submissionLimit: data.reviews.submissionLimit - 1 } }, { merge: true });
+      }
+
+      await batch.commit();
       showNotification('Review submitted successfully!', 'success');
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `reviews/${id}`);

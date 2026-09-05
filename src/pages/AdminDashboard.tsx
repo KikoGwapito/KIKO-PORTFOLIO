@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from 'motion/react';
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAppData, ProjectData, MediaItem } from "../context/AppDataContext";
 import { storage } from "../firebase";
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
@@ -55,14 +55,17 @@ function TechnologiesInput({
   className?: string;
 }) {
   const [text, setText] = useState(() => (value || []).join(', '));
+  const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
-    const currentParsed = text.split(',').map(t => t.trim()).filter(Boolean);
-    const incoming = value || [];
-    if (JSON.stringify(currentParsed) !== JSON.stringify(incoming)) {
-      setText(incoming.join(', '));
+    if (!isFocused) {
+      const currentParsed = text.split(',').map(t => t.trim()).filter(Boolean);
+      const incoming = value || [];
+      if (JSON.stringify(currentParsed) !== JSON.stringify(incoming)) {
+        setText(incoming.join(', '));
+      }
     }
-  }, [value]);
+  }, [value, isFocused]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newText = e.target.value;
@@ -79,6 +82,8 @@ function TechnologiesInput({
         type="text"
         value={text}
         onChange={handleChange}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
         placeholder="e.g. React, Tailwind CSS, TypeScript, Next.js"
         className={className}
       />
@@ -2550,16 +2555,28 @@ export default function AdminDashboard() {
       </div>
       <div className="grid gap-6">
         <div className="flex items-center gap-4">
-          <label className="text-sm font-medium text-zinc-400">Enable Review Submissions (Unlock Form)</label>
-          <input type="checkbox" checked={reviewsData.enabled} onChange={e => setReviewsData({...reviewsData, enabled: e.target.checked})} className="w-5 h-5 accent-[var(--color-primary)]" />
+          <label className="text-sm font-medium text-zinc-400">Review Submissions Quota</label>
+          <input 
+            type="number" 
+            min="0" 
+            value={reviewsData.submissionLimit || 0} 
+            onChange={e => setReviewsData({...reviewsData, submissionLimit: parseInt(e.target.value) || 0})} 
+            className="w-24 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white" 
+          />
+          <span className="text-xs text-zinc-500">Set to 0 to lock the review form.</span>
         </div>
         
         <div className="pt-6 border-t border-zinc-800">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
             <h3 className="text-xl font-bold">Testimonials</h3>
-            <button onClick={() => setReviewsData({...reviewsData, list: [{ id: Date.now().toString(), clientName: 'New Client', clientRole: 'Role', content: 'Review content', rating: 5, date: new Date().toISOString().split('T')[0], isNew: true } as any, ...reviewsData.list]})} className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors text-sm">
-              <Plus className="w-4 h-4" /> Add Review
-            </button>
+            <div className="flex items-center gap-3">
+              <Link to="/for-client" className="flex items-center gap-2 px-4 py-2 bg-[var(--color-primary)] text-zinc-950 font-bold hover:brightness-110 rounded-lg transition-all text-sm">
+                <ArrowRight className="w-4 h-4" /> FOR CLIENT
+              </Link>
+              <button onClick={() => setReviewsData({...reviewsData, list: [{ id: Date.now().toString(), clientName: 'New Client', clientRole: 'Role', content: 'Review content', rating: 5, date: new Date().toISOString().split('T')[0], isNew: true } as any, ...reviewsData.list]})} className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg transition-colors text-sm">
+                <Plus className="w-4 h-4" /> Add Review
+              </button>
+            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 mb-6">

@@ -5,7 +5,7 @@ import { useAppData } from '../context/AppDataContext';
 import { formatTextWithAccent } from '../utils/formatText';
 import { Magnetic } from '../components/Magnetic';
 
-export default function Reviews() {
+export default function ForClient() {
   const { data, addReview } = useAppData();
   const speed = data.theme.animationSpeed || 1;
   const [isSubmitting, setIsSubmitting] = useState(false);

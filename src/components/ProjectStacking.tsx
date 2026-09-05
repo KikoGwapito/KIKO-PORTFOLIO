@@ -24,7 +24,7 @@ export const ProjectStacking: React.FC<ProjectStackingProps> = ({ projects, them
             <div className="w-full pointer-events-none">
               <Link 
                 to={`/work/${project.id}`}
-                className="relative w-full aspect-video md:aspect-[21/9] max-h-[80vh] block overflow-hidden bg-zinc-950 isolate pointer-events-auto border-t border-b border-white/5 transition-transform duration-700 ease-[0.22,1,0.36,1] group-hover:scale-[1.02]"
+                className="relative w-full aspect-[4/5] sm:aspect-video md:aspect-[21/9] max-h-[80vh] block overflow-hidden bg-zinc-950 isolate pointer-events-auto border-t border-b border-white/5 transition-transform duration-700 ease-[0.22,1,0.36,1] group-hover:scale-[1.02]"
               >
                 {/* Background Media */}
                 <div className="absolute inset-0 w-full h-full">

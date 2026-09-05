@@ -13,6 +13,7 @@ import Project from './pages/Project';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import Reviews from './pages/Reviews';
+import ForClient from './pages/ForClient';
 import SecurityOverlay from './components/SecurityOverlay';
 import { useAppData } from './context/AppDataContext';
 import { isConfigValid } from './firebase';
@@ -316,6 +317,7 @@ export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
   const isInitialMount = React.useRef(true);
+  const isForClient = location.pathname === '/for-client';
 
   const [headerVisible, setHeaderVisible] = useState(true);
   const { scrollY } = useScroll();
@@ -442,86 +444,109 @@ export default function App() {
         </div>
 
         <div className="w-full px-6 md:px-8 h-16 md:h-20 flex items-center justify-between relative z-10 pointer-events-auto">
-          <Link 
-            to="/" 
-            onClick={() => {
-              closeMenu();
-              if ((window as any).lenis) {
-                (window as any).lenis.scrollTo(0, { 
-                  immediate: false, 
-                  duration: 1.2,
-                  onComplete: () => ScrollTrigger.refresh()
-                });
-              } else {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }
-            }} 
-            className="shrink-0"
-          >
-            <motion.div 
-              className="text-xl font-bold font-heading tracking-tighter flex items-center gap-2 origin-left"
-              whileHover={{ x: 5 }}
-              whileTap={{ scale: 0.98 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
+          {isForClient ? (
+            <div className="shrink-0">
+              <motion.div 
+                className="text-xl font-bold font-heading tracking-tighter flex items-center gap-2 origin-left"
+              >
+                {data.pageTitle.logo && <img loading="lazy" src={data.pageTitle.logo} alt="Logo" referrerPolicy="no-referrer" className="h-8 w-auto select-none pointer-events-none" draggable={false} onContextMenu={(e) => e.preventDefault()} />}
+                <span className="inline-block truncate max-w-[150px] sm:max-w-none">{formatTextWithAccent(data.pageTitle.title, data.theme.primaryColor)}</span>
+              </motion.div>
+            </div>
+          ) : (
+            <Link 
+              to="/" 
+              onClick={() => {
+                closeMenu();
+                if ((window as any).lenis) {
+                  (window as any).lenis.scrollTo(0, { 
+                    immediate: false, 
+                    duration: 1.2,
+                    onComplete: () => ScrollTrigger.refresh()
+                  });
+                } else {
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+              }} 
+              className="shrink-0"
             >
-              {data.pageTitle.logo && <img loading="lazy" src={data.pageTitle.logo} alt="Logo" referrerPolicy="no-referrer" className="h-8 w-auto select-none pointer-events-none" draggable={false} onContextMenu={(e) => e.preventDefault()} />}
-              <span className="inline-block truncate max-w-[150px] sm:max-w-none">{formatTextWithAccent(data.pageTitle.title, data.theme.primaryColor)}</span>
-            </motion.div>
-          </Link>
+              <motion.div 
+                className="text-xl font-bold font-heading tracking-tighter flex items-center gap-2 origin-left"
+                whileHover={{ x: 5 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+              >
+                {data.pageTitle.logo && <img loading="lazy" src={data.pageTitle.logo} alt="Logo" referrerPolicy="no-referrer" className="h-8 w-auto select-none pointer-events-none" draggable={false} onContextMenu={(e) => e.preventDefault()} />}
+                <span className="inline-block truncate max-w-[150px] sm:max-w-none">{formatTextWithAccent(data.pageTitle.title, data.theme.primaryColor)}</span>
+              </motion.div>
+            </Link>
+          )}
           
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-2 text-sm font-medium text-zinc-400">
-            <Magnetic strength={0.1}><NavigationLink to="/#work">Work</NavigationLink></Magnetic>
-            {(data.navigation?.about ?? true) && <Magnetic strength={0.1}><NavigationLink to="/about">About</NavigationLink></Magnetic>}
-            {(data.navigation?.process ?? true) && <Magnetic strength={0.1}><NavigationLink to="/process">Process</NavigationLink></Magnetic>}
-            {(data.navigation?.reviews ?? true) && <Magnetic strength={0.1}><NavigationLink to="/reviews">Reviews</NavigationLink></Magnetic>}
-            <div className="w-[1px] h-6 bg-zinc-800 mx-2" />
-            <Magnetic strength={0.3}>
-              <Link to="/contact">
-                <motion.div 
-                  className="px-5 py-2.5 rounded-full font-semibold text-zinc-50 glow-primary"
-                  style={{ backgroundColor: data.theme.primaryColor }}
-                  whileHover={{ scale: 1.05, opacity: 0.9 }}
-                  whileTap={{ scale: 0.95 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  Contact Me
-                </motion.div>
-              </Link>
-            </Magnetic>
-            <Magnetic strength={0.2}>
-              <Link to={isAdmin ? "/admin" : "/admin/login"} title="Admin Login">
-                <motion.div 
-                  className="p-2 hover:bg-zinc-800 rounded-full transition-colors text-zinc-500 hover:text-zinc-50"
-                  whileHover={{ scale: 1.1, rotate: [0, -10, 10, -10, 10, 0] }}
-                  whileTap={{ scale: 0.9 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Lock className="w-4 h-4" />
-                </motion.div>
-              </Link>
-            </Magnetic>
+            {!isForClient && (
+              <>
+                <Magnetic strength={0.1}><NavigationLink to="/#work">Work</NavigationLink></Magnetic>
+                {(data.navigation?.about ?? true) && <Magnetic strength={0.1}><NavigationLink to="/about">About</NavigationLink></Magnetic>}
+                {(data.navigation?.process ?? true) && <Magnetic strength={0.1}><NavigationLink to="/process">Process</NavigationLink></Magnetic>}
+                {(data.navigation?.reviews ?? true) && <Magnetic strength={0.1}><NavigationLink to="/reviews">Reviews</NavigationLink></Magnetic>}
+                <div className="w-[1px] h-6 bg-zinc-800 mx-2" />
+              </>
+            )}
+            {!isForClient && (
+              <Magnetic strength={0.3}>
+                <Link to="/contact">
+                  <motion.div 
+                    className="px-5 py-2.5 rounded-full font-semibold text-zinc-50 glow-primary"
+                    style={{ backgroundColor: data.theme.primaryColor }}
+                    whileHover={{ scale: 1.05, opacity: 0.9 }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    Contact Me
+                  </motion.div>
+                </Link>
+              </Magnetic>
+            )}
+            {!isForClient && (
+              <Magnetic strength={0.2}>
+                <Link to={isAdmin ? "/admin" : "/admin/login"} title="Admin Login">
+                  <motion.div 
+                    className="p-2 hover:bg-zinc-800 rounded-full transition-colors text-zinc-500 hover:text-zinc-50"
+                    whileHover={{ scale: 1.1, rotate: [0, -10, 10, -10, 10, 0] }}
+                    whileTap={{ scale: 0.9 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Lock className="w-4 h-4" />
+                  </motion.div>
+                </Link>
+              </Magnetic>
+            )}
           </nav>
 
           {/* Mobile Menu Toggle */}
           <div className="md:hidden flex items-center gap-4">
-            <Link to={isAdmin ? "/admin" : "/admin/login"}>
-              <motion.div 
-                className="p-2 text-zinc-500 hover:text-zinc-50 transition-colors"
-                whileHover={{ scale: 1.1, rotate: [0, -10, 10, -10, 10, 0] }}
-                whileTap={{ scale: 0.9 }}
-                transition={{ duration: 1.0 }}
+            {!isForClient && (
+              <Link to={isAdmin ? "/admin" : "/admin/login"}>
+                <motion.div 
+                  className="p-2 text-zinc-500 hover:text-zinc-50 transition-colors"
+                  whileHover={{ scale: 1.1, rotate: [0, -10, 10, -10, 10, 0] }}
+                  whileTap={{ scale: 0.9 }}
+                  transition={{ duration: 1.0 }}
+                >
+                  <Lock className="w-4 h-4" />
+                </motion.div>
+              </Link>
+            )}
+            {!isForClient && (
+              <button 
+                className="p-2 text-zinc-400 hover:text-zinc-50 transition-colors"
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                aria-label="Toggle menu"
               >
-                <Lock className="w-4 h-4" />
-              </motion.div>
-            </Link>
-            <button 
-              className="p-2 text-zinc-400 hover:text-zinc-50 transition-colors"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              aria-label="Toggle menu"
-            >
-              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
+                {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+            )}
           </div>
         </div>
 
@@ -546,40 +571,47 @@ export default function App() {
                 }}
                 className="flex flex-col px-6 py-8 gap-8 text-2xl font-bold text-zinc-400 relative z-10"
               >
-                <motion.div variants={{ closed: { opacity: 0, y: -20 }, open: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
-                  <NavigationLink to="/#work" closeMenu={closeMenu} isMobile>Work</NavigationLink>
-                </motion.div>
-                {(data.navigation?.about ?? true) && (
-                  <motion.div variants={{ closed: { opacity: 0, y: -20 }, open: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
-                    <NavigationLink to="/about" closeMenu={closeMenu} isMobile>About</NavigationLink>
-                  </motion.div>
-                )}
-                {(data.navigation?.process ?? true) && (
-                  <motion.div variants={{ closed: { opacity: 0, y: -20 }, open: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
-                    <NavigationLink to="/process" closeMenu={closeMenu} isMobile>Process</NavigationLink>
-                  </motion.div>
-                )}
-                {(data.navigation?.reviews ?? true) && (
-                  <motion.div variants={{ closed: { opacity: 0, y: -20 }, open: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
-                    <NavigationLink to="/reviews" closeMenu={closeMenu} isMobile>Reviews</NavigationLink>
-                  </motion.div>
-                )}
-                <motion.div variants={{ closed: { opacity: 0, y: -20 }, open: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }} className="flex justify-center mt-8">
-                  <Magnetic strength={0.3}>
-                    <Link to="/contact" onClick={closeMenu}>
-                      <motion.div 
-                        className="px-10 py-4 rounded-full font-bold text-zinc-950 text-xl glow-primary flex items-center gap-2 group/btn"
-                        style={{ backgroundColor: data.theme.primaryColor }}
-                        whileHover={{ scale: 1.05, opacity: 0.9 }}
-                        whileTap={{ scale: 0.95 }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        Contact Me
-                        <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
+                {/* Mobile Pages Nav */}
+                {!isForClient && (
+                  <>
+                    <motion.div variants={{ closed: { opacity: 0, y: -20 }, open: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
+                      <NavigationLink to="/#work" closeMenu={closeMenu} isMobile>Work</NavigationLink>
+                    </motion.div>
+                    {(data.navigation?.about ?? true) && (
+                      <motion.div variants={{ closed: { opacity: 0, y: -20 }, open: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
+                        <NavigationLink to="/about" closeMenu={closeMenu} isMobile>About</NavigationLink>
                       </motion.div>
-                    </Link>
-                  </Magnetic>
-                </motion.div>
+                    )}
+                    {(data.navigation?.process ?? true) && (
+                      <motion.div variants={{ closed: { opacity: 0, y: -20 }, open: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
+                        <NavigationLink to="/process" closeMenu={closeMenu} isMobile>Process</NavigationLink>
+                      </motion.div>
+                    )}
+                    {(data.navigation?.reviews ?? true) && (
+                      <motion.div variants={{ closed: { opacity: 0, y: -20 }, open: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
+                        <NavigationLink to="/reviews" closeMenu={closeMenu} isMobile>Reviews</NavigationLink>
+                      </motion.div>
+                    )}
+                  </>
+                )}
+                {!isForClient && (
+                  <motion.div variants={{ closed: { opacity: 0, y: -20 }, open: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }} className="flex justify-center mt-8">
+                    <Magnetic strength={0.3}>
+                      <Link to="/contact" onClick={closeMenu}>
+                        <motion.div 
+                          className="px-10 py-4 rounded-full font-bold text-zinc-950 text-xl glow-primary flex items-center gap-2 group/btn"
+                          style={{ backgroundColor: data.theme.primaryColor }}
+                          whileHover={{ scale: 1.05, opacity: 0.9 }}
+                          whileTap={{ scale: 0.95 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          Contact Me
+                          <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
+                        </motion.div>
+                      </Link>
+                    </Magnetic>
+                  </motion.div>
+                )}
               </motion.nav>
             </motion.div>
           )}
@@ -594,6 +626,7 @@ export default function App() {
             <Route path="/about" element={<PageTransition><About /></PageTransition>} />
             <Route path="/process" element={<PageTransition><Process /></PageTransition>} />
             <Route path="/reviews" element={<PageTransition><Reviews /></PageTransition>} />
+            <Route path="/for-client" element={<PageTransition><ForClient /></PageTransition>} />
             <Route path="/contact" element={<PageTransition><Contact /></PageTransition>} />
             <Route path="/work/:id" element={<PageTransition><Project /></PageTransition>} />
             <Route path="/admin/login" element={<PageTransition><AdminLogin /></PageTransition>} />
@@ -625,55 +658,59 @@ export default function App() {
           <div className="w-full px-4 md:px-8 lg:px-12 relative z-10 text-left">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 mb-24 w-full">
               {/* Column 1: Navigation */}
-              <div className="flex flex-col items-start gap-4 lg:col-span-4 w-full">
-                <StaggeredLink 
-                  to="/#work" 
-                  text="Work"
-                  showArrow={true}
-                  hoverColor={data.theme.primaryColor}
-                  className="text-4xl md:text-5xl lg:text-4xl xl:text-5xl font-heading tracking-tighter"
-                />
-                {(data.navigation?.about ?? true) && (
+              {!isForClient && (
+                <div className="flex flex-col items-start gap-4 lg:col-span-4 w-full">
                   <StaggeredLink 
-                    to="/about" 
-                    text="About"
+                    to="/#work" 
+                    text="Work"
                     showArrow={true}
                     hoverColor={data.theme.primaryColor}
                     className="text-4xl md:text-5xl lg:text-4xl xl:text-5xl font-heading tracking-tighter"
                   />
-                )}
-                {(data.navigation?.process ?? true) && (
-                  <StaggeredLink 
-                    to="/process" 
-                    text="Process"
-                    showArrow={true}
-                    hoverColor={data.theme.primaryColor}
-                    className="text-4xl md:text-5xl lg:text-4xl xl:text-5xl font-heading tracking-tighter"
-                  />
-                )}
-                {(data.navigation?.reviews ?? true) && (
-                  <StaggeredLink 
-                    to="/reviews" 
-                    text="Reviews"
-                    showArrow={true}
-                    hoverColor={data.theme.primaryColor}
-                    className="text-4xl md:text-5xl lg:text-4xl xl:text-5xl font-heading tracking-tighter"
-                  />
-                )}
-              </div>
+                  {(data.navigation?.about ?? true) && (
+                    <StaggeredLink 
+                      to="/about" 
+                      text="About"
+                      showArrow={true}
+                      hoverColor={data.theme.primaryColor}
+                      className="text-4xl md:text-5xl lg:text-4xl xl:text-5xl font-heading tracking-tighter"
+                    />
+                  )}
+                  {(data.navigation?.process ?? true) && (
+                    <StaggeredLink 
+                      to="/process" 
+                      text="Process"
+                      showArrow={true}
+                      hoverColor={data.theme.primaryColor}
+                      className="text-4xl md:text-5xl lg:text-4xl xl:text-5xl font-heading tracking-tighter"
+                    />
+                  )}
+                  {(data.navigation?.reviews ?? true) && (
+                    <StaggeredLink 
+                      to="/reviews" 
+                      text="Reviews"
+                      showArrow={true}
+                      hoverColor={data.theme.primaryColor}
+                      className="text-4xl md:text-5xl lg:text-4xl xl:text-5xl font-heading tracking-tighter"
+                    />
+                  )}
+                </div>
+              )}
 
               {/* Column 2: Let's work together */}
               <div className="flex flex-col items-start gap-8 lg:col-span-4">
                 <AnimatedFooterText primaryColor={data.theme.primaryColor} />
-                <Link 
-                  to="/contact" 
-                  className="inline-flex items-center justify-start gap-4 text-xl md:text-2xl font-medium hover:opacity-80 transition-opacity"
-                >
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: data.theme.primaryColor }}>
-                    <ArrowRight className="w-6 h-6 text-zinc-950 -rotate-45" />
-                  </div>
-                  Contact Me
-                </Link>
+                {!isForClient && (
+                  <Link 
+                    to="/contact" 
+                    className="inline-flex items-center justify-start gap-4 text-xl md:text-2xl font-medium hover:opacity-80 transition-opacity"
+                  >
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: data.theme.primaryColor }}>
+                      <ArrowRight className="w-6 h-6 text-zinc-950 -rotate-45" />
+                    </div>
+                    Contact Me
+                  </Link>
+                )}
               </div>
               
               {/* Column 3: Socials */}
@@ -711,31 +748,38 @@ export default function App() {
             <div className="w-full px-4 md:px-8 lg:px-12 mx-auto h-[1px] bg-zinc-800/50 mb-8" />
 
             <div className="flex flex-col md:flex-row items-center justify-between gap-6 w-full px-4 md:px-8 lg:px-12">
-              <Link 
-                to="/" 
-                className="shrink-0"
-                onClick={() => {
-                  if ((window as any).lenis) {
-                    (window as any).lenis.scrollTo(0, { 
-                      immediate: false, 
-                      duration: 1.2,
-                      onComplete: () => ScrollTrigger.refresh()
-                    });
-                  } else {
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }
-                }}
-              >
-                <motion.div 
-                  className="text-xl font-bold font-heading tracking-tighter flex items-center justify-center gap-2"
-                  whileHover={{ x: 5 }}
-                  whileTap={{ scale: 0.98 }}
-                  transition={{ duration: 0.3, ease: "easeOut" }}
-                >
+              {isForClient ? (
+                <div className="shrink-0 text-xl font-bold font-heading tracking-tighter flex items-center justify-center gap-2">
                   {data.pageTitle.logo && <img loading="lazy" src={data.pageTitle.logo} alt="Logo" referrerPolicy="no-referrer" className="h-6 w-auto grayscale opacity-50 select-none pointer-events-none" draggable={false} onContextMenu={(e) => e.preventDefault()} />}
                   <span className="truncate max-w-[200px] sm:max-w-none">{formatTextWithAccent(data.pageTitle.title, data.theme.primaryColor)}</span>
-                </motion.div>
-              </Link>
+                </div>
+              ) : (
+                <Link 
+                  to="/" 
+                  className="shrink-0"
+                  onClick={() => {
+                    if ((window as any).lenis) {
+                      (window as any).lenis.scrollTo(0, { 
+                        immediate: false, 
+                        duration: 1.2,
+                        onComplete: () => ScrollTrigger.refresh()
+                      });
+                    } else {
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                  }}
+                >
+                  <motion.div 
+                    className="text-xl font-bold font-heading tracking-tighter flex items-center justify-center gap-2"
+                    whileHover={{ x: 5 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                  >
+                    {data.pageTitle.logo && <img loading="lazy" src={data.pageTitle.logo} alt="Logo" referrerPolicy="no-referrer" className="h-6 w-auto grayscale opacity-50 select-none pointer-events-none" draggable={false} onContextMenu={(e) => e.preventDefault()} />}
+                    <span className="truncate max-w-[200px] sm:max-w-none">{formatTextWithAccent(data.pageTitle.title, data.theme.primaryColor)}</span>
+                  </motion.div>
+                </Link>
+              )}
               <div className="text-zinc-500 text-sm">
                 © {new Date().getFullYear()} All rights reserved.
               </div>

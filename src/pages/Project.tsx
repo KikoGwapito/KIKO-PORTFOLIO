@@ -104,10 +104,10 @@ function Carousel3D({ items, onMediaClick }: { items: any[], onMediaClick: (medi
 
   const activeIndex = numItems > 0 ? (((currentIndex % numItems) + numItems) % numItems) : 0;
 
-  // 2:3 ratio
+  // Mobile: 4:5 ratio, Desktop: 2:3 ratio
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-  const itemWidth = isMobile ? 240 : 360;
-  const itemHeight = isMobile ? 360 : 540;
+  const itemWidth = isMobile ? 280 : 360;
+  const itemHeight = isMobile ? 350 : 540;
   
   // Increase distance between containers
   let radius = 0;
