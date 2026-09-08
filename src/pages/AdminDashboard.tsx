@@ -38,6 +38,9 @@ import {
   ArrowUp,
   ArrowDown,
   ArrowLeft,
+  FileText,
+  Download,
+  Printer,
   ArrowRight,
   Play,
   Check
@@ -361,6 +364,144 @@ export default function AdminDashboard() {
   const [reviewsData, setReviewsData] = useState(data.reviews);
   const [reviewsSearchQuery, setReviewsSearchQuery] = useState('');
   const [reviewsSearchFilter, setReviewsSearchFilter] = useState<'all' | 'name' | 'role'>('all');
+
+  const handleDownloadDoc = () => {
+    const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head>
+        <meta charset='utf-8'>
+        <title>Resume - ${data.pageTitle.title.replace(/`/g, '')}</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          h1 { border-bottom: 2px solid #333; padding-bottom: 10px; }
+          h2 { color: #555; margin-top: 20px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+          h3 { margin-bottom: 5px; }
+          p { margin-top: 0; }
+          .meta { font-size: 0.9em; color: #666; margin-bottom: 15px; }
+        </style>
+      </head>
+      <body>
+        <h1>${data.pageTitle.title.replace(/`/g, '')}</h1>
+        <p><strong>${data.hero.title.replace(/`/g, '')}</strong><br/>
+        ${data.hero.subtitle}</p>
+
+        <h2>Contact</h2>
+        <p>Email: ${data.contact.email}<br/>
+        ${data.contact.address ? `Address: ${data.contact.address}<br/>` : ''}
+        ${data.contact.socials.map(s => `${s.platform}: <a href="${s.url}">${s.username}</a>`).join('<br/>')}</p>
+
+        <h2>About</h2>
+        ${data.about.content.map(p => `<p>${p.replace(/`/g, '')}</p>`).join('')}
+
+        <h2>Experience</h2>
+        ${data.about.experience?.map(e => `
+          <div>
+            <h3>${e.role} at ${e.company}</h3>
+            <p class="meta">${e.year} ${e.month || ''}</p>
+            <p>${e.description}</p>
+          </div>
+        `).join('') || '<p>No experience listed.</p>'}
+
+        <h2>Process</h2>
+        <ol>
+          ${data.process.steps.map(s => `<li><strong>${s.title.replace(/`/g, '')}</strong>: ${s.description}</li>`).join('')}
+        </ol>
+
+        <h2>Projects</h2>
+        ${data.projectOrder.map(id => {
+          const p = data.projects[id];
+          if(!p) return '';
+          return `
+            <div>
+              <h3>${p.title}</h3>
+              <p class="meta">Role: ${p.role} | Timeline: ${p.timeline} | Tech: ${p.tech.join(', ')}</p>
+              <p>${p.description}</p>
+              <p>${p.longDescription}</p>
+            </div>
+          `;
+        }).join('')}
+      </body>
+    </html>`;
+
+    const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Portfolio_Details.doc';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadPDF = () => {
+    const html = `<!DOCTYPE html>
+      <html>
+        <head>
+          <title>Resume - ${data.pageTitle.title.replace(/`/g, '')}</title>
+          <style>
+            body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 40px; }
+            h1 { border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 5px; }
+            h2 { color: #555; margin-top: 30px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+            h3 { margin-bottom: 5px; }
+            p { margin-top: 0; }
+            .meta { font-size: 0.9em; color: #666; margin-bottom: 15px; }
+            @media print {
+              body { padding: 0; }
+              button { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <button onclick="window.print()" style="padding: 10px 20px; background: #10b981; color: white; border: none; border-radius: 5px; cursor: pointer; float: right; margin-bottom: 20px;">Save as PDF (Print)</button>
+          <h1>${data.pageTitle.title.replace(/`/g, '')}</h1>
+          <p><strong>${data.hero.title.replace(/`/g, '')}</strong><br/>
+          ${data.hero.subtitle}</p>
+
+          <h2>Contact</h2>
+          <p>Email: ${data.contact.email}<br/>
+          ${data.contact.socials.map(s => `${s.platform}: <a href="${s.url}">${s.username}</a>`).join('<br/>')}</p>
+
+          <h2>About</h2>
+          ${data.about.content.map(p => `<p>${p.replace(/`/g, '')}</p>`).join('')}
+
+          <h2>Experience</h2>
+          ${data.about.experience?.map(e => `
+            <div>
+              <h3>${e.role} at ${e.company}</h3>
+              <p class="meta">${e.year} ${e.month || ''}</p>
+              <p>${e.description}</p>
+            </div>
+          `).join('') || '<p>No experience listed.</p>'}
+
+          <h2>Projects</h2>
+          ${data.projectOrder.map(id => {
+            const p = data.projects[id];
+            if(!p) return '';
+            return `
+              <div>
+                <h3>${p.title}</h3>
+                <p class="meta">Role: ${p.role} | Timeline: ${p.timeline} | Tech: ${p.tech.join(', ')}</p>
+                <p>${p.description}</p>
+                <p>${p.longDescription}</p>
+              </div>
+            `;
+          }).join('')}
+          
+          <h2>Process</h2>
+          <ol>
+            ${data.process.steps.map(s => `<li><strong>${s.title.replace(/`/g, '')}</strong>: ${s.description}</li>`).join('')}
+          </ol>
+          
+          <script>
+             setTimeout(() => { window.print(); }, 500);
+          </script>
+        </body>
+      </html>`;
+    
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+  };
 
   useEffect(() => {
     if (isAuthReady && !isAdmin) {
@@ -2905,6 +3046,29 @@ export default function AdminDashboard() {
                   aria-label="Toggle loading screen greetings"
                 >
                   <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${(navigationData.loadingGreetings ?? true) ? 'left-7' : 'left-1'}`} />
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-12 pt-12 border-t border-zinc-800">
+              <h2 className="text-2xl font-bold mb-2">Data Export</h2>
+              <p className="text-zinc-400 mb-6">Download your portfolio details to construct your resume or backup your copy.</p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  type="button"
+                  onClick={handleDownloadDoc}
+                  className="flex items-center justify-center gap-2 px-6 py-4 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-medium transition-all"
+                >
+                  <FileText className="w-5 h-5" />
+                  Download Editable File (.doc)
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadPDF}
+                  className="flex items-center justify-center gap-2 px-6 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium transition-all"
+                >
+                  <Printer className="w-5 h-5" />
+                  Print / Save as PDF
                 </button>
               </div>
             </div>

@@ -1,5 +1,6 @@
 {
   "name": "GWAPITO PORTFOLIO",
   "description": "A high-performance, accessible, and mobile-first portfolio website.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
