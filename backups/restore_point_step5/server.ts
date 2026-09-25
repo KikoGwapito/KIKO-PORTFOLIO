@@ -3,7 +3,6 @@ import { createServer as createViteServer } from 'vite';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import os from 'os';
 import crypto from 'crypto';
 import { Readable } from 'stream';
 import rateLimit from 'express-rate-limit';
@@ -102,12 +101,6 @@ async function safeFetchWithRedirects(
 const uploadDir = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Step 5: Ephemeral staging directory exclusively for temporary chunked Cloudinary forwarding
-const tempUploadDir = path.join(os.tmpdir(), 'portfolio_staging_uploads');
-if (!fs.existsSync(tempUploadDir)) {
-  fs.mkdirSync(tempUploadDir, { recursive: true });
 }
 
 // Load Firebase API key for secure server-side ID token verification
@@ -278,12 +271,12 @@ function verifyFileSignature(filePath: string, declaredMime: string, ext: string
 }
 
 const storage = multer.diskStorage({
-  destination: tempUploadDir,
+  destination: uploadDir,
   filename: (req, file, cb) => {
     const rawExt = path.extname(file.originalname).toLowerCase().trim();
     const safeExt = ALLOWED_MEDIA_EXTENSIONS.has(rawExt) ? rawExt : '.bin';
     const randomHex = crypto.randomBytes(16).toString('hex');
-    const safeName = `stage_${Date.now()}_${randomHex}${safeExt}`;
+    const safeName = `media_${Date.now()}_${randomHex}${safeExt}`;
     cb(null, safeName);
   }
 });
@@ -812,15 +805,27 @@ async function startServer() {
     }
   );
 
-  // Step 5: Decommissioned Local Upload Endpoint (Storage Architecture Consolidated)
-  // Local disk writes are sunsetted. All uploads route exclusively to authenticated Cloudinary storage.
-  app.all(['/api/upload', '/api/upload/'], (req, res) => {
-    return res.status(410).json({
-      error: 'Gone: Local disk uploads have been permanently decommissioned as part of Step 5 storage architecture consolidation. All uploads are now consolidated exclusively to authenticated Cloudinary storage.',
-      decommissioned: true,
-      storageEngine: 'Cloudinary',
-      recommendedEndpoint: '/api/upload/cloudinary'
-    });
+  // Protected: Upload endpoint to local storage
+  app.all(['/api/upload', '/api/upload/'], adminActionLimiter, requireAdminAuth, (req, res, next) => {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: `Method ${req.method} not allowed` });
+    }
+    next();
+  }, upload.single('file'), (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // Step 4: Strict binary magic bytes verification
+    const rawExt = path.extname(req.file.originalname).toLowerCase().trim();
+    if (!verifyFileSignature(req.file.path, req.file.mimetype, rawExt)) {
+      if (fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+      return res.status(400).json({ error: 'File rejected: Binary signature does not match allowed media formats' });
+    }
+
+    res.json({ url: `/uploads/${req.file.filename}` });
   });
 
   // Vite middleware for development

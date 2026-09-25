@@ -3,8 +3,6 @@ import { createServer as createViteServer } from 'vite';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import os from 'os';
-import crypto from 'crypto';
 import { Readable } from 'stream';
 import rateLimit from 'express-rate-limit';
 import dns from 'dns/promises';
@@ -104,12 +102,6 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Step 5: Ephemeral staging directory exclusively for temporary chunked Cloudinary forwarding
-const tempUploadDir = path.join(os.tmpdir(), 'portfolio_staging_uploads');
-if (!fs.existsSync(tempUploadDir)) {
-  fs.mkdirSync(tempUploadDir, { recursive: true });
-}
-
 // Load Firebase API key for secure server-side ID token verification
 let firebaseApiKey = process.env.VITE_FIREBASE_API_KEY || '';
 try {
@@ -203,104 +195,19 @@ async function requireAdminAuth(req: express.Request, res: express.Response, nex
 // Drive ID regex to prevent SSRF and injection attacks
 const DRIVE_ID_REGEX = /^[a-zA-Z0-9_-]{15,100}$/;
 
-// ===============================================================
-// File Upload Security & Media Signature Validation (Step 4)
-// ===============================================================
-
-const ALLOWED_MEDIA_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.mp4', '.webm', '.mov']);
-
-const ALLOWED_MIME_TYPES = new Set([
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/gif',
-  'video/mp4',
-  'video/webm',
-  'video/quicktime'
-]);
-
-function verifyFileSignature(filePath: string, declaredMime: string, ext: string): boolean {
-  try {
-    if (!fs.existsSync(filePath)) return false;
-    const buffer = Buffer.alloc(32);
-    const fd = fs.openSync(filePath, 'r');
-    const bytesRead = fs.readSync(fd, buffer, 0, 32, 0);
-    fs.closeSync(fd);
-
-    if (bytesRead < 4) return false;
-
-    // Check JPEG: FF D8 FF
-    if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) {
-      return declaredMime === 'image/jpeg' || ['.jpg', '.jpeg'].includes(ext);
-    }
-
-    // Check PNG: 89 50 4E 47 0D 0A 1A 0A
-    if (
-      buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47 &&
-      buffer[4] === 0x0D && buffer[5] === 0x0A && buffer[6] === 0x1A && buffer[7] === 0x0A
-    ) {
-      return declaredMime === 'image/png' || ext === '.png';
-    }
-
-    // Check GIF: GIF87a or GIF89a (47 49 46 38)
-    if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x38) {
-      return declaredMime === 'image/gif' || ext === '.gif';
-    }
-
-    // Check WebP: RIFF (52 49 46 46) ... WEBP (57 45 42 50) at offset 8
-    if (
-      buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
-      buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50
-    ) {
-      return declaredMime === 'image/webp' || ext === '.webp';
-    }
-
-    // Check MP4 / QuickTime: bytes 4-8 contain 'ftyp' or 'moov'
-    const ftyp = buffer.toString('ascii', 4, 8);
-    if (ftyp === 'ftyp' || ftyp === 'moov') {
-      return (
-        declaredMime === 'video/mp4' || 
-        declaredMime === 'video/quicktime' || 
-        ['.mp4', '.mov'].includes(ext)
-      );
-    }
-
-    // Check WebM / Matroska: EBML header (1A 45 DF A3)
-    if (buffer[0] === 0x1A && buffer[1] === 0x45 && buffer[2] === 0xDF && buffer[3] === 0xA3) {
-      return declaredMime === 'video/webm' || ext === '.webm';
-    }
-
-    return false;
-  } catch (err) {
-    console.error('Error verifying file signature:', err);
-    return false;
-  }
-}
-
 const storage = multer.diskStorage({
-  destination: tempUploadDir,
+  destination: uploadDir,
   filename: (req, file, cb) => {
-    const rawExt = path.extname(file.originalname).toLowerCase().trim();
-    const safeExt = ALLOWED_MEDIA_EXTENSIONS.has(rawExt) ? rawExt : '.bin';
-    const randomHex = crypto.randomBytes(16).toString('hex');
-    const safeName = `stage_${Date.now()}_${randomHex}${safeExt}`;
-    cb(null, safeName);
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    // Sanitize extension
+    const ext = path.extname(file.originalname).replace(/[^a-zA-Z0-9.]/g, '').slice(0, 10);
+    cb(null, uniqueSuffix + ext);
   }
 });
 const upload = multer({ 
   storage,
   limits: {
     fileSize: 500 * 1024 * 1024 // 500 MB max for videos
-  },
-  fileFilter: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase().trim();
-    if (!ALLOWED_MEDIA_EXTENSIONS.has(ext)) {
-      return cb(new Error(`File type rejected: extension '${ext}' is not permitted.`));
-    }
-    if (!ALLOWED_MIME_TYPES.has(file.mimetype.toLowerCase())) {
-      return cb(new Error(`File MIME rejected: '${file.mimetype}' is not an approved media format.`));
-    }
-    cb(null, true);
   }
 });
 
@@ -311,28 +218,11 @@ async function startServer() {
   // Trust reverse proxy (Cloud Run, reverse proxies) for correct client IP detection
   app.set('trust proxy', 1);
 
-  // Global security headers (Step 4: Strict CSP & Security Policies)
+  // Global security headers
   app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-XSS-Protection', '1; mode=block');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
-    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
-
-    const cspDirectives = [
-      "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://*.firebaseapp.com",
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "font-src 'self' https://fonts.gstatic.com data:",
-      "img-src 'self' data: blob: https://res.cloudinary.com https://drive.google.com https://*.googleusercontent.com https://images.unsplash.com https://i.ytimg.com https://*.vimeocdn.com",
-      "media-src 'self' blob: data: https://res.cloudinary.com https://drive.google.com https://*.googlevideo.com https://*.googleusercontent.com",
-      "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://*.firebaseio.com https://api.cloudinary.com https://formsubmit.co https://*.googleapis.com wss:",
-      "frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://www.youtube-nocookie.com https://www.youtube.com https://player.vimeo.com https://embed.figma.com https://drive.google.com",
-      "frame-ancestors 'self' https://*.google.com https://*.googleusercontent.com",
-      "object-src 'none'",
-      "base-uri 'self'"
-    ];
-    res.setHeader('Content-Security-Policy', cspDirectives.join('; '));
     next();
   });
 
@@ -380,21 +270,8 @@ async function startServer() {
   // Apply general API rate limiter to all /api/ routes
   app.use('/api/', globalApiLimiter);
 
-  // Serve uploaded files (Step 4: Sandboxed, script-disabled static delivery)
-  app.use(
-    '/uploads',
-    (req, res, next) => {
-      res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox; base-uri 'none'");
-      res.setHeader('X-Content-Type-Options', 'nosniff');
-      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-      res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
-      next();
-    },
-    express.static(uploadDir, {
-      dotfiles: 'ignore',
-      index: false
-    })
-  );
+  // Serve uploaded files
+  app.use('/uploads', express.static(uploadDir));
   app.use(express.json({ limit: '5mb' }));
 
   // Data persistence endpoints
@@ -480,12 +357,6 @@ async function startServer() {
         return res.status(400).json({ error: 'Message must be between 5 and 5000 characters' });
       }
 
-      // Step 4: Strict Sanitization of contact payload to prevent header/HTML injection
-      const cleanName = name.trim().replace(/[<>]/g, '').slice(0, 100);
-      const cleanEmail = email.trim().slice(0, 120);
-      const cleanSubject = (subject || 'New message from Portfolio!').trim().replace(/[\r\n<>]/g, ' ').slice(0, 200);
-      const cleanMessage = message.trim().slice(0, 5000);
-
       // Forward to FormSubmit securely from the backend with strict timeout
       const contactTarget = ADMIN_EMAIL;
       const upstreamRes = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(contactTarget)}`, {
@@ -495,10 +366,10 @@ async function startServer() {
           'Accept': 'application/json'
         },
         body: JSON.stringify({
-          name: cleanName,
-          email: cleanEmail,
-          _subject: cleanSubject,
-          message: cleanMessage
+          name: name.trim(),
+          email: email.trim(),
+          _subject: (subject || 'New message from Portfolio!').trim(),
+          message: message.trim()
         }),
         signal: AbortSignal.timeout(8000)
       });
@@ -703,15 +574,6 @@ async function startServer() {
         return res.status(400).json({ error: 'No file uploaded' });
       }
 
-      // Step 4: Strict binary magic bytes verification
-      const rawExt = path.extname(req.file.originalname).toLowerCase().trim();
-      if (!verifyFileSignature(req.file.path, req.file.mimetype, rawExt)) {
-        if (fs.existsSync(req.file.path)) {
-          fs.unlinkSync(req.file.path);
-        }
-        return res.status(400).json({ error: 'File rejected: Binary signature does not match allowed media formats' });
-      }
-
       const cloudName = (req.body.cloudName || process.env.VITE_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME || '').trim();
       const uploadPreset = (req.body.uploadPreset || process.env.VITE_CLOUDINARY_UPLOAD_PRESET || process.env.CLOUDINARY_UPLOAD_PRESET || '').trim();
       const resourceType = req.body.resourceType === 'video' ? 'video' : 'auto';
@@ -812,15 +674,17 @@ async function startServer() {
     }
   );
 
-  // Step 5: Decommissioned Local Upload Endpoint (Storage Architecture Consolidated)
-  // Local disk writes are sunsetted. All uploads route exclusively to authenticated Cloudinary storage.
-  app.all(['/api/upload', '/api/upload/'], (req, res) => {
-    return res.status(410).json({
-      error: 'Gone: Local disk uploads have been permanently decommissioned as part of Step 5 storage architecture consolidation. All uploads are now consolidated exclusively to authenticated Cloudinary storage.',
-      decommissioned: true,
-      storageEngine: 'Cloudinary',
-      recommendedEndpoint: '/api/upload/cloudinary'
-    });
+  // Protected: Upload endpoint to local storage
+  app.all(['/api/upload', '/api/upload/'], adminActionLimiter, requireAdminAuth, (req, res, next) => {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: `Method ${req.method} not allowed` });
+    }
+    next();
+  }, upload.single('file'), (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+    res.json({ url: `/uploads/${req.file.filename}` });
   });
 
   // Vite middleware for development

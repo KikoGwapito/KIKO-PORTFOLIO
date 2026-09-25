@@ -21,8 +21,6 @@ export default function ForClient() {
     rating: 5
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [honeypot, setHoneypot] = useState('');
-  const [formError, setFormError] = useState('');
 
   const filteredReviews = useMemo(() => {
     return data.reviews.list.filter(review => {
@@ -61,38 +59,12 @@ export default function ForClient() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError('');
     if (data.reviews.submissionLimit <= 0) return;
-
-    // Honeypot trap: reject silent if bot filled hidden field
-    if (honeypot) {
-      console.warn('Bot detected via review honeypot');
-      return;
-    }
-
-    // Client-side submission throttling (1 minute cooldown)
-    const lastSub = localStorage.getItem('last_review_submission');
-    if (lastSub && Date.now() - Number(lastSub) < 60000) {
-      setFormError('Please wait 1 minute before submitting another review.');
-      return;
-    }
-
-    if (!formData.clientName.trim() || !formData.content.trim()) {
-      setFormError('Please provide your name and feedback.');
-      return;
-    }
-
     setIsSubmitting(true);
     
     // Simulate network delay
     setTimeout(() => {
-      addReview({
-        clientName: formData.clientName.trim(),
-        clientRole: formData.clientRole.trim(),
-        content: formData.content.trim(),
-        rating: formData.rating
-      });
-      localStorage.setItem('last_review_submission', Date.now().toString());
+      addReview(formData);
       setFormData({ clientName: '', clientRole: '', content: '', rating: 5 });
       setIsSubmitting(false);
       setIsSubmitted(true);
@@ -100,7 +72,7 @@ export default function ForClient() {
         setIsSubmitted(false);
         setIsModalOpen(false);
       }, 2500);
-    }, 1200);
+    }, 1500);
   };
 
   const renderFormContent = (isMobile: boolean = false) => (
@@ -150,25 +122,6 @@ export default function ForClient() {
       <h2 className="text-3xl font-bold mb-8 tracking-tight">Leave a Review</h2>
       
       <form onSubmit={handleSubmit} className={`flex flex-col gap-6 ${data.reviews.submissionLimit <= 0 ? 'pointer-events-none select-none opacity-50' : ''}`}>
-        {/* Invisible Honeypot Field */}
-        <input
-          type="text"
-          name="_hp_security"
-          value={honeypot}
-          onChange={e => setHoneypot(e.target.value)}
-          tabIndex={-1}
-          autoComplete="off"
-          className="hidden"
-          aria-hidden="true"
-          style={{ display: 'none' }}
-        />
-
-        {formError && (
-          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-medium">
-            {formError}
-          </div>
-        )}
-
         <div className="space-y-6">
           <div>
             <label className="block text-[10px] uppercase tracking-[0.2em] font-bold text-zinc-500 mb-4">Rating</label>
@@ -200,7 +153,6 @@ export default function ForClient() {
                 type="text"
                 id="clientName"
                 required
-                maxLength={100}
                 value={formData.clientName}
                 onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
                 className="w-full bg-zinc-950/50 border border-zinc-800 rounded-2xl px-5 py-4 text-zinc-100 focus:outline-none focus:border-zinc-600 transition-all placeholder:text-zinc-700"
@@ -213,7 +165,7 @@ export default function ForClient() {
               <input
                 type="text"
                 id="clientRole"
-                maxLength={100}
+                required
                 value={formData.clientRole}
                 onChange={(e) => setFormData({ ...formData, clientRole: e.target.value })}
                 className="w-full bg-zinc-950/50 border border-zinc-800 rounded-2xl px-5 py-4 text-zinc-100 focus:outline-none focus:border-zinc-600 transition-all placeholder:text-zinc-700"
@@ -226,7 +178,6 @@ export default function ForClient() {
               <textarea
                 id="content"
                 required
-                maxLength={3000}
                 rows={5}
                 value={formData.content}
                 onChange={(e) => setFormData({ ...formData, content: e.target.value })}

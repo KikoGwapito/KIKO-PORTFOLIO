@@ -11,70 +11,24 @@ export default function Contact() {
   const speed = data.theme.animationSpeed || 1;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [honeypot, setHoneypot] = useState('');
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    subject: '',
-    message: ''
-  });
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setErrorMessage('');
-
-    // Honeypot anti-bot validation
-    if (honeypot) {
-      console.warn('Bot submission blocked');
-      return;
-    }
-
-    // Client-side rate-limiting cooldown (30 seconds)
-    const lastSubmission = localStorage.getItem('portfolio_last_contact_time');
-    if (lastSubmission && Date.now() - Number(lastSubmission) < 30000) {
-      setErrorMessage('Please wait 30 seconds before sending another message.');
-      return;
-    }
-
-    // Input validation
-    if (!formData.name.trim() || !formData.email.trim() || !formData.message.trim()) {
-      setErrorMessage('Please fill in all required fields.');
-      return;
-    }
-
     setIsSubmitting(true);
     
+    // Simulate submission for visual feedback
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    
     try {
-      const res = await fetch('/api/contact', {
+      await fetch(form.action, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name.trim(),
-          email: formData.email.trim(),
-          subject: formData.subject.trim(),
-          message: formData.message.trim(),
-          _gotcha: honeypot
-        })
+        body: formData,
+        mode: 'no-cors'
       });
-
-      const result = await res.json().catch(() => ({}));
-      
-      if (!res.ok) {
-        if (res.status === 429) {
-          setErrorMessage('Rate limit reached: Too many messages sent. Please wait 15 minutes before retrying.');
-        } else {
-          setErrorMessage(result.error || 'Failed to transmit message. Please try again.');
-        }
-        return;
-      }
-
-      localStorage.setItem('portfolio_last_contact_time', Date.now().toString());
       setIsSubmitted(true);
-      setFormData({ name: '', email: '', subject: '', message: '' });
     } catch (error) {
       console.error('Submission error:', error);
-      setErrorMessage('Network error occurred. Please try again later.');
     } finally {
       setIsSubmitting(false);
     }
@@ -166,26 +120,12 @@ export default function Contact() {
                   initial={{ opacity: 1 }}
                   exit={{ opacity: 0, y: -20 }}
                   className="space-y-8" 
+                  action={`https://formsubmit.co/${data.contact.email}`} 
+                  method="POST"
                   onSubmit={handleSubmit}
                 >
-                  {/* Invisible Honeypot Field for anti-bot protection */}
-                  <input 
-                    type="text" 
-                    name="_gotcha" 
-                    value={honeypot} 
-                    onChange={e => setHoneypot(e.target.value)} 
-                    tabIndex={-1} 
-                    autoComplete="off" 
-                    className="hidden" 
-                    aria-hidden="true" 
-                    style={{ display: 'none' }} 
-                  />
-
-                  {errorMessage && (
-                    <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-medium">
-                      {errorMessage}
-                    </div>
-                  )}
+                  <input type="hidden" name="_subject" value="New submission from Portfolio!" />
+                  <input type="hidden" name="_captcha" value="false" />
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
                     <div className="space-y-3">
@@ -195,9 +135,6 @@ export default function Contact() {
                         id="name" 
                         name="name"
                         required
-                        maxLength={100}
-                        value={formData.name}
-                        onChange={e => setFormData({ ...formData, name: e.target.value })}
                         className="w-full bg-zinc-950/50 border border-zinc-800/50 rounded-2xl px-5 py-3 sm:px-6 sm:py-4 text-zinc-100 focus:outline-none focus:border-zinc-600 transition-all placeholder:text-zinc-700"
                         placeholder="Your Name"
                       />
@@ -209,9 +146,6 @@ export default function Contact() {
                         id="email" 
                         name="email"
                         required
-                        maxLength={120}
-                        value={formData.email}
-                        onChange={e => setFormData({ ...formData, email: e.target.value })}
                         className="w-full bg-zinc-950/50 border border-zinc-800/50 rounded-2xl px-5 py-3 sm:px-6 sm:py-4 text-zinc-100 focus:outline-none focus:border-zinc-600 transition-all placeholder:text-zinc-700"
                         placeholder="email@address.com"
                       />
@@ -223,10 +157,8 @@ export default function Contact() {
                     <input 
                       type="text" 
                       id="subject" 
-                      name="subject"
-                      maxLength={200}
-                      value={formData.subject}
-                      onChange={e => setFormData({ ...formData, subject: e.target.value })}
+                      name="_subject"
+                      required
                       className="w-full bg-zinc-950/50 border border-zinc-800/50 rounded-2xl px-5 py-3 sm:px-6 sm:py-4 text-zinc-100 focus:outline-none focus:border-zinc-600 transition-all placeholder:text-zinc-700"
                       placeholder="Project Inquiry"
                     />
@@ -238,10 +170,7 @@ export default function Contact() {
                       id="message" 
                       name="message"
                       required
-                      maxLength={5000}
                       rows={5}
-                      value={formData.message}
-                      onChange={e => setFormData({ ...formData, message: e.target.value })}
                       className="w-full bg-zinc-950/50 border border-zinc-800/50 rounded-2xl px-5 py-3 sm:px-6 sm:py-4 text-zinc-100 focus:outline-none focus:border-zinc-600 transition-all resize-none placeholder:text-zinc-700"
                       placeholder="Your message here..."
                     ></textarea>

@@ -2,19 +2,8 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate, Link } from "react-router-dom";
 import { useAppData, ProjectData, MediaItem } from "../context/AppDataContext";
-import { storage, auth } from "../firebase";
+import { storage } from "../firebase";
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
-
-// Helper to obtain fresh Firebase ID token for authenticated server calls
-const getAuthToken = async (): Promise<string | null> => {
-  if (!auth?.currentUser) return null;
-  try {
-    return await auth.currentUser.getIdToken();
-  } catch (err) {
-    console.error("Failed to get ID token", err);
-    return null;
-  }
-};
 import { isSocialVideo } from "../utils/embed";
 import { SocialThumbnail } from "../components/SocialThumbnail";
 import {
@@ -279,15 +268,8 @@ export default function AdminDashboard() {
         formData.append('uploadPreset', uploadPreset);
         formData.append('resourceType', 'auto');
 
-        const token = await getAuthToken();
-        const headers: Record<string, string> = {};
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-
         const proxyRes = await fetch('/api/upload/cloudinary', {
           method: 'POST',
-          headers,
           body: formData
         });
 
@@ -516,29 +498,9 @@ export default function AdminDashboard() {
         </body>
       </html>`;
     
-    const printFrame = document.createElement('iframe');
-    printFrame.style.position = 'fixed';
-    printFrame.style.right = '0';
-    printFrame.style.bottom = '0';
-    printFrame.style.width = '0';
-    printFrame.style.height = '0';
-    printFrame.style.border = '0';
-    document.body.appendChild(printFrame);
-    const frameDoc = printFrame.contentWindow?.document;
-    if (frameDoc) {
-      frameDoc.open();
-      frameDoc.write(html);
-      frameDoc.close();
-      setTimeout(() => {
-        printFrame.contentWindow?.focus();
-        printFrame.contentWindow?.print();
-        setTimeout(() => {
-          if (document.body.contains(printFrame)) {
-            document.body.removeChild(printFrame);
-          }
-        }, 1000);
-      }, 500);
-    }
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
   };
 
   useEffect(() => {
@@ -592,15 +554,9 @@ export default function AdminDashboard() {
 
   const handleLogout = () => {
     if (isUploading) {
-      confirmAction(
-        "Upload in Progress",
-        "Media upload is in progress. Are you sure you want to log out and exit?",
-        () => {
-          navigate("/");
-          logout();
-        }
-      );
-      return;
+      if (!window.confirm("Media upload is in progress. Are you sure you want to log out and exit?")) {
+        return;
+      }
     }
     navigate("/");
     logout();
@@ -675,16 +631,11 @@ export default function AdminDashboard() {
     
     if (url.startsWith('/uploads/')) {
       try {
-        const token = await getAuthToken();
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json',
-        };
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
         await fetch('/api/delete', {
           method: 'POST',
-          headers,
+          headers: {
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify({ url }),
         });
       } catch (error) {
@@ -1120,7 +1071,6 @@ export default function AdminDashboard() {
 
       // Server proxy chunked fallback (in case browser has CORS or strict firewall)
       const uploadProxyChunked = async (): Promise<string> => {
-        const token = await getAuthToken();
         return new Promise((resolve, reject) => {
           setUploadStatusText('Streaming via server proxy to Cloudinary...');
           const xhr = new XMLHttpRequest();
@@ -1131,9 +1081,6 @@ export default function AdminDashboard() {
           formData.append('resourceType', resourceType);
 
           xhr.open('POST', '/api/upload/cloudinary');
-          if (token) {
-            xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-          }
           xhr.timeout = 300000; // 5 min timeout for entire file transfer
 
           xhr.upload.onprogress = (event) => {
@@ -2884,70 +2831,21 @@ export default function AdminDashboard() {
     <div className="space-y-8">
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 md:p-8">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 pb-4 border-b border-zinc-800">
-          <div>
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <Shield className="w-6 h-6 text-emerald-500" />
-              Security & Defense Overview
-            </h2>
-            <p className="text-xs text-zinc-400 mt-1">Multi-layered enterprise defense system protecting your application</p>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-            <span className="text-emerald-400 text-xs font-bold tracking-wide">SECURITY SCORE: 10.0 / 10</span>
-          </div>
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <Shield className="w-6 h-6 text-emerald-500" />
+            Security Settings
+          </h2>
         </div>
         
         <div className="space-y-6">
           <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
             <p className="text-emerald-400 font-medium flex items-center gap-2">
               <Shield className="w-4 h-4" />
-              Enterprise Defense Architecture Fully Enforced
+              Firebase Authentication Active
             </p>
             <p className="text-sm text-zinc-400 mt-1">
-              Your application has achieved maximum security hardening across authentication, network boundary defense, proxy inspection, media validation, and cloud storage consolidation.
+              Your account is secured with Google Sign-In. Only authorized administrators can access this dashboard.
             </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 bg-zinc-950 border border-zinc-800/80 rounded-xl space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-zinc-200">1. Role & Token Validation</span>
-                <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded">ENFORCED</span>
-              </div>
-              <p className="text-xs text-zinc-400">Strict Firebase token verification on all write routes with verified email validation and Firestore rules.</p>
-            </div>
-
-            <div className="p-4 bg-zinc-950 border border-zinc-800/80 rounded-xl space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-zinc-200">2. Anti-Abuse Rate Limiting</span>
-                <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded">ENFORCED</span>
-              </div>
-              <p className="text-xs text-zinc-400">Layered rate limiting on API endpoints, contact submissions, oEmbed, and media streams, plus form honeypots.</p>
-            </div>
-
-            <div className="p-4 bg-zinc-950 border border-zinc-800/80 rounded-xl space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-zinc-200">3. Anti-SSRF Safe Proxying</span>
-                <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded">ENFORCED</span>
-              </div>
-              <p className="text-xs text-zinc-400">DNS pre-resolution filters private/cloud metadata IPs, strict HTTPS hostname allowlists, and manual redirect inspection.</p>
-            </div>
-
-            <div className="p-4 bg-zinc-950 border border-zinc-800/80 rounded-xl space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-zinc-200">4. Upload & CSP Hardening</span>
-                <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded">ENFORCED</span>
-              </div>
-              <p className="text-xs text-zinc-400">Binary magic bytes verification, strict MIME filtering, sandboxed static files, and comprehensive Content-Security-Policy.</p>
-            </div>
-
-            <div className="p-4 bg-zinc-950 border border-zinc-800/80 rounded-xl space-y-2 md:col-span-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-zinc-200">5. Storage Architecture Consolidation</span>
-                <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded">ENFORCED</span>
-              </div>
-              <p className="text-xs text-zinc-400">Local disk uploads permanently decommissioned (HTTP 410). All media uploads consolidated exclusively to authenticated Cloudinary storage with zero persistent container disk footprint.</p>
-            </div>
           </div>
 
           <div className="pt-6 border-t border-zinc-800">
@@ -2989,13 +2887,13 @@ export default function AdminDashboard() {
             {isCloudinaryConfigured ? (
               <span className="px-3 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
-                Cloudinary Active (Consolidated Storage)
+                Cloudinary Active
                 <Settings className="w-3 h-3 ml-0.5 opacity-60 group-hover:opacity-100" />
               </span>
             ) : (
-              <span className="px-3 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors" title="Configure Cloudinary: local storage has been sunsetted.">
+              <span className="px-3 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors" title="Configure Cloudinary for permanent cloud media storage.">
                 <div className="w-1.5 h-1.5 rounded-full bg-amber-400"></div>
-                Configure Cloudinary (Required)
+                Temporary Local Storage
                 <Settings className="w-3 h-3 ml-0.5 opacity-60 group-hover:opacity-100" />
               </span>
             )}

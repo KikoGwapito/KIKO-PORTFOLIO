@@ -643,42 +643,20 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addReview = async (review: Omit<Review, 'id' | 'date'>) => {
-    if (data.reviews.submissionLimit <= 0) {
-      showNotification('Review submissions are currently closed.', 'error');
-      return;
-    }
-
     const id = Date.now().toString();
     const date = new Date().toISOString().split('T')[0];
     const reviewRef = doc(db, 'reviews', id);
-
-    // Strict schema sanitization to ensure compliance with firestore.rules
-    const cleanReview = {
-      id,
-      date,
-      clientName: (review.clientName || '').trim().slice(0, 100),
-      clientRole: (review.clientRole || '').trim().slice(0, 100),
-      content: (review.content || '').trim().slice(0, 3000),
-      rating: Math.min(5, Math.max(1, Number(review.rating) || 5))
-    };
-
-    if (!cleanReview.clientName || !cleanReview.content) {
-      showNotification('Please provide both your name and review message.', 'error');
-      return;
-    }
     
     try {
-      if (isAdmin && data.reviews.submissionLimit > 0) {
-        const batch = writeBatch(db);
-        batch.set(reviewRef, cleanReview);
+      const batch = writeBatch(db);
+      batch.set(reviewRef, { ...review, id, date });
+      
+      if (data.reviews.submissionLimit > 0) {
         const settingsRef = doc(db, 'settings', 'main');
         batch.set(settingsRef, { reviews: { submissionLimit: data.reviews.submissionLimit - 1 } }, { merge: true });
-        await batch.commit();
-      } else {
-        // Regular visitors write directly to reviews collection without modifying admin-only settings
-        await setDoc(reviewRef, cleanReview);
       }
 
+      await batch.commit();
       showNotification('Review submitted successfully!', 'success');
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `reviews/${id}`);

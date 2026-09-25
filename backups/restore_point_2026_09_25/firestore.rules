@@ -1,0 +1,80 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: settings
+    // Document ID: main
+    // Fields: hero, trust, featuredWork, pageTitle, about, process, contact, theme, adminCredentials, cloudinary, projectOrder
+    //
+    // Collection: projects
+    // Document ID: {projectId}
+    // Fields: title, description, longDescription, images, galleryGrid, role, timeline, tech
+    //
+    // Collection: reviews
+    // Document ID: {reviewId}
+    // Fields: clientName, clientRole, content, rating, date
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (
+          request.auth.token.email == "francisestologa@gmail.com" || 
+          request.auth.token.email == get(/databases/$(database)/documents/settings/main).data.contact.email
+        ) && 
+        request.auth.token.email_verified == true;
+    }
+
+    function isValidString(field, maxLen) {
+      return request.resource.data[field] is string && request.resource.data[field].size() <= maxLen;
+    }
+
+    function isValidNumber(field, min, max) {
+      return request.resource.data[field] is number && request.resource.data[field] >= min && request.resource.data[field] <= max;
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    // Settings: Publicly readable, only admin can write
+    match /settings/main {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Projects: Publicly readable, only admin can write
+    match /projects/{projectId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Reviews: Publicly readable, anyone can create (for feedback), only admin can update/delete
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if true; // Allow visitors to leave reviews
+      allow update, delete: if isAdmin();
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

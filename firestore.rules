@@ -3,24 +3,6 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ===============================================================
-    // Assumed Data Model
-    // ===============================================================
-    //
-    // Collection: settings
-    // Document ID: main
-    // Fields: hero, trust, featuredWork, pageTitle, about, process, contact, theme, adminCredentials, cloudinary, projectOrder
-    //
-    // Collection: projects
-    // Document ID: {projectId}
-    // Fields: title, description, longDescription, images, galleryGrid, role, timeline, tech
-    //
-    // Collection: reviews
-    // Document ID: {reviewId}
-    // Fields: clientName, clientRole, content, rating, date
-    //
-    // ===============================================================
-
-    // ===============================================================
     // Helper Functions
     // ===============================================================
     
@@ -28,51 +10,66 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // Strict Admin Authorization:
+    // Only the verified admin account can execute administrative writes.
     function isAdmin() {
       return isAuthenticated() && 
-        (
-          request.auth.token.email == "francisestologa@gmail.com" || 
-          request.auth.token.email == get(/databases/$(database)/documents/settings/main).data.contact.email
-        ) && 
+        request.auth.token.email == "francisestologa@gmail.com" && 
         request.auth.token.email_verified == true;
     }
 
     function isValidString(field, maxLen) {
-      return request.resource.data[field] is string && request.resource.data[field].size() <= maxLen;
+      return request.resource.data[field] is string && 
+        request.resource.data[field].size() <= maxLen;
     }
 
     function isValidNumber(field, min, max) {
-      return request.resource.data[field] is number && request.resource.data[field] >= min && request.resource.data[field] <= max;
+      return request.resource.data[field] is number && 
+        request.resource.data[field] >= min && 
+        request.resource.data[field] <= max;
     }
 
     function hasOnlyAllowedFields(fields) {
       return request.resource.data.keys().hasOnly(fields);
     }
 
+    // Strict validator for public review submissions to prevent spam and injection attacks
+    function isValidReviewCreate() {
+      return hasOnlyAllowedFields(['id', 'clientName', 'clientRole', 'content', 'rating', 'date', 'avatar', 'avatarUrl', 'verified']) &&
+        isValidString('clientName', 100) && request.resource.data.clientName.size() > 0 &&
+        isValidString('content', 3000) && request.resource.data.content.size() > 0 &&
+        isValidNumber('rating', 1, 5) &&
+        (!('clientRole' in request.resource.data) || isValidString('clientRole', 100)) &&
+        (!('date' in request.resource.data) || isValidString('date', 100)) &&
+        (!('avatar' in request.resource.data) || isValidString('avatar', 500)) &&
+        (!('avatarUrl' in request.resource.data) || isValidString('avatarUrl', 500)) &&
+        (!('verified' in request.resource.data) || request.resource.data.verified is bool);
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
 
-    // Settings: Publicly readable, only admin can write
-    match /settings/main {
+    // Settings: Publicly readable for portfolio presentation, only authenticated admin can update
+    match /settings/{document=**} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // Projects: Publicly readable, only admin can write
+    // Projects: Publicly readable, only admin can create/modify/delete
     match /projects/{projectId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // Reviews: Publicly readable, anyone can create (for feedback), only admin can update/delete
+    // Reviews: Publicly readable, visitors can create with strict schema validation, only admin can edit/remove
     match /reviews/{reviewId} {
       allow read: if true;
-      allow create: if true; // Allow visitors to leave reviews
+      allow create: if isValidReviewCreate();
       allow update, delete: if isAdmin();
     }
 
-    // Default deny
+    // Default deny for all other collections
     match /{document=**} {
       allow read, write: if false;
     }

@@ -2884,70 +2884,21 @@ export default function AdminDashboard() {
     <div className="space-y-8">
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 md:p-8">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 pb-4 border-b border-zinc-800">
-          <div>
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <Shield className="w-6 h-6 text-emerald-500" />
-              Security & Defense Overview
-            </h2>
-            <p className="text-xs text-zinc-400 mt-1">Multi-layered enterprise defense system protecting your application</p>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-            <span className="text-emerald-400 text-xs font-bold tracking-wide">SECURITY SCORE: 10.0 / 10</span>
-          </div>
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <Shield className="w-6 h-6 text-emerald-500" />
+            Security Settings
+          </h2>
         </div>
         
         <div className="space-y-6">
           <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
             <p className="text-emerald-400 font-medium flex items-center gap-2">
               <Shield className="w-4 h-4" />
-              Enterprise Defense Architecture Fully Enforced
+              Firebase Authentication Active
             </p>
             <p className="text-sm text-zinc-400 mt-1">
-              Your application has achieved maximum security hardening across authentication, network boundary defense, proxy inspection, media validation, and cloud storage consolidation.
+              Your account is secured with Google Sign-In. Only authorized administrators can access this dashboard.
             </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 bg-zinc-950 border border-zinc-800/80 rounded-xl space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-zinc-200">1. Role & Token Validation</span>
-                <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded">ENFORCED</span>
-              </div>
-              <p className="text-xs text-zinc-400">Strict Firebase token verification on all write routes with verified email validation and Firestore rules.</p>
-            </div>
-
-            <div className="p-4 bg-zinc-950 border border-zinc-800/80 rounded-xl space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-zinc-200">2. Anti-Abuse Rate Limiting</span>
-                <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded">ENFORCED</span>
-              </div>
-              <p className="text-xs text-zinc-400">Layered rate limiting on API endpoints, contact submissions, oEmbed, and media streams, plus form honeypots.</p>
-            </div>
-
-            <div className="p-4 bg-zinc-950 border border-zinc-800/80 rounded-xl space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-zinc-200">3. Anti-SSRF Safe Proxying</span>
-                <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded">ENFORCED</span>
-              </div>
-              <p className="text-xs text-zinc-400">DNS pre-resolution filters private/cloud metadata IPs, strict HTTPS hostname allowlists, and manual redirect inspection.</p>
-            </div>
-
-            <div className="p-4 bg-zinc-950 border border-zinc-800/80 rounded-xl space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-zinc-200">4. Upload & CSP Hardening</span>
-                <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded">ENFORCED</span>
-              </div>
-              <p className="text-xs text-zinc-400">Binary magic bytes verification, strict MIME filtering, sandboxed static files, and comprehensive Content-Security-Policy.</p>
-            </div>
-
-            <div className="p-4 bg-zinc-950 border border-zinc-800/80 rounded-xl space-y-2 md:col-span-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-zinc-200">5. Storage Architecture Consolidation</span>
-                <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded">ENFORCED</span>
-              </div>
-              <p className="text-xs text-zinc-400">Local disk uploads permanently decommissioned (HTTP 410). All media uploads consolidated exclusively to authenticated Cloudinary storage with zero persistent container disk footprint.</p>
-            </div>
           </div>
 
           <div className="pt-6 border-t border-zinc-800">
@@ -2989,13 +2940,13 @@ export default function AdminDashboard() {
             {isCloudinaryConfigured ? (
               <span className="px-3 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
-                Cloudinary Active (Consolidated Storage)
+                Cloudinary Active
                 <Settings className="w-3 h-3 ml-0.5 opacity-60 group-hover:opacity-100" />
               </span>
             ) : (
-              <span className="px-3 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors" title="Configure Cloudinary: local storage has been sunsetted.">
+              <span className="px-3 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors" title="Configure Cloudinary for permanent cloud media storage.">
                 <div className="w-1.5 h-1.5 rounded-full bg-amber-400"></div>
-                Configure Cloudinary (Required)
+                Temporary Local Storage
                 <Settings className="w-3 h-3 ml-0.5 opacity-60 group-hover:opacity-100" />
               </span>
             )}
